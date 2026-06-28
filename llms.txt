@@ -1,0 +1,77 @@
+# @zakkster/lite-headless
+
+58 headless UI primitives on signal-based reactivity (@zakkster/lite-signal).
+Zero styling. Tree-shakable via per-primitive subpath exports. Framework-
+agnostic. Every primitive ships an optional `<lite-*>` custom element.
+
+The catalog spans overlays (dialog, alert-dialog, popover, tooltip, hover-card,
+menu, combobox, command-palette, toast, drawer, tour), form controls (slider,
+switch, rating, pin-input, tag-input, file-upload, color-picker, date-picker,
+stepper, inline-edit, form-field, password-input), data/display (tabs,
+accordion, tree, table-less primitives, pagination, carousel, calendar, kanban,
+sortable, timeline, descriptions, stat, meter, progress, skeleton, breadcrumb,
+badge, tag, avatar, card, banner, result, empty-state, separator, clipboard,
+notification-center), and layout/util (affix, anchor, back-top, split-panels,
+toolbar, toggle-group, steps, radio-group, picture).
+
+## Architecture
+
+The overlay primitives compose shared layers from /src/_overlay/:
+- core: state machine, open + status signals, cleanup ledger
+- position: 12 placements + flip + shift + arrow + autoUpdate
+- dismiss: Escape stack + composedPath-aware outside-click
+- focus: trap (modal) or move-only (non-modal); inert/visibility-aware
+- portal: move + restore across containers
+- scroll-lock: refcounted body overflow
+- aria: id generation + attribute setters
+
+Non-overlay primitives reuse only the aria id helpers. Every primitive returns
+a handle with `attach*(el)` methods + `destroy()`; overlays additionally expose
+`open`, `status`, `setOpen`, `toggle`.
+
+## hover-card: the lite-floating integration
+
+hover-card is positioned by @zakkster/lite-floating (createFloating +
+bindTransform + offset/flip/shift), whose autoUpdate pulls in
+@zakkster/lite-observe transitively. The other overlays keep _overlay/position
+(exact-pixel test contract). lite-floating + lite-observe are OPTIONAL peers --
+needed only if you use hover-card.
+
+## Subpaths
+
+Pattern: `@zakkster/lite-headless/<name>` (factory) and
+`@zakkster/lite-headless/<name>/element` (registers `<lite-<name>>`). The bare
+`@zakkster/lite-headless` re-exports every createXxx factory. Each primitive
+also ships its own `llms.txt` next to its source with the full options table,
+API, and painted-attribute contract.
+
+Newest additions: separator, clipboard, password-input, alert-dialog, hover-card.
+
+## Peer dependencies
+
+- @zakkster/lite-signal   (required)
+- @zakkster/lite-element  (optional; only for */element subpaths)
+- @zakkster/lite-floating (optional; only for hover-card)
+- @zakkster/lite-observe  (optional; pulled transitively by lite-floating)
+
+## Conventions
+
+- Static config (set once at createXxx). Reactive state is exposed via signals.
+- status ReadSignal: 'closed' -> 'opening' -> 'open' -> 'closing' -> 'closed'
+- Slots use data-* attributes: data-trigger, data-content, data-anchor,
+  data-arrow, data-close, data-trigger, data-indicator, data-input, data-toggle
+- aria attributes managed automatically
+- transition:true makes status wait for transitionend; default is immediate
+- CSS contract: see docs/CSS_CONTRACT.md (taxonomy) and
+  docs/CSS_CONTRACT_APPENDIX.md (per-primitive, auto-generated)
+
+## Test stack
+
+- node:test (NOT vitest)
+- happy-dom devDep (pinned ^15.11.0)
+- Per-test setupDOM/teardownDOM; teardown calls window.happyDOM.close()
+- 1521 tests; `tsc --noEmit` type-checks the full public surface
+
+## License
+
+MIT (c) Zahary Shinikchiev

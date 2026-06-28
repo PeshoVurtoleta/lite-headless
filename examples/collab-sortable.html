@@ -1,0 +1,453 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>lite-headless · collaborative sortable</title>
+<style>
+    :root {
+        --bg: #0a0e14;
+        --panel: #11161e;
+        --line: #1f2733;
+        --text: #e6edf3;
+        --text-dim: #8b96a3;
+        --text-faint: #4a5566;
+        --cyan: #00c8ff;
+        --cyan-dim: #006690;
+        --amber: #ffb400;
+        --amber-dim: #8a5f00;
+        --red: #ff5078;
+        --green: #78c850;
+        --glow-cyan: 0 0 6px rgba(0, 200, 255, 0.5);
+        --glow-amber: 0 0 6px rgba(255, 180, 0, 0.5);
+    }
+    * { box-sizing: border-box; }
+    body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: 'SF Mono', 'Monaco', Menlo, monospace;
+        font-size: 13px;
+        margin: 0;
+        padding: 2rem;
+        line-height: 1.5;
+    }
+    .container {
+        max-width: 700px;
+        margin: 0 auto;
+        display: grid;
+        gap: 1.5rem;
+    }
+    h1 {
+        font-size: 1.1rem;
+        color: var(--cyan);
+        text-shadow: var(--glow-cyan);
+        margin: 0 0 0.25rem;
+        letter-spacing: 0.05em;
+    }
+    .subtitle {
+        color: var(--text-dim);
+        font-size: 0.875rem;
+        margin-bottom: 1rem;
+    }
+    .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 1rem;
+    }
+    .panel-title {
+        font-size: 0.6875rem;
+        color: var(--text-faint);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 0.75rem;
+    }
+
+    /* sortable */
+    lite-sortable {
+        display: block;
+    }
+    lite-sortable ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+    [data-sortable-item] {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 0.75rem;
+        margin: 0.25rem 0;
+        background: #161c25;
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        color: var(--text-dim);
+        position: relative;
+        outline: none;
+        transition: background 80ms, color 80ms;
+        user-select: none;
+        -webkit-user-select: none;
+        touch-action: none;
+    }
+    [data-sortable-item]:hover {
+        background: #1a2230;
+        color: var(--text);
+    }
+    [data-sortable-item]:focus-visible {
+        outline: 1px solid var(--cyan-dim);
+        outline-offset: 1px;
+        color: var(--text);
+    }
+    [data-sortable-item][data-dragging="true"] { opacity: 0.4; }
+    [data-sortable-item][aria-grabbed="true"] {
+        background: rgba(255, 180, 0, 0.10);
+        border-color: var(--amber-dim);
+        color: var(--amber);
+        text-shadow: var(--glow-amber);
+    }
+    [data-sortable-item][data-insert-before]::before {
+        content: ""; position: absolute;
+        left: 0; right: 0; top: -3px; height: 2px;
+        background: var(--cyan); box-shadow: var(--glow-cyan);
+    }
+    [data-sortable-item][data-insert-after]::after {
+        content: ""; position: absolute;
+        left: 0; right: 0; bottom: -3px; height: 2px;
+        background: var(--cyan); box-shadow: var(--glow-cyan);
+    }
+    [data-sortable-handle] {
+        color: var(--text-faint);
+        user-select: none;
+        font-size: 0.875em;
+        padding: 0 0.25rem;
+    }
+    .item-label { flex: 1; }
+    .item-source {
+        font-size: 0.625rem;
+        color: var(--text-faint);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+    }
+    .item-source.local { color: var(--cyan-dim); }
+    .item-source.remote { color: var(--amber-dim); }
+
+    /* status panel */
+    .row {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.25rem 0;
+        border-bottom: 1px dotted var(--line);
+        align-items: baseline;
+    }
+    .row:last-child { border-bottom: none; }
+    .k { color: var(--text-faint); }
+    .v { color: var(--text); font-variant-numeric: tabular-nums; }
+    .v.cyan { color: var(--cyan); }
+    .v.amber { color: var(--amber); }
+    .v.green { color: var(--green); }
+    .v.red { color: var(--red); }
+    .v.dim { color: var(--text-dim); }
+
+    .controls {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+    button {
+        font: inherit;
+        padding: 0.375rem 0.875rem;
+        background: #1a2230;
+        border: 1px solid var(--line);
+        color: var(--text);
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background 80ms, color 80ms;
+    }
+    button:hover { background: #232c3c; color: var(--cyan); }
+    button:focus-visible { outline: 1px solid var(--cyan-dim); outline-offset: 1px; }
+    .replica-tag {
+        font-size: 0.75rem;
+        color: var(--amber);
+        font-variant-numeric: tabular-nums;
+    }
+    code {
+        font-family: inherit;
+        color: var(--cyan-dim);
+    }
+    .instructions {
+        background: rgba(0, 200, 255, 0.05);
+        border-left: 2px solid var(--cyan);
+        padding: 0.75rem 1rem;
+        color: var(--text-dim);
+        font-size: 0.875rem;
+        border-radius: 0 4px 4px 0;
+    }
+</style>
+
+<script type="importmap">
+{ "imports": {
+    "@zakkster/lite-signal":  "/node_modules/@zakkster/lite-signal/Signal.js",
+    "@zakkster/lite-element": "/node_modules/@zakkster/lite-element/Element.js",
+    "@zakkster/lite-store":   "/node_modules/@zakkster/lite-store/Store.js",
+    "@zakkster/lite-crdt":    "/node_modules/@zakkster/lite-crdt/CRDT.js"
+} }
+</script>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>collaborative sortable</h1>
+        <div class="subtitle">
+            lite-headless / sortable · lite-crdt (LWW-Map) · BroadcastChannel transport
+        </div>
+    </header>
+
+    <div class="instructions">
+        Open this page in <strong>two or more browser tabs</strong>. Drag an item in one tab — it
+        reorders in every tab via <code>BroadcastChannel</code>. Concurrent reorders resolve
+        last-writer-wins by Lamport clock.
+    </div>
+
+    <div class="panel">
+        <div class="panel-title">task list · synced across tabs</div>
+        <lite-sortable id="sortable" label="Reorder tasks" apply-dom-reorder>
+            <ul id="list"></ul>
+        </lite-sortable>
+    </div>
+
+    <div class="panel">
+        <div class="panel-title">crdt state</div>
+        <div class="row"><span class="k">replicaId</span>           <span class="v amber replica-tag" id="m-replica">—</span></div>
+        <div class="row"><span class="k">lamport clock</span>       <span class="v cyan" id="m-clock">0</span></div>
+        <div class="row"><span class="k">local ops emitted</span>   <span class="v" id="m-local-ops">0</span></div>
+        <div class="row"><span class="k">remote ops applied</span>  <span class="v" id="m-remote-ops">0</span></div>
+        <div class="row"><span class="k">last reason</span>         <span class="v dim" id="m-reason">—</span></div>
+        <div class="row"><span class="k">current order</span>       <span class="v cyan" id="m-order">—</span></div>
+    </div>
+
+    <div class="panel">
+        <div class="panel-title">controls</div>
+        <div class="controls">
+            <button id="b-shuffle">shuffle locally</button>
+            <button id="b-reset">reset to initial</button>
+            <button id="b-add">add task</button>
+            <button id="b-remove-last">remove last</button>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+import "/src/sortable/element.js";
+import { effect } from "@zakkster/lite-signal";
+import { createCRDTDoc, connectBroadcastChannel } from "@zakkster/lite-crdt";
+
+// ─── CRDT setup ────────────────────────────────────────────────────
+//
+// Architecture: a single LWW-Map ("list") with these keys:
+//   - "order": string[] -- the user-defined ordering of task ids
+//   - "labels": { [id]: string } -- a per-id label register
+//
+// Reorders write the entire order array under "order". Concurrent
+// reorders resolve last-writer-wins via Lamport timestamp. This is
+// the simplest correct strategy for an order-array: not merge-
+// preserving (tab A's "ABC" + tab B's "BAC" -> winner wins, the
+// loser's reorder is lost) but predictable and atomic.
+//
+// For a true merge-preserving distributed list you'd need RGA-like
+// per-item position keys (LSEQ, fractional indexing). That's out of
+// scope for the v1 CRDT primitives -- the README is explicit about
+// "No RGA / positional sequence / reorder / rich text. Order is
+// causal, not index-positional."
+
+const replicaId = (window.crypto?.randomUUID?.() || ("r" + Math.random().toString(36).slice(2, 10)));
+const doc = createCRDTDoc({ replicaId });
+
+const list = doc.map("list");
+
+// Initial state seed -- only the FIRST tab actually writes these.
+// Late joiners receive the state via the BroadcastChannel handshake.
+const INITIAL_ORDER  = ["t-buy-milk", "t-pay-rent", "t-walk-dog", "t-call-mom"];
+const INITIAL_LABELS = {
+    "t-buy-milk": "Buy milk",
+    "t-pay-rent": "Pay rent",
+    "t-walk-dog": "Walk the dog",
+    "t-call-mom": "Call mom",
+};
+
+// connectBroadcastChannel runs a request/state handshake on connect:
+// new tabs ask existing tabs for the full state and merge it before
+// we look at the initial values. So we wait a tick before deciding
+// whether to seed.
+const conn = connectBroadcastChannel(doc, "lite-headless-collab-sortable-v1");
+
+let localOps = 0;
+let remoteOps = 0;
+
+// Distinguish local op-emission (count as local) from incoming op
+// application via applyOp (count as remote). The 'op' event fires
+// only for LOCAL mutations -- it's the outgoing-transport event.
+doc.on("op", () => { localOps++; updateReadouts(); });
+
+// 'change' fires for ANY convergent state change. We use it to drive
+// the sortable from the CRDT projection, regardless of source.
+doc.on("change", () => updateSortableFromCRDT());
+
+// ─── seed initial state (only if the room is empty) ─────────────────
+// Give the BroadcastChannel handshake ~150ms to deliver any existing
+// state from older tabs. If 'list' is still empty after that, we're
+// the first tab and we seed.
+setTimeout(() => {
+    if (!list.has("order")) {
+        list.set("order", INITIAL_ORDER);
+        list.set("labels", INITIAL_LABELS);
+    }
+    updateSortableFromCRDT();
+    updateReadouts();
+}, 150);
+
+// ─── DOM + sortable wiring ──────────────────────────────────────────
+const sortable = document.getElementById("sortable");
+const listEl = document.getElementById("list");
+
+let _suppressNextLocalReorder = false;     // re-entrance guard for CRDT->sortable round trip
+let _lastLocalKey = null;                  // for "local" / "remote" item-source badges
+let _lastLocalReorderAt = 0;
+
+function renderItems(order, labels) {
+    // Reconcile <li> children with the current order array. Items
+    // present in the DOM but not in `order` are removed; items in
+    // `order` but not in the DOM are appended (in order). Existing
+    // items keep their identity (no re-mount, focus preserved).
+    const have = new Map();
+    for (const li of Array.from(listEl.children)) {
+        const key = li.getAttribute("data-sortable-item");
+        if (order.includes(key)) have.set(key, li);
+        else li.remove();
+    }
+    for (const key of order) {
+        if (have.has(key)) continue;
+        const li = document.createElement("li");
+        li.setAttribute("data-sortable-item", key);
+        li.innerHTML = `<span data-sortable-handle>⋮⋮</span><span class="item-label"></span><span class="item-source"></span>`;
+        listEl.appendChild(li);
+    }
+    // Paint labels + source badges every render
+    const recentLocal = (performance.now() - _lastLocalReorderAt) < 1500;
+    for (const li of listEl.children) {
+        const key = li.getAttribute("data-sortable-item");
+        li.querySelector(".item-label").textContent = (labels && labels[key]) || key;
+        const sourceEl = li.querySelector(".item-source");
+        if (recentLocal && key === _lastLocalKey) {
+            sourceEl.textContent = "local";
+            sourceEl.className = "item-source local";
+        } else {
+            sourceEl.textContent = "";
+            sourceEl.className = "item-source";
+        }
+    }
+}
+
+function updateSortableFromCRDT() {
+    const order = list.get("order");
+    const labels = list.get("labels");
+    if (!Array.isArray(order)) return;
+    renderItems(order, labels || {});
+    // Defer setOrder one microtask so the role observer's
+    // MutationObserver fires first and the sortable knows about any
+    // newly-appended <li>s. Without this delay, applyDOMReorder
+    // would skip the new item (sortable doesn't know it yet) and
+    // re-append the OLD items via appendChild -- which MOVES them
+    // past the new one, leaving the new item at position 0.
+    queueMicrotask(() => {
+        _suppressNextLocalReorder = true;
+        sortable.setOrder(order.slice());
+        queueMicrotask(() => { _suppressNextLocalReorder = false; });
+        updateReadouts();
+    });
+}
+
+sortable.addEventListener("reorder", (e) => {
+    if (_suppressNextLocalReorder) return;     // came from CRDT projection, not user
+    _lastLocalKey = e.detail.info.key || null;
+    _lastLocalReorderAt = performance.now();
+    list.set("order", e.detail.order.slice());
+    // 'order' write triggers 'change' -> updateSortableFromCRDT(),
+    // which calls sortable.setOrder(same order) -- no-op since the
+    // primitive's _setOrder identity-checks. Good. No loop.
+});
+
+// 'op' counter increments locally; we also need a remote counter.
+// We can derive it from doc.clock() minus localOps + initial 0,
+// but the simpler path is: listen to 'change' and check whether
+// it was triggered by a local op or a remote one. Since 'op' fires
+// before 'change' for local mutations, we set a sentinel.
+let _lastChangeWasLocal = false;
+doc.on("op", () => { _lastChangeWasLocal = true; });
+doc.on("change", () => {
+    if (!_lastChangeWasLocal) remoteOps++;
+    _lastChangeWasLocal = false;
+    updateReadouts();
+});
+
+// ─── readouts ──────────────────────────────────────────────────────
+function updateReadouts() {
+    document.getElementById("m-replica").textContent = replicaId.slice(0, 8);
+    document.getElementById("m-clock").textContent = doc.clock();
+    document.getElementById("m-local-ops").textContent = localOps;
+    document.getElementById("m-remote-ops").textContent = remoteOps;
+    const order = list.get("order");
+    document.getElementById("m-order").textContent = Array.isArray(order) ? order.map(k => {
+        // shorten "t-buy-milk" to "milk" for display
+        return k.replace(/^t-/, "").replace(/-/g, " ");
+    }).join(" / ") : "—";
+}
+
+// ─── controls ─────────────────────────────────────────────────────
+document.getElementById("b-shuffle").addEventListener("click", () => {
+    const cur = (list.get("order") || []).slice();
+    for (let i = cur.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [cur[i], cur[j]] = [cur[j], cur[i]];
+    }
+    list.set("order", cur);
+    document.getElementById("m-reason").textContent = "shuffle (local)";
+});
+
+document.getElementById("b-reset").addEventListener("click", () => {
+    list.set("order", INITIAL_ORDER.slice());
+    list.set("labels", { ...INITIAL_LABELS });
+    document.getElementById("m-reason").textContent = "reset (local)";
+});
+
+let _addCount = 0;
+document.getElementById("b-add").addEventListener("click", () => {
+    _addCount++;
+    const id = `t-new-${replicaId.slice(0, 4)}-${_addCount}`;
+    const label = `New task ${_addCount}`;
+    const order = (list.get("order") || []).slice();
+    const labels = { ...(list.get("labels") || {}) };
+    order.push(id);
+    labels[id] = label;
+    list.set("order", order);
+    list.set("labels", labels);
+    document.getElementById("m-reason").textContent = `add ${id} (local)`;
+});
+
+document.getElementById("b-remove-last").addEventListener("click", () => {
+    const order = (list.get("order") || []).slice();
+    if (order.length === 0) return;
+    const removed = order.pop();
+    const labels = { ...(list.get("labels") || {}) };
+    delete labels[removed];
+    list.set("order", order);
+    list.set("labels", labels);
+    document.getElementById("m-reason").textContent = `remove ${removed} (local)`;
+});
+
+// ─── cleanup on tab close ─────────────────────────────────────────
+window.addEventListener("beforeunload", () => {
+    conn.dispose();
+    doc.dispose();
+});
+</script>
+</body>
+</html>

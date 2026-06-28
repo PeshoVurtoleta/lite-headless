@@ -1,0 +1,1567 @@
+{
+  "aliases": [
+    {
+      "factory": [
+        "isDisabled"
+      ],
+      "host": "disabled",
+      "primitive": "slider"
+    },
+    {
+      "factory": [
+        "getMax"
+      ],
+      "host": "max",
+      "primitive": "stepper"
+    },
+    {
+      "factory": [
+        "getMin"
+      ],
+      "host": "min",
+      "primitive": "stepper"
+    },
+    {
+      "factory": [
+        "getStep"
+      ],
+      "host": "step",
+      "primitive": "stepper"
+    },
+    {
+      "factory": [
+        "getStep"
+      ],
+      "host": "step",
+      "primitive": "steps"
+    },
+    {
+      "factory": [
+        "isChecked"
+      ],
+      "host": "checked",
+      "primitive": "switch"
+    }
+  ],
+  "note": "JS API surface extracted from src/. Commit this and diff against it on every release.",
+  "primitives": {
+    "accordion": {
+      "factory_return": [
+        "_orderedKeys",
+        "attachItem",
+        "attachPanel",
+        "attachRoot",
+        "attachTrigger",
+        "close",
+        "destroy",
+        "destroyed",
+        "focusFirst",
+        "focusKey",
+        "focusLast",
+        "isOpen",
+        "open",
+        "setDisabled",
+        "setValue",
+        "toggle",
+        "value"
+      ],
+      "host_surface": [
+        "_accordionInstance",
+        "close",
+        "open",
+        "setDisabled",
+        "setValue",
+        "toggle",
+        "value"
+      ]
+    },
+    "affix": {
+      "factory_return": [
+        "_setPinnedForTest",
+        "attachRoot",
+        "destroy",
+        "destroyed",
+        "isPinned",
+        "offsetTop"
+      ],
+      "host_surface": [
+        "_affixInstance",
+        "isPinned",
+        "offsetTop"
+      ]
+    },
+    "anchor": {
+      "factory_return": [
+        "_setActiveForTest",
+        "activeKey",
+        "attachLink",
+        "attachRoot",
+        "destroy",
+        "destroyed",
+        "linkCount"
+      ],
+      "host_surface": [
+        "_anchorInstance",
+        "activeKey",
+        "linkCount"
+      ]
+    },
+    "avatar": {
+      "factory_return": [
+        "attachFallback",
+        "attachImage",
+        "attachRoot",
+        "colorHash",
+        "destroy",
+        "destroyed",
+        "initials",
+        "setSrc",
+        "state"
+      ],
+      "host_surface": [
+        "_avatarInstance",
+        "colorHash",
+        "initials",
+        "setSrc",
+        "state"
+      ]
+    },
+    "backtop": {
+      "factory_return": [
+        "attachButton",
+        "attachTarget",
+        "destroy",
+        "destroyed",
+        "isVisible",
+        "scrollToTop",
+        "smooth",
+        "threshold"
+      ],
+      "host_surface": [
+        "_backtopInstance",
+        "isVisible",
+        "scrollToTop",
+        "threshold"
+      ]
+    },
+    "badge": {
+      "factory_return": [
+        "attachRoot",
+        "count",
+        "decrement",
+        "destroy",
+        "destroyed",
+        "displayed",
+        "increment",
+        "intent",
+        "isDot",
+        "max",
+        "reset",
+        "setCount"
+      ],
+      "host_surface": [
+        "_badgeInstance",
+        "count",
+        "decrement",
+        "displayed",
+        "increment",
+        "reset",
+        "setCount"
+      ]
+    },
+    "banner": {
+      "factory_return": [
+        "attachDismissButton",
+        "attachRoot",
+        "destroy",
+        "destroyed",
+        "dismiss",
+        "kind",
+        "open",
+        "setKind",
+        "setOpen",
+        "show"
+      ],
+      "host_surface": [
+        "_bannerInstance",
+        "dismiss",
+        "isOpen",
+        "kind",
+        "setKind",
+        "setOpen",
+        "show"
+      ]
+    },
+    "breadcrumb": {
+      "factory_return": [
+        "attachItem",
+        "attachList",
+        "attachRoot",
+        "attachSeparator",
+        "currentKey",
+        "destroy",
+        "destroyed",
+        "items",
+        "setCurrent"
+      ],
+      "host_surface": [
+        "_breadcrumbInstance",
+        "current",
+        "items",
+        "setCurrent"
+      ]
+    },
+    "button": {
+      "factory_return": [
+        "attachRoot",
+        "canPress",
+        "destroy",
+        "destroyed",
+        "isDisabled",
+        "isLoading",
+        "isPressed",
+        "runAsync",
+        "setDisabled",
+        "setLoading",
+        "setPressed",
+        "toggle"
+      ],
+      "host_surface": [
+        "_buttonInstance",
+        "canPress",
+        "isDisabledState",
+        "isLoading",
+        "isPressed",
+        "runAsync",
+        "setDisabled",
+        "setLoading",
+        "setPressed"
+      ]
+    },
+    "calendar": {
+      "factory_return": [
+        "_dayCells",
+        "_eventEls",
+        "addEvent",
+        "attachDayCell",
+        "attachEvent",
+        "attachGrid",
+        "attachMonthLabel",
+        "attachNextMonth",
+        "attachPrevMonth",
+        "attachRoot",
+        "destroy",
+        "destroyed",
+        "events",
+        "eventsForDay",
+        "getDaysInView",
+        "getEvent",
+        "goToNextMonth",
+        "goToPrevMonth",
+        "goToToday",
+        "removeEvent",
+        "selectedDate",
+        "setEvents",
+        "setSelectedDate",
+        "setView",
+        "updateEvent",
+        "view",
+        "weekStartsOn"
+      ],
+      "host_surface": [
+        "_calendarInstance",
+        "addEvent",
+        "events",
+        "eventsForDay",
+        "getDaysInView",
+        "getEvent",
+        "goToNextMonth",
+        "goToPrevMonth",
+        "goToToday",
+        "removeEvent",
+        "selectedDate",
+        "setEvents",
+        "setSelectedDate",
+        "setView",
+        "updateEvent",
+        "view"
+      ]
+    },
+    "card": {
+      "factory_return": [
+        "attachBody",
+        "attachCollapseTrigger",
+        "attachDismissButton",
+        "attachRoot",
+        "collapsible",
+        "destroy",
+        "destroyed",
+        "dismiss",
+        "dismissible",
+        "isCollapsed",
+        "isDismissed",
+        "reopen",
+        "setCollapsed",
+        "toggle"
+      ],
+      "host_surface": [
+        "_cardInstance",
+        "collapse",
+        "dismiss",
+        "expand",
+        "isCollapsed",
+        "isDismissed",
+        "reopen",
+        "toggle"
+      ]
+    },
+    "carousel": {
+      "factory_return": [
+        "attachIndicator",
+        "attachNext",
+        "attachPlayPause",
+        "attachPrev",
+        "attachRoot",
+        "attachSlide",
+        "attachViewport",
+        "destroy",
+        "destroyed",
+        "first",
+        "go",
+        "index",
+        "isPlaying",
+        "last",
+        "next",
+        "pause",
+        "play",
+        "playing",
+        "prev",
+        "slideCount",
+        "toggle"
+      ],
+      "host_surface": [
+        "_carouselInstance",
+        "first",
+        "go",
+        "index",
+        "last",
+        "next",
+        "pause",
+        "play",
+        "playing",
+        "prev",
+        "slideCount",
+        "toggle"
+      ]
+    },
+    "color-picker": {
+      "factory_return": [
+        "alpha",
+        "attachAlphaHandle",
+        "attachAlphaSlider",
+        "attachArea",
+        "attachAreaHandle",
+        "attachHueHandle",
+        "attachHueSlider",
+        "attachRoot",
+        "attachSwatch",
+        "brightness",
+        "destroy",
+        "destroyed",
+        "hex",
+        "hsl",
+        "hsv",
+        "hue",
+        "oklch",
+        "rgb",
+        "saturation",
+        "setAlpha",
+        "setBrightness",
+        "setHex",
+        "setHsv",
+        "setHue",
+        "setOklch",
+        "setRgb",
+        "setSaturation"
+      ],
+      "host_surface": [
+        "_colorPickerInstance",
+        "alpha",
+        "brightness",
+        "hex",
+        "hsl",
+        "hsv",
+        "hue",
+        "oklch",
+        "rgb",
+        "saturation",
+        "setAlpha",
+        "setHex",
+        "setHsv",
+        "setOklch",
+        "setRgb"
+      ]
+    },
+    "combobox": {
+      "factory_return": [
+        "_highlightIndex",
+        "_items",
+        "attachInside",
+        "attachItem",
+        "attachListbox",
+        "attachTrigger",
+        "destroy",
+        "destroyed",
+        "open",
+        "setOpen",
+        "setValue",
+        "status",
+        "toggle",
+        "value"
+      ],
+      "host_surface": [
+        "setOpen",
+        "setValue",
+        "toggle"
+      ]
+    },
+    "command-palette": {
+      "factory_return": [
+        "activeIndex",
+        "attachEmpty",
+        "attachInput",
+        "attachList",
+        "clear",
+        "clearRecents",
+        "close",
+        "commands",
+        "destroy",
+        "destroyed",
+        "invoke",
+        "invokeActive",
+        "isOpen",
+        "markItem",
+        "next",
+        "open",
+        "prev",
+        "query",
+        "recents",
+        "refresh",
+        "register",
+        "results",
+        "setActive",
+        "setQuery",
+        "toggle",
+        "unregister"
+      ],
+      "host_surface": [
+        "_cmdPaletteInstance",
+        "activeIndex",
+        "clear",
+        "clearRecents",
+        "close",
+        "commands",
+        "invoke",
+        "invokeActive",
+        "isOpen",
+        "markItem",
+        "next",
+        "open",
+        "prev",
+        "query",
+        "recents",
+        "register",
+        "results",
+        "setActive",
+        "setQuery",
+        "toggle",
+        "unregister"
+      ]
+    },
+    "datepicker": {
+      "factory_return": [
+        "_dayElements",
+        "_monthElements",
+        "_today",
+        "_yearElements",
+        "attachDay",
+        "attachGrid",
+        "attachGridContainer",
+        "attachMonth",
+        "attachMonthLabel",
+        "attachNextMonth",
+        "attachPrevMonth",
+        "attachYear",
+        "cycleView",
+        "destroy",
+        "destroyed",
+        "focusedDate",
+        "getDaysInView",
+        "getMonthsInView",
+        "getYearsInView",
+        "goToMonth",
+        "goToNextMonth",
+        "goToPrevMonth",
+        "hoverDate",
+        "maxDate",
+        "minDate",
+        "mode",
+        "setValue",
+        "setView",
+        "value",
+        "view",
+        "viewMonth",
+        "weekStartsOn"
+      ],
+      "host_surface": [
+        "setValue",
+        "value"
+      ]
+    },
+    "descriptions": {
+      "factory_return": [
+        "attachItem",
+        "attachRoot",
+        "bordered",
+        "columns",
+        "destroy",
+        "destroyed"
+      ],
+      "host_surface": [
+        "_descriptionsInstance",
+        "bordered",
+        "columns"
+      ]
+    },
+    "dialog": {
+      "factory_return": [
+        "attachClose",
+        "attachContent",
+        "attachDescription",
+        "attachInside",
+        "attachOverlay",
+        "attachTitle",
+        "attachTrigger",
+        "destroy",
+        "destroyed",
+        "open",
+        "setOpen",
+        "status",
+        "toggle"
+      ],
+      "host_surface": [
+        "setOpen",
+        "toggle"
+      ]
+    },
+    "drawer": {
+      "factory_return": [
+        "attachBackdrop",
+        "attachCloseButton",
+        "attachContent",
+        "attachDescription",
+        "attachTitle",
+        "attachTrigger",
+        "destroy",
+        "destroyed",
+        "hideDrawer",
+        "open",
+        "setOpen",
+        "setSide",
+        "showDrawer",
+        "side",
+        "status"
+      ],
+      "host_surface": [
+        "_drawerInstance",
+        "hide",
+        "isOpen",
+        "setOpen",
+        "setSide",
+        "show",
+        "side",
+        "status"
+      ]
+    },
+    "empty-state": {
+      "factory_return": [
+        "attachActions",
+        "attachDescription",
+        "attachIcon",
+        "attachRoot",
+        "attachTitle",
+        "destroy",
+        "destroyed",
+        "setVariant",
+        "variant"
+      ],
+      "host_surface": [
+        "_emptyStateInstance",
+        "setVariant",
+        "variant"
+      ]
+    },
+    "file-upload": {
+      "factory_return": [
+        "abort",
+        "addFiles",
+        "attachDropZone",
+        "attachInput",
+        "clear",
+        "destroy",
+        "destroyed",
+        "entries",
+        "isDragOver",
+        "pendingCount",
+        "removeEntry",
+        "retry",
+        "totalProgress",
+        "uploadAll"
+      ],
+      "host_surface": [
+        "_fileUploadInstance",
+        "abort",
+        "addFiles",
+        "clear",
+        "entries",
+        "isDragOver",
+        "pendingCount",
+        "removeEntry",
+        "retry",
+        "totalProgress",
+        "uploadAll"
+      ]
+    },
+    "form-field": {
+      "factory_return": [
+        "attachControl",
+        "attachErrorText",
+        "attachHelperText",
+        "attachLabel",
+        "attachRoot",
+        "destroy",
+        "destroyed",
+        "errorMessage",
+        "required",
+        "reset",
+        "setRequired",
+        "setTouched",
+        "setValid",
+        "showsError",
+        "touched",
+        "valid"
+      ],
+      "host_surface": [
+        "_formFieldInstance",
+        "errorMessage",
+        "required",
+        "reset",
+        "setRequired",
+        "setTouched",
+        "setValid",
+        "touched",
+        "valid"
+      ]
+    },
+    "inline-edit": {
+      "factory_return": [
+        "attachDisplay",
+        "attachInput",
+        "attachRoot",
+        "attachTrigger",
+        "cancel",
+        "commit",
+        "destroy",
+        "destroyed",
+        "draftValue",
+        "isEditing",
+        "isInvalid",
+        "setDraftValue",
+        "setValue",
+        "startEdit",
+        "value"
+      ],
+      "host_surface": [
+        "_inlineEditInstance",
+        "cancel",
+        "commit",
+        "draftValue",
+        "isEditing",
+        "isInvalid",
+        "setDraftValue",
+        "setValue",
+        "startEdit",
+        "value"
+      ]
+    },
+    "kanban": {
+      "factory_return": [
+        "_cardAttached",
+        "_columnAttached",
+        "_columnOrder",
+        "addCard",
+        "addColumn",
+        "attachCard",
+        "attachColumn",
+        "attachDraggable",
+        "attachDropZone",
+        "attachHandle",
+        "cards",
+        "cardsInColumn",
+        "cardsInColumnReactive",
+        "columns",
+        "destroy",
+        "destroyed",
+        "getCard",
+        "getColumn",
+        "moveCard",
+        "removeCard",
+        "removeColumn",
+        "updateCard"
+      ],
+      "host_surface": [
+        "_kanbanInstance",
+        "addCard",
+        "addColumn",
+        "cards",
+        "cardsInColumn",
+        "columns",
+        "getCard",
+        "getColumn",
+        "moveCard",
+        "removeCard",
+        "removeColumn",
+        "updateCard"
+      ]
+    },
+    "menu": {
+      "factory_return": [
+        "_focusFirst",
+        "_focusIndex",
+        "_items",
+        "_menu",
+        "_submenus",
+        "attachAnchor",
+        "attachCheckboxItem",
+        "attachContextTarget",
+        "attachInside",
+        "attachItem",
+        "attachMenu",
+        "attachRadioItem",
+        "attachSeparator",
+        "attachSubmenu",
+        "attachTrigger",
+        "destroy",
+        "destroyed",
+        "open",
+        "setOpen",
+        "status",
+        "toggle"
+      ],
+      "host_surface": [
+        "_menuInstance",
+        "setOpen",
+        "toggle"
+      ]
+    },
+    "meter": {
+      "factory_return": [
+        "attachFill",
+        "attachRoot",
+        "destroy",
+        "destroyed",
+        "fraction",
+        "max",
+        "min",
+        "setValue",
+        "setValueText",
+        "state",
+        "value"
+      ],
+      "host_surface": [
+        "_meterInstance",
+        "fraction",
+        "setValue",
+        "setValueText",
+        "state",
+        "value"
+      ]
+    },
+    "notification-center": {
+      "factory_return": [
+        "_itemEls",
+        "add",
+        "attachClearAllButton",
+        "attachItem",
+        "attachMarkAllReadButton",
+        "attachRoot",
+        "attachUnreadBadge",
+        "clearAll",
+        "clearByKind",
+        "clearFilter",
+        "clearRead",
+        "destroy",
+        "destroyed",
+        "filter",
+        "getNotification",
+        "markAllRead",
+        "markRead",
+        "markUnread",
+        "notifications",
+        "remove",
+        "setFilter",
+        "setNotifications",
+        "unreadCount",
+        "update",
+        "visible"
+      ],
+      "host_surface": [
+        "_notificationCenterInstance",
+        "add",
+        "clearAll",
+        "clearByKind",
+        "clearFilter",
+        "clearRead",
+        "markAllRead",
+        "markRead",
+        "markUnread",
+        "notifications",
+        "remove",
+        "setFilter",
+        "unreadCount",
+        "update",
+        "visible"
+      ]
+    },
+    "pagination": {
+      "factory_return": [
+        "attachFirst",
+        "attachLast",
+        "attachNext",
+        "attachPageList",
+        "attachPrev",
+        "attachRoot",
+        "destroy",
+        "destroyed",
+        "first",
+        "items",
+        "last",
+        "markPage",
+        "next",
+        "page",
+        "pageCount",
+        "prev",
+        "setPage",
+        "setPageCount"
+      ],
+      "host_surface": [
+        "_paginationInstance",
+        "first",
+        "items",
+        "last",
+        "next",
+        "page",
+        "pageCount",
+        "prev",
+        "setPage",
+        "setPageCount"
+      ]
+    },
+    "picture": {
+      "factory_return": [
+        "activeSrc",
+        "attachImg",
+        "attachRoot",
+        "destroy",
+        "destroyed",
+        "retry",
+        "setSrc",
+        "src",
+        "state"
+      ],
+      "host_surface": [
+        "_pictureInstance",
+        "retry",
+        "setSrc",
+        "src",
+        "state"
+      ]
+    },
+    "pin-input": {
+      "factory_return": [
+        "attachInput",
+        "attachRoot",
+        "clear",
+        "destroy",
+        "destroyed",
+        "focusInput",
+        "isComplete",
+        "length",
+        "position",
+        "setPosition",
+        "setValue",
+        "submit",
+        "value"
+      ],
+      "host_surface": [
+        "_pinInstance",
+        "clear",
+        "focusInput",
+        "isComplete",
+        "position",
+        "setValue",
+        "submit",
+        "value"
+      ]
+    },
+    "popover": {
+      "factory_return": [
+        "_positioner",
+        "attachAnchor",
+        "attachArrow",
+        "attachClose",
+        "attachContent",
+        "attachInside",
+        "attachTrigger",
+        "destroy",
+        "destroyed",
+        "open",
+        "setOpen",
+        "status",
+        "toggle"
+      ],
+      "host_surface": [
+        "setOpen",
+        "toggle"
+      ]
+    },
+    "progress": {
+      "factory_return": [
+        "attachBar",
+        "attachIndicator",
+        "attachLabel",
+        "attachRoot",
+        "destroy",
+        "destroyed",
+        "fraction",
+        "indeterminate",
+        "isComplete",
+        "max",
+        "min",
+        "setIndeterminate",
+        "setMax",
+        "setMin",
+        "setValue",
+        "setValueText",
+        "value",
+        "variant"
+      ],
+      "host_surface": [
+        "_progressInstance",
+        "fraction",
+        "isComplete",
+        "setIndeterminate",
+        "setMax",
+        "setMin",
+        "setValue",
+        "setValueText",
+        "value"
+      ]
+    },
+    "radio-group": {
+      "factory_return": [
+        "attachItem",
+        "attachRoot",
+        "checkedKey",
+        "destroy",
+        "destroyed",
+        "isDisabled",
+        "itemCount",
+        "setDisabled",
+        "setItemDisabled",
+        "setValue",
+        "value"
+      ],
+      "host_surface": [
+        "_radioGroupInstance",
+        "checkedKey",
+        "isDisabled",
+        "itemCount",
+        "setDisabled",
+        "setItemDisabled",
+        "setValue",
+        "value"
+      ]
+    },
+    "rating": {
+      "factory_return": [
+        "attachItem",
+        "attachRail",
+        "attachRoot",
+        "clear",
+        "destroy",
+        "destroyed",
+        "displayValue",
+        "hoverValue",
+        "isReadOnly",
+        "max",
+        "setHoverValue",
+        "setReadOnly",
+        "setValue",
+        "step",
+        "value"
+      ],
+      "host_surface": [
+        "_ratingInstance",
+        "clear",
+        "displayValue",
+        "isReadOnly",
+        "ratingValue",
+        "setReadOnly",
+        "setValue"
+      ]
+    },
+    "result": {
+      "factory_return": [
+        "attachActions",
+        "attachIcon",
+        "attachRoot",
+        "attachSubtitle",
+        "attachTitle",
+        "destroy",
+        "destroyed",
+        "status"
+      ],
+      "host_surface": [
+        "_resultInstance",
+        "status"
+      ]
+    },
+    "skeleton": {
+      "factory_return": [
+        "attachContent",
+        "attachPlaceholder",
+        "attachRoot",
+        "conceal",
+        "destroy",
+        "destroyed",
+        "isResolved",
+        "pendingSources",
+        "ready",
+        "reset",
+        "resolve",
+        "reveal",
+        "setReady"
+      ],
+      "host_surface": [
+        "_skeletonInstance",
+        "conceal",
+        "pendingSources",
+        "ready",
+        "reset",
+        "resolve",
+        "reveal",
+        "setReady"
+      ]
+    },
+    "slider": {
+      "factory_return": [
+        "_dragging",
+        "_range",
+        "_thumbs",
+        "_track",
+        "attachLabel",
+        "attachRange",
+        "attachThumb",
+        "attachTrack",
+        "destroy",
+        "destroyed",
+        "inverted",
+        "isDisabled",
+        "largeStep",
+        "max",
+        "min",
+        "orientation",
+        "setDisabled",
+        "setValue",
+        "step",
+        "thumbCount",
+        "value"
+      ],
+      "host_surface": [
+        "disabled",
+        "setDisabled",
+        "setValue",
+        "value"
+      ]
+    },
+    "sortable": {
+      "factory_return": [
+        "attachHandle",
+        "attachItem",
+        "attachRoot",
+        "destroy",
+        "destroyed",
+        "dragKey",
+        "dragging",
+        "grabbed",
+        "insertAt",
+        "isDragging",
+        "items",
+        "move",
+        "order",
+        "removeKey",
+        "setDisabled",
+        "setItemDisabled",
+        "setOrder",
+        "swap"
+      ],
+      "host_surface": [
+        "_sortableInstance",
+        "insertAt",
+        "isDragging",
+        "items",
+        "move",
+        "removeKey",
+        "setItemDisabled",
+        "setOrder",
+        "swap"
+      ]
+    },
+    "split-panels": {
+      "factory_return": [
+        "attachContainer",
+        "attachHandle",
+        "attachPanel",
+        "collapsePanel",
+        "destroy",
+        "destroyed",
+        "expandPanel",
+        "layout",
+        "setLayout"
+      ],
+      "host_surface": [
+        "_splitInstance",
+        "collapsePanel",
+        "expandPanel",
+        "layout",
+        "reconcile",
+        "setLayout"
+      ]
+    },
+    "stat": {
+      "factory_return": [
+        "attachLabel",
+        "attachRoot",
+        "attachTrend",
+        "attachUnit",
+        "attachValue",
+        "destroy",
+        "destroyed",
+        "displayValue",
+        "label",
+        "setLabel",
+        "setTrend",
+        "setUnit",
+        "setValue",
+        "trend",
+        "unit",
+        "value"
+      ],
+      "host_surface": [
+        "_statInstance",
+        "displayedValue",
+        "setLabel",
+        "setTrend",
+        "setUnit",
+        "setValue",
+        "trend",
+        "value"
+      ]
+    },
+    "stepper": {
+      "factory_return": [
+        "attachDecrement",
+        "attachIncrement",
+        "attachInput",
+        "attachReadout",
+        "decrement",
+        "destroy",
+        "destroyed",
+        "displayValue",
+        "getMax",
+        "getMin",
+        "getStep",
+        "increment",
+        "setDisabled",
+        "setMax",
+        "setMin",
+        "setStep",
+        "setValue",
+        "value"
+      ],
+      "host_surface": [
+        "_stepperInstance",
+        "decrement",
+        "displayValue",
+        "increment",
+        "max",
+        "min",
+        "setMax",
+        "setMin",
+        "setStep",
+        "setValue",
+        "step",
+        "value"
+      ]
+    },
+    "steps": {
+      "factory_return": [
+        "attachNextButton",
+        "attachPrevButton",
+        "attachRoot",
+        "attachStep",
+        "canNavigateTo",
+        "clearAllErrors",
+        "current",
+        "currentStep",
+        "destroy",
+        "destroyed",
+        "getStep",
+        "indexOf",
+        "isComplete",
+        "next",
+        "orientation",
+        "prev",
+        "progress",
+        "reset",
+        "setCurrent",
+        "setCurrentById",
+        "setStepStatus",
+        "setSteps",
+        "statusOf",
+        "steps"
+      ],
+      "host_surface": [
+        "_stepsInstance",
+        "clearAllErrors",
+        "index",
+        "isComplete",
+        "next",
+        "prev",
+        "progress",
+        "reset",
+        "setCurrent",
+        "setCurrentById",
+        "setStepStatus",
+        "step"
+      ]
+    },
+    "switch": {
+      "factory_return": [
+        "attachInput",
+        "attachLabel",
+        "attachRoot",
+        "attachThumb",
+        "destroy",
+        "destroyed",
+        "disabled",
+        "isChecked",
+        "setChecked",
+        "setDisabled",
+        "toggle"
+      ],
+      "host_surface": [
+        "_switchInstance",
+        "checked",
+        "disabled",
+        "setChecked",
+        "setDisabled",
+        "toggle"
+      ]
+    },
+    "tabs": {
+      "factory_return": [
+        "_activeIndex",
+        "_tabs",
+        "attachPanel",
+        "attachTab",
+        "attachTablist",
+        "destroy",
+        "destroyed",
+        "first",
+        "last",
+        "next",
+        "prev",
+        "setDisabled",
+        "setValue",
+        "value"
+      ],
+      "host_surface": [
+        "_tabsInstance",
+        "first",
+        "last",
+        "next",
+        "prev",
+        "setDisabled",
+        "setValue",
+        "value"
+      ]
+    },
+    "tag": {
+      "factory_return": [
+        "attachCloseButton",
+        "attachRoot",
+        "closable",
+        "close",
+        "destroy",
+        "destroyed",
+        "intent",
+        "isRemoved",
+        "reset",
+        "setIntent"
+      ],
+      "host_surface": [
+        "_tagInstance",
+        "close",
+        "intent",
+        "isRemoved",
+        "reset",
+        "setIntent"
+      ]
+    },
+    "tag-input": {
+      "factory_return": [
+        "activeIndex",
+        "addTag",
+        "attachInput",
+        "attachRoot",
+        "canAddMore",
+        "clear",
+        "count",
+        "destroy",
+        "destroyed",
+        "focusInput",
+        "inputValue",
+        "removeLast",
+        "removeTag",
+        "setActiveIndex",
+        "setTags",
+        "tags"
+      ],
+      "host_surface": [
+        "_tagInputInstance",
+        "activeIndex",
+        "addTag",
+        "canAddMore",
+        "clear",
+        "count",
+        "focusInput",
+        "inputValue",
+        "removeLast",
+        "removeTag",
+        "setActiveIndex",
+        "setTags",
+        "tags"
+      ]
+    },
+    "timeline": {
+      "factory_return": [
+        "attachItem",
+        "attachRoot",
+        "destroy",
+        "destroyed",
+        "itemCount",
+        "setItemType"
+      ],
+      "host_surface": [
+        "_timelineInstance",
+        "itemCount",
+        "setItemType"
+      ]
+    },
+    "toast": {
+      "factory_return": [
+        "attachRoot",
+        "clear",
+        "count",
+        "destroy",
+        "destroyed",
+        "dismiss",
+        "focused",
+        "getEntries",
+        "hovering",
+        "show"
+      ],
+      "host_surface": [
+        "_toastInstance",
+        "clear",
+        "count",
+        "dismiss",
+        "show"
+      ]
+    },
+    "toggle-group": {
+      "factory_return": [
+        "attachItem",
+        "attachRoot",
+        "contains",
+        "destroy",
+        "destroyed",
+        "disabled",
+        "items",
+        "orientation",
+        "setDisabled",
+        "setItemDisabled",
+        "setValue",
+        "toggleItem",
+        "type",
+        "value"
+      ],
+      "host_surface": [
+        "_toggleGroupInstance",
+        "contains",
+        "disabled",
+        "setDisabled",
+        "setItemDisabled",
+        "setValue",
+        "toggleItem",
+        "type",
+        "value"
+      ]
+    },
+    "toolbar": {
+      "factory_return": [
+        "_items",
+        "attachGroup",
+        "attachItem",
+        "attachRoot",
+        "attachSeparator",
+        "destroy",
+        "destroyed",
+        "focusFirst",
+        "focusItem",
+        "focusLast",
+        "setItemDisabled"
+      ],
+      "host_surface": [
+        "_toolbarInstance",
+        "focusFirst",
+        "focusLast",
+        "setItemDisabled"
+      ]
+    },
+    "tooltip": {
+      "factory_return": [
+        "_positioner",
+        "attachAnchor",
+        "attachArrow",
+        "attachContent",
+        "attachTrigger",
+        "destroy",
+        "destroyed",
+        "open",
+        "setOpen",
+        "status",
+        "toggle"
+      ],
+      "host_surface": [
+        "setOpen",
+        "toggle"
+      ]
+    },
+    "tour": {
+      "factory_return": [
+        "addStep",
+        "attachRoot",
+        "attachStepContent",
+        "count",
+        "current",
+        "currentStep",
+        "destroy",
+        "destroyed",
+        "finish",
+        "goTo",
+        "isActive",
+        "isFirst",
+        "isLast",
+        "next",
+        "prev",
+        "removeStep",
+        "skip",
+        "start",
+        "steps"
+      ],
+      "host_surface": [
+        "_tourInstance",
+        "count",
+        "finish",
+        "goTo",
+        "index",
+        "isActive",
+        "isFirst",
+        "isLast",
+        "next",
+        "prev",
+        "skip",
+        "start"
+      ]
+    },
+    "tree": {
+      "factory_return": [
+        "_nodes",
+        "_rover",
+        "_visible",
+        "attachLabel",
+        "attachNode",
+        "attachRoot",
+        "collapse",
+        "collapseAll",
+        "deselect",
+        "destroy",
+        "destroyed",
+        "expand",
+        "expandAll",
+        "expanded",
+        "focusKey",
+        "hasChildren",
+        "isExpanded",
+        "isSelected",
+        "isVisible",
+        "select",
+        "selected",
+        "setDisabled",
+        "setExpanded",
+        "setSelected",
+        "toggleExpanded",
+        "toggleSelected"
+      ],
+      "host_surface": [
+        "_treeInstance",
+        "collapse",
+        "collapseAll",
+        "deselect",
+        "expand",
+        "expandAll",
+        "expanded",
+        "focusKey",
+        "select",
+        "selected",
+        "setDisabled",
+        "setExpanded",
+        "setSelected",
+        "toggleExpanded",
+        "toggleSelected"
+      ]
+    }
+  },
+  "totals": {
+    "aliased": 6,
+    "factory_return_keys": 790,
+    "host_only": 60,
+    "host_surface_members": 401,
+    "mirrored": 335,
+    "primitives": 53
+  },
+  "version": "1.0.0-pre"
+}

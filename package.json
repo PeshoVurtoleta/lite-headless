@@ -1,0 +1,544 @@
+{
+  "name": "@zakkster/lite-headless",
+  "version": "1.0.0",
+  "description": "Zero-dependency headless UI primitives — 58 ARIA-correct factories + custom-element wrappers, with explicit state-attribute CSS contract. Zero-GC hot paths; reactive accessors via lite-signal.",
+  "type": "module",
+  "main": "./src/index.js",
+  "module": "./src/index.js",
+  "types": "./types.d.ts",
+  "exports": {
+    ".": {
+      "types": "./types.d.ts",
+      "import": "./src/index.js"
+    },
+    "./accordion": {
+      "types": "./types.d.ts",
+      "import": "./src/accordion/index.js"
+    },
+    "./accordion/element": {
+      "types": "./types.d.ts",
+      "import": "./src/accordion/element.js"
+    },
+    "./affix": {
+      "types": "./types.d.ts",
+      "import": "./src/affix/index.js"
+    },
+    "./affix/element": {
+      "types": "./types.d.ts",
+      "import": "./src/affix/element.js"
+    },
+    "./alert-dialog": {
+      "types": "./types.d.ts",
+      "import": "./src/alert-dialog/index.js"
+    },
+    "./alert-dialog/element": {
+      "types": "./types.d.ts",
+      "import": "./src/alert-dialog/element.js"
+    },
+    "./anchor": {
+      "types": "./types.d.ts",
+      "import": "./src/anchor/index.js"
+    },
+    "./anchor/element": {
+      "types": "./types.d.ts",
+      "import": "./src/anchor/element.js"
+    },
+    "./avatar": {
+      "types": "./types.d.ts",
+      "import": "./src/avatar/index.js"
+    },
+    "./avatar/element": {
+      "types": "./types.d.ts",
+      "import": "./src/avatar/element.js"
+    },
+    "./backtop": {
+      "types": "./types.d.ts",
+      "import": "./src/backtop/index.js"
+    },
+    "./backtop/element": {
+      "types": "./types.d.ts",
+      "import": "./src/backtop/element.js"
+    },
+    "./badge": {
+      "types": "./types.d.ts",
+      "import": "./src/badge/index.js"
+    },
+    "./badge/element": {
+      "types": "./types.d.ts",
+      "import": "./src/badge/element.js"
+    },
+    "./banner": {
+      "types": "./types.d.ts",
+      "import": "./src/banner/index.js"
+    },
+    "./banner/element": {
+      "types": "./types.d.ts",
+      "import": "./src/banner/element.js"
+    },
+    "./breadcrumb": {
+      "types": "./types.d.ts",
+      "import": "./src/breadcrumb/index.js"
+    },
+    "./breadcrumb/element": {
+      "types": "./types.d.ts",
+      "import": "./src/breadcrumb/element.js"
+    },
+    "./button": {
+      "types": "./types.d.ts",
+      "import": "./src/button/index.js"
+    },
+    "./button/element": {
+      "types": "./types.d.ts",
+      "import": "./src/button/element.js"
+    },
+    "./calendar": {
+      "types": "./types.d.ts",
+      "import": "./src/calendar/index.js"
+    },
+    "./calendar/element": {
+      "types": "./types.d.ts",
+      "import": "./src/calendar/element.js"
+    },
+    "./card": {
+      "types": "./types.d.ts",
+      "import": "./src/card/index.js"
+    },
+    "./card/element": {
+      "types": "./types.d.ts",
+      "import": "./src/card/element.js"
+    },
+    "./carousel": {
+      "types": "./types.d.ts",
+      "import": "./src/carousel/index.js"
+    },
+    "./carousel/element": {
+      "types": "./types.d.ts",
+      "import": "./src/carousel/element.js"
+    },
+    "./clipboard": {
+      "types": "./types.d.ts",
+      "import": "./src/clipboard/index.js"
+    },
+    "./clipboard/element": {
+      "types": "./types.d.ts",
+      "import": "./src/clipboard/element.js"
+    },
+    "./color-picker": {
+      "types": "./types.d.ts",
+      "import": "./src/color-picker/index.js"
+    },
+    "./color-picker/element": {
+      "types": "./types.d.ts",
+      "import": "./src/color-picker/element.js"
+    },
+    "./combobox": {
+      "types": "./types.d.ts",
+      "import": "./src/combobox/index.js"
+    },
+    "./combobox/element": {
+      "types": "./types.d.ts",
+      "import": "./src/combobox/element.js"
+    },
+    "./command-palette": {
+      "types": "./types.d.ts",
+      "import": "./src/command-palette/index.js"
+    },
+    "./command-palette/element": {
+      "types": "./types.d.ts",
+      "import": "./src/command-palette/element.js"
+    },
+    "./datepicker": {
+      "types": "./types.d.ts",
+      "import": "./src/datepicker/index.js"
+    },
+    "./datepicker/element": {
+      "types": "./types.d.ts",
+      "import": "./src/datepicker/element.js"
+    },
+    "./descriptions": {
+      "types": "./types.d.ts",
+      "import": "./src/descriptions/index.js"
+    },
+    "./descriptions/element": {
+      "types": "./types.d.ts",
+      "import": "./src/descriptions/element.js"
+    },
+    "./dialog": {
+      "types": "./types.d.ts",
+      "import": "./src/dialog/index.js"
+    },
+    "./dialog/element": {
+      "types": "./types.d.ts",
+      "import": "./src/dialog/element.js"
+    },
+    "./drawer": {
+      "types": "./types.d.ts",
+      "import": "./src/drawer/index.js"
+    },
+    "./drawer/element": {
+      "types": "./types.d.ts",
+      "import": "./src/drawer/element.js"
+    },
+    "./empty-state": {
+      "types": "./types.d.ts",
+      "import": "./src/empty-state/index.js"
+    },
+    "./empty-state/element": {
+      "types": "./types.d.ts",
+      "import": "./src/empty-state/element.js"
+    },
+    "./file-upload": {
+      "types": "./types.d.ts",
+      "import": "./src/file-upload/index.js"
+    },
+    "./file-upload/element": {
+      "types": "./types.d.ts",
+      "import": "./src/file-upload/element.js"
+    },
+    "./form-field": {
+      "types": "./types.d.ts",
+      "import": "./src/form-field/index.js"
+    },
+    "./form-field/element": {
+      "types": "./types.d.ts",
+      "import": "./src/form-field/element.js"
+    },
+    "./hover-card": {
+      "types": "./types.d.ts",
+      "import": "./src/hover-card/index.js"
+    },
+    "./hover-card/element": {
+      "types": "./types.d.ts",
+      "import": "./src/hover-card/element.js"
+    },
+    "./inline-edit": {
+      "types": "./types.d.ts",
+      "import": "./src/inline-edit/index.js"
+    },
+    "./inline-edit/element": {
+      "types": "./types.d.ts",
+      "import": "./src/inline-edit/element.js"
+    },
+    "./kanban": {
+      "types": "./types.d.ts",
+      "import": "./src/kanban/index.js"
+    },
+    "./kanban/element": {
+      "types": "./types.d.ts",
+      "import": "./src/kanban/element.js"
+    },
+    "./menu": {
+      "types": "./types.d.ts",
+      "import": "./src/menu/index.js"
+    },
+    "./menu/element": {
+      "types": "./types.d.ts",
+      "import": "./src/menu/element.js"
+    },
+    "./meter": {
+      "types": "./types.d.ts",
+      "import": "./src/meter/index.js"
+    },
+    "./meter/element": {
+      "types": "./types.d.ts",
+      "import": "./src/meter/element.js"
+    },
+    "./notification-center": {
+      "types": "./types.d.ts",
+      "import": "./src/notification-center/index.js"
+    },
+    "./notification-center/element": {
+      "types": "./types.d.ts",
+      "import": "./src/notification-center/element.js"
+    },
+    "./pagination": {
+      "types": "./types.d.ts",
+      "import": "./src/pagination/index.js"
+    },
+    "./pagination/element": {
+      "types": "./types.d.ts",
+      "import": "./src/pagination/element.js"
+    },
+    "./password-input": {
+      "types": "./types.d.ts",
+      "import": "./src/password-input/index.js"
+    },
+    "./password-input/element": {
+      "types": "./types.d.ts",
+      "import": "./src/password-input/element.js"
+    },
+    "./picture": {
+      "types": "./types.d.ts",
+      "import": "./src/picture/index.js"
+    },
+    "./picture/element": {
+      "types": "./types.d.ts",
+      "import": "./src/picture/element.js"
+    },
+    "./pin-input": {
+      "types": "./types.d.ts",
+      "import": "./src/pin-input/index.js"
+    },
+    "./pin-input/element": {
+      "types": "./types.d.ts",
+      "import": "./src/pin-input/element.js"
+    },
+    "./popover": {
+      "types": "./types.d.ts",
+      "import": "./src/popover/index.js"
+    },
+    "./popover/element": {
+      "types": "./types.d.ts",
+      "import": "./src/popover/element.js"
+    },
+    "./progress": {
+      "types": "./types.d.ts",
+      "import": "./src/progress/index.js"
+    },
+    "./progress/element": {
+      "types": "./types.d.ts",
+      "import": "./src/progress/element.js"
+    },
+    "./radio-group": {
+      "types": "./types.d.ts",
+      "import": "./src/radio-group/index.js"
+    },
+    "./radio-group/element": {
+      "types": "./types.d.ts",
+      "import": "./src/radio-group/element.js"
+    },
+    "./rating": {
+      "types": "./types.d.ts",
+      "import": "./src/rating/index.js"
+    },
+    "./rating/element": {
+      "types": "./types.d.ts",
+      "import": "./src/rating/element.js"
+    },
+    "./result": {
+      "types": "./types.d.ts",
+      "import": "./src/result/index.js"
+    },
+    "./result/element": {
+      "types": "./types.d.ts",
+      "import": "./src/result/element.js"
+    },
+    "./separator": {
+      "types": "./types.d.ts",
+      "import": "./src/separator/index.js"
+    },
+    "./separator/element": {
+      "types": "./types.d.ts",
+      "import": "./src/separator/element.js"
+    },
+    "./skeleton": {
+      "types": "./types.d.ts",
+      "import": "./src/skeleton/index.js"
+    },
+    "./skeleton/element": {
+      "types": "./types.d.ts",
+      "import": "./src/skeleton/element.js"
+    },
+    "./slider": {
+      "types": "./types.d.ts",
+      "import": "./src/slider/index.js"
+    },
+    "./slider/element": {
+      "types": "./types.d.ts",
+      "import": "./src/slider/element.js"
+    },
+    "./sortable": {
+      "types": "./types.d.ts",
+      "import": "./src/sortable/index.js"
+    },
+    "./sortable/element": {
+      "types": "./types.d.ts",
+      "import": "./src/sortable/element.js"
+    },
+    "./split-panels": {
+      "types": "./types.d.ts",
+      "import": "./src/split-panels/index.js"
+    },
+    "./split-panels/element": {
+      "types": "./types.d.ts",
+      "import": "./src/split-panels/element.js"
+    },
+    "./stat": {
+      "types": "./types.d.ts",
+      "import": "./src/stat/index.js"
+    },
+    "./stat/element": {
+      "types": "./types.d.ts",
+      "import": "./src/stat/element.js"
+    },
+    "./stepper": {
+      "types": "./types.d.ts",
+      "import": "./src/stepper/index.js"
+    },
+    "./stepper/element": {
+      "types": "./types.d.ts",
+      "import": "./src/stepper/element.js"
+    },
+    "./steps": {
+      "types": "./types.d.ts",
+      "import": "./src/steps/index.js"
+    },
+    "./steps/element": {
+      "types": "./types.d.ts",
+      "import": "./src/steps/element.js"
+    },
+    "./switch": {
+      "types": "./types.d.ts",
+      "import": "./src/switch/index.js"
+    },
+    "./switch/element": {
+      "types": "./types.d.ts",
+      "import": "./src/switch/element.js"
+    },
+    "./tabs": {
+      "types": "./types.d.ts",
+      "import": "./src/tabs/index.js"
+    },
+    "./tabs/element": {
+      "types": "./types.d.ts",
+      "import": "./src/tabs/element.js"
+    },
+    "./tag": {
+      "types": "./types.d.ts",
+      "import": "./src/tag/index.js"
+    },
+    "./tag/element": {
+      "types": "./types.d.ts",
+      "import": "./src/tag/element.js"
+    },
+    "./tag-input": {
+      "types": "./types.d.ts",
+      "import": "./src/tag-input/index.js"
+    },
+    "./tag-input/element": {
+      "types": "./types.d.ts",
+      "import": "./src/tag-input/element.js"
+    },
+    "./timeline": {
+      "types": "./types.d.ts",
+      "import": "./src/timeline/index.js"
+    },
+    "./timeline/element": {
+      "types": "./types.d.ts",
+      "import": "./src/timeline/element.js"
+    },
+    "./toast": {
+      "types": "./types.d.ts",
+      "import": "./src/toast/index.js"
+    },
+    "./toast/element": {
+      "types": "./types.d.ts",
+      "import": "./src/toast/element.js"
+    },
+    "./toggle-group": {
+      "types": "./types.d.ts",
+      "import": "./src/toggle-group/index.js"
+    },
+    "./toggle-group/element": {
+      "types": "./types.d.ts",
+      "import": "./src/toggle-group/element.js"
+    },
+    "./toolbar": {
+      "types": "./types.d.ts",
+      "import": "./src/toolbar/index.js"
+    },
+    "./toolbar/element": {
+      "types": "./types.d.ts",
+      "import": "./src/toolbar/element.js"
+    },
+    "./tooltip": {
+      "types": "./types.d.ts",
+      "import": "./src/tooltip/index.js"
+    },
+    "./tooltip/element": {
+      "types": "./types.d.ts",
+      "import": "./src/tooltip/element.js"
+    },
+    "./tour": {
+      "types": "./types.d.ts",
+      "import": "./src/tour/index.js"
+    },
+    "./tour/element": {
+      "types": "./types.d.ts",
+      "import": "./src/tour/element.js"
+    },
+    "./tree": {
+      "types": "./types.d.ts",
+      "import": "./src/tree/index.js"
+    },
+    "./tree/element": {
+      "types": "./types.d.ts",
+      "import": "./src/tree/element.js"
+    },
+    "./types": "./types.d.ts",
+    "./CSS_CONTRACT.md": "./docs/CSS_CONTRACT.md",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src/",
+    "types.d.ts",
+    "docs/",
+    "llms.txt",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "test:browser": "playwright test",
+    "types": "tsc --noEmit",
+    "types:watch": "tsc --noEmit --watch",
+    "gen:appendix": "node scripts/gen-css-appendix.mjs",
+    "verify": "npm test && npm run types"
+  },
+  "peerDependencies": {
+    "@zakkster/lite-element": "^1.0.0",
+    "@zakkster/lite-signal": "^1.2.0",
+    "@zakkster/lite-floating": "^1.0.0",
+    "@zakkster/lite-observe": "^1.0.1"
+  },
+  "peerDependenciesMeta": {
+    "@zakkster/lite-floating": { "optional": true },
+    "@zakkster/lite-observe": { "optional": true }
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.45.0",
+    "@zakkster/lite-element": "^1.1.0",
+    "@zakkster/lite-floating": "^1.0.0",
+    "@zakkster/lite-observe": "^1.0.1",
+    "@zakkster/lite-signal": "^1.2.2",
+    "happy-dom": "^15.11.0",
+    "typescript": "^5.9.3"
+  },
+  "keywords": [
+    "headless-ui",
+    "web-components",
+    "custom-elements",
+    "zero-gc",
+    "aria",
+    "primitives",
+    "reactive",
+    "signals"
+  ],
+  "author": "Zahary Shinikchiev <shinikchiev@yahoo.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PeshoVurtoleta/lite-headless.git"
+  },
+  "homepage": "https://github.com/PeshoVurtoleta/lite-headless#readme",
+  "bugs": {
+    "url": "https://github.com/PeshoVurtoleta/lite-headless/issues",
+    "email": "shinikchiev@yahoo.com"
+  },
+  "funding": {
+    "type": "github",
+    "url": "https://github.com/sponsors/PeshoVurtoleta"
+  }
+}

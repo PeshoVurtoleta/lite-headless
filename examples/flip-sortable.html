@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>lite-headless · sortable + FLIP animation</title>
+<style>
+    :root {
+        --bg: #0a0e14;
+        --panel: #11161e;
+        --line: #1f2733;
+        --text: #e6edf3;
+        --text-dim: #8b96a3;
+        --text-faint: #4a5566;
+        --cyan: #00c8ff;
+        --cyan-dim: #006690;
+        --amber: #ffb400;
+        --amber-dim: #8a5f00;
+        --glow-cyan: 0 0 6px rgba(0, 200, 255, 0.5);
+        --glow-amber: 0 0 6px rgba(255, 180, 0, 0.5);
+    }
+    * { box-sizing: border-box; }
+    body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: 'SF Mono', 'Monaco', Menlo, monospace;
+        font-size: 13px;
+        margin: 0;
+        padding: 2rem;
+        line-height: 1.5;
+    }
+    .container { max-width: 600px; margin: 0 auto; display: grid; gap: 1.5rem; }
+    h1 {
+        font-size: 1.1rem; color: var(--cyan); text-shadow: var(--glow-cyan);
+        margin: 0 0 0.25rem; letter-spacing: 0.05em;
+    }
+    .subtitle { color: var(--text-dim); font-size: 0.875rem; margin-bottom: 1rem; }
+    .panel {
+        background: var(--panel); border: 1px solid var(--line);
+        border-radius: 6px; padding: 1rem;
+    }
+    .panel-title {
+        font-size: 0.6875rem; color: var(--text-faint);
+        text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.75rem;
+    }
+
+    lite-sortable ul { list-style: none; margin: 0; padding: 0; }
+    [data-sortable-item] {
+        display: flex; align-items: center; gap: 0.5rem;
+        padding: 0.625rem 0.75rem;
+        margin: 0.25rem 0;
+        background: #161c25;
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        color: var(--text-dim);
+        position: relative;
+        outline: none;
+        /* FLIP needs us NOT to use a CSS transition by default --
+           we set it imperatively inside flipAfter() per element. */
+        user-select: none;
+        -webkit-user-select: none;
+        touch-action: none;
+    }
+    [data-sortable-item]:hover { background: #1a2230; color: var(--text); }
+    [data-sortable-item]:focus-visible {
+        outline: 1px solid var(--cyan-dim);
+        outline-offset: 1px; color: var(--text);
+    }
+    [data-sortable-item][data-dragging="true"] { opacity: 0.4; }
+    [data-sortable-item][aria-grabbed="true"] {
+        background: rgba(255, 180, 0, 0.10);
+        border-color: var(--amber-dim);
+        color: var(--amber);
+        text-shadow: var(--glow-amber);
+    }
+    [data-sortable-item][data-insert-before]::before {
+        content: ""; position: absolute;
+        left: 0; right: 0; top: -3px; height: 2px;
+        background: var(--cyan); box-shadow: var(--glow-cyan);
+    }
+    [data-sortable-item][data-insert-after]::after {
+        content: ""; position: absolute;
+        left: 0; right: 0; bottom: -3px; height: 2px;
+        background: var(--cyan); box-shadow: var(--glow-cyan);
+    }
+    [data-sortable-handle] {
+        color: var(--text-faint);
+        user-select: none;
+        font-size: 0.875em;
+        padding: 0 0.25rem;
+    }
+    .item-label { flex: 1; }
+    .item-prio {
+        font-size: 0.625rem;
+        color: var(--text-faint);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    .controls {
+        display: flex; gap: 0.5rem; flex-wrap: wrap;
+    }
+    button {
+        font: inherit;
+        padding: 0.375rem 0.875rem;
+        background: #1a2230;
+        border: 1px solid var(--line);
+        color: var(--text);
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background 80ms, color 80ms;
+    }
+    button:hover { background: #232c3c; color: var(--cyan); }
+    button:focus-visible { outline: 1px solid var(--cyan-dim); outline-offset: 1px; }
+    .toggle {
+        margin-left: auto;
+        display: flex; align-items: center; gap: 0.5rem;
+        font-size: 0.75rem; color: var(--text-dim);
+    }
+    .toggle input { accent-color: var(--cyan); }
+    code { font-family: inherit; color: var(--cyan-dim); }
+    .row {
+        display: flex; justify-content: space-between;
+        padding: 0.25rem 0; border-bottom: 1px dotted var(--line);
+    }
+    .row:last-child { border-bottom: none; }
+    .k { color: var(--text-faint); }
+    .v { color: var(--text); }
+</style>
+<script type="importmap">
+{ "imports": {
+    "@zakkster/lite-signal":  "/node_modules/@zakkster/lite-signal/Signal.js",
+    "@zakkster/lite-element": "/node_modules/@zakkster/lite-element/Element.js"
+} }
+</script>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>sortable + FLIP animation</h1>
+        <div class="subtitle">
+            zero-dep FLIP recipe · animates every reorder (drag, keyboard, shuffle, swap)
+        </div>
+    </header>
+
+    <div class="panel">
+        <div class="panel-title">task list — drag, use keyboard, or shuffle</div>
+        <lite-sortable id="sortable" label="Reorder tasks" apply-dom-reorder>
+            <ul id="list">
+                <li data-sortable-item="boot">
+                    <span data-sortable-handle>⋮⋮</span>
+                    <span class="item-label">boot-sequence.sh</span>
+                    <span class="item-prio">critical</span>
+                </li>
+                <li data-sortable-item="kernel">
+                    <span data-sortable-handle>⋮⋮</span>
+                    <span class="item-label">load kernel modules</span>
+                    <span class="item-prio">high</span>
+                </li>
+                <li data-sortable-item="net">
+                    <span data-sortable-handle>⋮⋮</span>
+                    <span class="item-label">init network stack</span>
+                    <span class="item-prio">high</span>
+                </li>
+                <li data-sortable-item="services">
+                    <span data-sortable-handle>⋮⋮</span>
+                    <span class="item-label">start system services</span>
+                    <span class="item-prio">medium</span>
+                </li>
+                <li data-sortable-item="ui">
+                    <span data-sortable-handle>⋮⋮</span>
+                    <span class="item-label">launch UI shell</span>
+                    <span class="item-prio">medium</span>
+                </li>
+                <li data-sortable-item="diag">
+                    <span data-sortable-handle>⋮⋮</span>
+                    <span class="item-label">run diagnostics</span>
+                    <span class="item-prio">low</span>
+                </li>
+            </ul>
+        </lite-sortable>
+    </div>
+
+    <div class="panel">
+        <div class="panel-title">controls</div>
+        <div class="controls">
+            <button id="b-shuffle">shuffle</button>
+            <button id="b-reverse">reverse</button>
+            <button id="b-reset">reset</button>
+            <button id="b-swap-ends">swap first ↔ last</button>
+            <label class="toggle">
+                <input type="checkbox" id="t-flip" checked>
+                FLIP animation
+            </label>
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="panel-title">how it works</div>
+        <p style="margin: 0 0 0.5rem; color: var(--text-dim);">
+            Two functions: <code>flipBefore(els)</code> reads every item's
+            <code>getBoundingClientRect()</code> and stashes it in a <code>Map</code>.
+            <code>flipAfter(rects)</code> reads the NEW rects after the DOM
+            mutation, computes the delta, applies <code>transform: translate(dx, dy)</code>
+            without a transition (so the items appear unchanged), then on the next
+            two animation frames clears the transform with a transition — the
+            browser animates the difference.
+        </p>
+        <p style="margin: 0; color: var(--text-dim);">
+            Wrapped around drag (via <code>dragstart</code> + <code>reorder</code>
+            events) and around imperative calls (via the
+            <code>withFlip(fn)</code> helper). Zero deps. ~30 LOC.
+        </p>
+    </div>
+
+    <div class="panel">
+        <div class="panel-title">live state</div>
+        <div class="row"><span class="k">current order</span>     <span class="v" id="m-order">—</span></div>
+        <div class="row"><span class="k">last reason</span>       <span class="v" id="m-reason">—</span></div>
+        <div class="row"><span class="k">last duration</span>     <span class="v" id="m-duration">—</span></div>
+    </div>
+</div>
+
+<script type="module">
+import "/src/sortable/element.js";
+
+const sortable  = document.getElementById("sortable");
+const container = document.getElementById("list");
+
+// ─── FLIP helpers ──────────────────────────────────────────────────
+//
+// flipBefore  — snapshot every item's bounding rect.
+// flipAfter   — read new rects, transform each item back to its old
+//               position, then on the next two frames clear the
+//               transform with a transition. Two-frame delay is
+//               important: rAF #1 lets the browser commit the
+//               transform without transition; rAF #2 starts the
+//               transition to identity.
+function flipBefore(els) {
+    const rects = new Map();
+    for (const el of els) rects.set(el, el.getBoundingClientRect());
+    return rects;
+}
+function flipAfter(rects, opts = {}) {
+    const dur = opts.duration  || 280;
+    const ease = opts.ease     || "cubic-bezier(0.4, 0, 0.2, 1)";
+    let any = false;
+    for (const [el, before] of rects) {
+        const after = el.getBoundingClientRect();
+        const dx = before.left - after.left;
+        const dy = before.top  - after.top;
+        if (dx === 0 && dy === 0) continue;
+        any = true;
+        el.style.transition = "none";
+        el.style.transform  = `translate(${dx}px, ${dy}px)`;
+    }
+    if (!any) return;
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+        for (const [el] of rects) {
+            el.style.transition = `transform ${dur}ms ${ease}`;
+            el.style.transform  = "";
+        }
+        // clean up transition styles after animation ends so the
+        // next non-flip mutation doesn't drag the transition along
+        setTimeout(() => {
+            for (const [el] of rects) {
+                el.style.transition = "";
+            }
+        }, dur + 50);
+    }));
+}
+
+// withFlip — wrap any imperative mutation so it animates
+function withFlip(mutate) {
+    if (!flipEnabled()) return mutate();
+    const t0 = performance.now();
+    const state = flipBefore(container.children);
+    mutate();
+    flipAfter(state);
+    setTimeout(() => recordReason("imperative", performance.now() - t0), 0);
+}
+
+function flipEnabled() {
+    return document.getElementById("t-flip").checked;
+}
+
+// ─── Pointer/keyboard reorder hook ─────────────────────────────────
+//
+// The sortable primitive fires dragstart BEFORE applyDOMReorder runs
+// and reorder AFTER. We snapshot rects on dragstart, then animate on
+// reorder. Works for both pointer drag and keyboard pickup arrows
+// (each arrow press fires dragstart=false but reorder=true on a
+// previously-captured pickup state -- so we capture on the
+// firstkey too).
+let _flipState = null;
+
+sortable.addEventListener("dragstart", () => {
+    if (!flipEnabled()) return;
+    _flipState = flipBefore(container.children);
+});
+
+// For keyboard pickup, dragstart fires on Space but ALSO every arrow
+// press doesn't re-fire it. We re-capture in onReorder if we don't
+// have a stash. (Simpler than tracking pickup mode explicitly.)
+sortable.addEventListener("reorder", (e) => {
+    if (!flipEnabled()) {
+        recordReason(e.detail.info.reason, 0);
+        renderReadout();
+        return;
+    }
+    const t0 = performance.now();
+    if (_flipState) {
+        flipAfter(_flipState);
+        _flipState = null;
+    }
+    // Re-capture immediately so the NEXT keyboard-pickup arrow has a
+    // baseline. (Arrows commit one step each; we want the animation
+    // between each commit.) On pointer drag this is harmless — by the
+    // time we get the next dragstart the snapshot is replaced.
+    requestAnimationFrame(() => {
+        _flipState = flipBefore(container.children);
+    });
+    recordReason(e.detail.info.reason, performance.now() - t0);
+    renderReadout();
+});
+sortable.addEventListener("dragend", () => {
+    _flipState = null;
+});
+
+// ─── readouts ─────────────────────────────────────────────────────
+function renderReadout() {
+    document.getElementById("m-order").textContent =
+        sortable.items.map(k => k.slice(0, 3)).join(" / ");
+}
+function recordReason(reason, durMs) {
+    document.getElementById("m-reason").textContent = reason;
+    document.getElementById("m-duration").textContent = durMs > 0 ? durMs.toFixed(1) + " ms" : "—";
+}
+renderReadout();
+
+// ─── controls ─────────────────────────────────────────────────────
+const INITIAL = ["boot", "kernel", "net", "services", "ui", "diag"];
+
+document.getElementById("b-shuffle").addEventListener("click", () => {
+    withFlip(() => {
+        const cur = sortable.items.slice();
+        for (let i = cur.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [cur[i], cur[j]] = [cur[j], cur[i]];
+        }
+        sortable.setOrder(cur);
+    });
+});
+document.getElementById("b-reverse").addEventListener("click", () => {
+    withFlip(() => sortable.setOrder(sortable.items.slice().reverse()));
+});
+document.getElementById("b-reset").addEventListener("click", () => {
+    withFlip(() => sortable.setOrder(INITIAL.slice()));
+});
+document.getElementById("b-swap-ends").addEventListener("click", () => {
+    withFlip(() => {
+        const cur = sortable.items;
+        if (cur.length < 2) return;
+        sortable.swap(cur[0], cur[cur.length - 1]);
+    });
+});
+</script>
+</body>
+</html>

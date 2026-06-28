@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "es2022",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "lib": ["es2022", "dom", "dom.iterable"],
+    "resolveJsonModule": true,
+    "allowJs": false,
+    "types": [],
+    "paths": {
+      "@zakkster/lite-headless": ["./types.d.ts"],
+      "@zakkster/lite-headless/*": ["./types.d.ts"]
+    }
+  },
+  "include": ["types.d.ts", "type-tests/**/*.ts"],
+  "exclude": ["node_modules", "test", "test-browser", "src"]
+}
