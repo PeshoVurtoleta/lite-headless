@@ -1,0 +1,118 @@
+# @zakkster/lite-headless / toolbar
+
+ARIA toolbar. A container of focusable controls with arrow-key
+navigation, a single tab stop (roving tabindex), Home/End jump, and
+optional separators between groups.
+
+## What you get
+
+```js
+import { createToolbar } from "@zakkster/lite-headless/toolbar";
+
+const tb = createToolbar({
+    orientation: "horizontal",   // or "vertical"
+    loop: true,                  // arrow keys wrap at the ends; default true
+});
+
+tb.attachRoot(rootEl);
+tb.attachItem(boldBtn);
+tb.attachItem(italicBtn);
+tb.attachSeparator(sepEl);
+tb.attachGroup(alignGroupEl);
+tb.attachItem(alignLeftBtn);
+tb.attachItem(alignCenterBtn);
+tb.attachItem(alignRightBtn);
+```
+
+## Painted attributes
+
+Painted on the root:
+- `role="toolbar"`
+- `data-toolbar-root`
+- `data-orientation="horizontal|vertical"`
+- `aria-orientation="vertical"` (only when vertical; W3C default is horizontal)
+
+Painted on items:
+- `data-toolbar-item`
+- `tabindex="0"` for the current tab stop, `"-1"` for the rest
+- `data-toolbar-item-focused` (the roving-focus highlight; usually
+  matches DOM focus when using the default `STRATEGY_DOM_FOCUS`)
+- `data-disabled` + `aria-disabled="true"` when disabled (set via
+  `setItemDisabled` or marked declaratively before attach)
+
+Painted on separators:
+- `role="separator"`
+- `data-toolbar-separator`
+- `aria-orientation` PERPENDICULAR to the toolbar (vertical toolbar →
+  horizontal separator, and vice versa, per WAI-ARIA APG)
+
+Painted on groups:
+- `role="group"`
+- `data-toolbar-group`
+
+## Keyboard
+
+- **ArrowRight** / **ArrowDown** (matching orientation) — move to next non-disabled item
+- **ArrowLeft** / **ArrowUp** — move to previous non-disabled item
+- **Home** — first non-disabled item
+- **End** — last non-disabled item
+
+Disabled items are skipped during arrow nav (per ARIA APG). Loop is
+on by default; pass `loop: false` to stop at the ends.
+
+## Wrapper (`<lite-toolbar>`)
+
+```html
+<lite-toolbar orientation="horizontal" aria-label="Formatting">
+    <button data-toolbar-item>Bold</button>
+    <button data-toolbar-item>Italic</button>
+    <div data-toolbar-separator></div>
+    <div data-toolbar-group>
+        <button data-toolbar-item>Left</button>
+        <button data-toolbar-item>Center</button>
+        <button data-toolbar-item>Right</button>
+    </div>
+</lite-toolbar>
+```
+
+Reactive attributes:
+- `orientation="horizontal" | "vertical"` (read once on connect)
+- `loop="false"` to disable wraparound
+
+Host accessors:
+- `host._toolbarInstance` (advanced)
+- `host.setItemDisabled(el, bool)`
+- `host.focusFirst()`, `host.focusLast()`
+
+The wrapper uses `createRoleObserver` so late-injected items, separators,
+and groups are auto-discovered without re-mounting.
+
+## Composition
+
+Toolbar items can be other primitives:
+
+```html
+<lite-toolbar>
+    <lite-toggle-group data-toolbar-item>
+        <button data-tg-item="left">L</button>
+        <button data-tg-item="center">C</button>
+        <button data-tg-item="right">R</button>
+    </lite-toggle-group>
+    <div data-toolbar-separator></div>
+    <lite-menu data-toolbar-item>
+        <button data-trigger>More...</button>
+        <ul data-menu>...</ul>
+    </lite-menu>
+</lite-toolbar>
+```
+
+Each `data-toolbar-item` is one tab stop in the toolbar's roving
+focus; the contained primitive owns its own interaction model
+(toggle-group's roving among toggles, menu's open/close).
+
+## CSS contract
+
+This primitive's painted attributes follow the canonical CSS contract
+in `docs/CSS_CONTRACT.md`. Booleans like `data-disabled` mirror the
+W3C `aria-disabled`. Enums like `data-orientation` are documented in
+the contract's Class 3 table.

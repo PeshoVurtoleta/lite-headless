@@ -1,0 +1,145 @@
+# @zakkster/lite-headless / tree
+
+Headless tree-view per the WAI-ARIA APG tree pattern.
+Hierarchical list with expand/collapse, single or multiple selection,
+and full keyboard navigation.
+
+## API
+
+```js
+createTree({
+    selectionMode:       "single" | "multiple",   // default "single"
+    defaultSelected,                              // string | string[] | null
+    defaultExpanded,                              // array of keys initially open
+    typeahead:           true,
+    loop:                true,
+    onSelectionChange:   (selected, reason) => {},
+    onExpandedChange:    (expanded, reason) => {},
+})
+
+  attachRoot(el)                                   // role="tree" container
+  attachNode(el, key, { disabled?, hasChildren? }) // each treeitem
+  attachLabel(el, key)                             // optional: dedicated label
+                                                   //   element for typeahead text
+
+  // queries
+  selected()                                       // string | string[] | null
+  expanded()                                       // string[]
+  isSelected(key) / isExpanded(key)
+  isVisible(key)                                   // false if any ancestor closed
+  hasChildren(key)
+  focusKey(key)
+
+  // mutations
+  setSelected(v, reason?) | setExpanded(arr, reason?)
+  select(key, reason?) | deselect(key, reason?) | toggleSelected(key, reason?)
+  expand(key, reason?) | collapse(key, reason?) | toggleExpanded(key, reason?)
+  expandAll() | collapseAll()
+  setDisabled(key, flag)
+
+  destroy() / destroyed
+```
+
+## Topology discovery
+
+Parent is inferred from DOM nesting. `attachNode` walks each element's
+ancestor chain looking for the nearest already-attached tree-node and
+makes that the parent. Attach order matters: parents must be attached
+before their children for the inference to find them. The element
+wrapper guarantees DOM order via `createRoleObserver`.
+
+For lazy-loaded subtrees: attach the parent first, then attach the
+children later when their DOM is ready. The visible-list cache
+invalidates on every attach so the next keyboard nav sees them.
+
+## Keyboard (per APG tree pattern)
+
+- `ArrowDown` / `ArrowUp`  — next / previous visible item (wraps if `loop`)
+- `ArrowRight` on collapsed parent  — expand (focus stays)
+- `ArrowRight` on expanded parent   — move to first child
+- `ArrowRight` on leaf              — no-op
+- `ArrowLeft` on expanded parent    — collapse (focus stays)
+- `ArrowLeft` on collapsed / leaf   — move to parent
+- `Home` / `End`            — first / last visible
+- `Enter`                   — toggle expand (parent) or select (leaf)
+- `Space`                   — select (toggles in multiselect)
+- `*`                       — expand all sibling parents at the focused level
+- typeahead                 — single character; cycles through matches
+- disabled items skipped during arrow nav and typeahead
+
+## ARIA
+
+Root:      `role="tree"`, `aria-multiselectable` when multiple-mode
+Treeitem:  `role="treeitem"`, `aria-level`, `aria-setsize`,
+           `aria-posinset`, `aria-selected`,
+           `aria-expanded` (PARENTS ONLY -- leaves omit the attribute)
+Group:     `role="group"` (when consumer marks the children container;
+           optional)
+
+Data attributes (consumer styling hooks):
+- `data-tree-key`  — the key for this node
+- `data-open`     — present when branch is expanded
+- `data-leaf`     — present when node has no children
+- `data-selected`  — "true" | "false"
+- `data-disabled`  — present when disabled
+
+## Custom-element wrapper
+
+```html
+<lite-tree selection-mode="single" expanded="src,docs" selected="readme.md">
+    <ul>
+        <li data-tree-node="src">
+            src
+            <ul>
+                <li data-tree-node="src/index.js">index.js</li>
+                <li data-tree-node="src/util.js" data-disabled>util.js</li>
+            </ul>
+        </li>
+        <li data-tree-node="docs">docs</li>
+        <li data-tree-node="readme.md">readme.md</li>
+    </ul>
+</lite-tree>
+```
+
+Reactive attributes:
+- `selected` — string (single) or comma-separated keys (multi)
+- `expanded` — comma-separated keys
+
+Read-once attributes:
+- `selection-mode` — "single" | "multiple"
+- `no-typeahead`   — presence disables typeahead
+- `no-loop`        — presence disables arrow wrap
+
+Dispatches:
+- `selectionchange` — `detail: { selected, reason }`
+- `expandedchange`  — `detail: { expanded, reason }`
+
+Mirrors active state back to attributes; the v0.7.9 cascade guard
+(`if (reason !== "attribute")`) is applied so external setAttribute
+flows don't bounce.
+
+## Animation contract
+
+The primitive writes `data-X="open|closed|leaf"`. Consumer owns
+the CSS. Group containers can be animated via the same patterns as
+accordion (grid-template-rows or interpolate-size):
+
+```css
+[:not([data-open])] + [role="group"] { display: none; }    /* no animation */
+
+/* or animated: */
+[role="group"] {
+    display: grid; grid-template-rows: 1fr;
+    transition: grid-template-rows 180ms ease;
+}
+[:not([data-open])] + [role="group"] { grid-template-rows: 0fr; }
+[role="group"] > * { overflow: hidden; }
+```
+
+## CSS contract
+
+This primitive's painted attributes follow the canonical CSS contract
+in `docs/CSS_CONTRACT.md`. See that doc for the cross-primitive
+taxonomy (booleans like `data-open` / `data-disabled` / `data-loading`,
+enums like `data-status` / `data-side`, ARIA pairings, host accessor
+naming, and event naming).

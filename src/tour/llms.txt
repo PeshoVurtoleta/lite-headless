@@ -1,0 +1,169 @@
+# @zakkster/lite-headless / tour
+
+Multi-step coach mark / product-tour primitive. State machine + ARIA
+wiring + keyboard nav for sequential popovers anchored to UI targets.
+Doesn't own positioning (consumer or compose with `createPopover`)
+and doesn't persist completion (consumer's call whether to remember).
+
+## What you get
+
+```js
+import { createTour } from "@zakkster/lite-headless/tour";
+
+const tour = createTour({
+    loop: false,                      // default
+    onStepChange: (idx, step) => {},  // fires on every transition
+    onComplete:   ()           => {}, // fires when next() past the last step
+    onSkip:       (atIdx)      => {}, // fires when skip() is called
+});
+
+tour.addStep({ id: "nav", target: document.querySelector("#nav") });
+tour.addStep({ id: "new", target: document.querySelector("#new-btn") });
+
+tour.attachRoot(rootEl);
+tour.attachStepContent("nav", navStepContentEl);
+tour.attachStepContent("new", newStepContentEl);
+
+tour.start();
+```
+
+## Step shape
+
+```js
+{
+    id:     "nav",                  // required (or generated)
+    target: navEl,                  // anchor element (optional)
+    title:  "Navigation",           // free-form; consumer decides display
+    description: "Switch sections", // free-form
+}
+```
+
+## Reads
+
+- `tour.current()` — current index, -1 if not active
+- `tour.currentStep()` — current step object, null if not active
+- `tour.steps()` — array of step descriptors
+- `tour.count()` — total number of steps
+- `tour.isActive()` — true while a step is showing
+- `tour.isFirst()` / `tour.isLast()` — boundary checks
+
+## Navigation
+
+- `tour.start()` — show step 0
+- `tour.next()` — advance; past the last step calls `finish()`
+- `tour.prev()` — go back; at step 0 is no-op (or wraps with `loop: true`)
+- `tour.goTo(idxOrId)` — jump to a specific step
+- `tour.skip()` — dismiss the tour; fires `onSkip(atIdx)`
+- `tour.finish()` — mark complete; fires `onComplete`
+
+## Painted attributes
+
+Root (`[data-tour-root]`):
+- `data-tour-active` — boolean; present while a step is showing
+
+Current target (whatever element a step's `target` points at):
+- `data-tour-target` — boolean; present only on the active step's target
+- `aria-describedby` — points at the active step's content id
+
+Step content (each element passed to `attachStepContent`):
+- `role="region"` (only if no role pre-set)
+- `data-tour-step="<id>"`
+- `data-tour-active` — boolean; present only on the active step
+- `tabindex="-1"` — focusable programmatically (the primitive moves focus here on step change)
+- `hidden` — set on inactive steps; removed from the active one
+
+## Keyboard
+
+While the tour is active, a global `keydown` handler intercepts:
+
+- `Escape` → `skip()`
+- `ArrowRight` → `next()`
+- `ArrowLeft` → `prev()`
+
+The handler is bound on `attachRoot` and unbound on `destroy()`. It
+listens on `window` so the keys work regardless of which element has
+focus.
+
+## Wrapper (`<lite-tour>`)
+
+```html
+<lite-tour id="t1" start-on-mount>
+    <div data-tour-step="nav" data-tour-target="#nav">
+        <h3>Navigation</h3>
+        <p>Use this to switch between sections.</p>
+        <button data-tour-prev>Back</button>
+        <button data-tour-next>Next</button>
+        <button data-tour-skip>Skip</button>
+    </div>
+    <div data-tour-step="new" data-tour-target="#new-btn">
+        <h3>Create</h3>
+        <p>Click here to start a new project.</p>
+        <button data-tour-prev>Back</button>
+        <button data-tour-next>Finish</button>
+    </div>
+</lite-tour>
+```
+
+Attributes:
+- `start-on-mount` — auto-call `start()` one frame after connect
+- `loop` — wrap around when `prev()` at step 0
+
+Slot markers in step content:
+- `data-tour-next` / `data-tour-prev` / `data-tour-skip` / `data-tour-finish`
+  — any element with these is wired via event delegation; click them
+  to navigate
+
+Host accessors:
+- `host.index` — current index
+- `host.isActive`, `host.isFirst`, `host.isLast`
+- `host.count`
+- `host.start()`, `host.next()`, `host.prev()`, `host.skip()`, `host.finish()`, `host.goTo(idxOrId)`
+- `host._tourInstance` (advanced)
+
+Events:
+- `stepchange` — `{ detail: { index, id, target } }`
+- `complete`
+- `skip` — `{ detail: { atIndex } }`
+
+## Positioning the step content
+
+The primitive doesn't position; the consumer does. Easiest pattern:
+
+```js
+tour.attachStepContent("nav", navContentEl);
+host.addEventListener("stepchange", e => {
+    const target = e.detail.target;
+    if (!target) return;
+    const r = target.getBoundingClientRect();
+    navContentEl.style.left = r.left + "px";
+    navContentEl.style.top  = (r.bottom + 8) + "px";
+});
+```
+
+Or compose with `createPopover` per step for proper Floating UI math.
+
+## Backdrop / spotlight
+
+The primitive doesn't render a backdrop, but consumers can:
+
+```css
+[data-tour-active] .tour-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6);
+    pointer-events: none;
+}
+[data-tour-target] {
+    position: relative;
+    z-index: 9999;
+    box-shadow: 0 0 0 4px var(--accent), 0 0 0 9999px rgba(0,0,0,0.6);
+}
+```
+
+The `box-shadow` cutout trick gives a spotlight effect without needing
+SVG masks.
+
+## CSS contract
+
+Follows the canonical CSS contract in `docs/CSS_CONTRACT.md`.
+`data-tour-active`, `data-tour-target` are Class-2 booleans; slot
+markers (`data-tour-step`, `data-tour-next`, etc.) are Class-4 inputs.

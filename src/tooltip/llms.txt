@@ -1,0 +1,66 @@
+# @zakkster/lite-headless/tooltip
+
+createTooltip(options) -> TooltipHandle
+
+## Options
+
+Inherits positioning options from createPopover. Additional:
+
+- trigger: string = 'hover focus'        -- space-separated subset of 'hover|focus|click|manual'
+- openDelay: number = 200                -- ms before opening on hover (ignored for focus)
+- closeDelay: number = 150               -- ms before closing on leave (ignored for focus)
+                                            -- this is the trigger->content gap grace period
+- describesTrigger: boolean = true       -- true: aria-describedby; false: aria-labelledby
+
+Default placement: 'top'. Default offset: 6.
+
+No focus trap (tooltips never trap). closeOnEscape:true by default.
+
+## Trigger model
+
+Pointer state tracking: closes only when pointer has left BOTH trigger AND content.
+Allows the user to move pointer from trigger into the tooltip content (e.g. to
+click a link) without dismissal.
+
+Focus triggers open/close synchronously (no delays) for keyboard accessibility.
+
+## Returned
+
+{
+    open, status, setOpen, toggle,
+    attachTrigger(el),    -- binds pointerenter/leave + focus/blur + click per trigger spec
+    attachAnchor(el),     -- (optional) positioning origin distinct from trigger
+    attachContent(el),    -- gets role="tooltip"
+    attachArrow(el),
+    destroy(),
+    destroyed
+}
+
+## Slot conventions (for <lite-tooltip>)
+
+- [data-trigger]: bound to hover/focus/click per `trigger` attribute
+- [data-anchor]:  (optional) positioning anchor distinct from trigger
+- [data-content]: gets role="tooltip"
+- [data-arrow]:   (optional) arrow element
+
+## <lite-tooltip> attributes
+
+- open                                    -- reflects state, reactive
+- placement, offset, no-flip, no-shift    -- positioning
+- trigger                                 -- e.g. 'hover focus'
+- open-delay, close-delay                 -- ms
+- labels                                  -- describesTrigger:false (use aria-labelledby)
+- no-escape, container, transition
+
+## ARIA wiring
+
+- content: role="tooltip", id auto-assigned if absent
+- trigger: aria-describedby (default) or aria-labelledby pointing at content.id
+
+## CSS contract
+
+This primitive's painted attributes follow the canonical CSS contract
+in `docs/CSS_CONTRACT.md`. See that doc for the cross-primitive
+taxonomy (booleans like `data-open` / `data-disabled` / `data-loading`,
+enums like `data-status` / `data-side`, ARIA pairings, host accessor
+naming, and event naming).
