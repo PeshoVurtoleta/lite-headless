@@ -1,0 +1,139 @@
+# @zakkster/lite-headless/slider
+
+createSlider(options) -> SliderHandle
+
+Headless slider/range primitive. The first form-control in the package;
+NOT an overlay (no portal, no positioner, no dismiss layer).
+
+## Value shape
+
+Value is always an array. Length is fixed at construction by the initial
+value array's length:
+
+- `[50]`               -- single-thumb slider
+- `[25, 75]`           -- two-thumb range slider
+- `[10, 40, 70]`       -- multi-thumb (no upper bound)
+
+## Options
+
+- value: WriteSignal<number[]>         -- external controlled mode
+- defaultValue: number[]               -- uncontrolled; sets thumb count
+- onValueChange: (next, reason) => void
+
+- min: number = 0
+- max: number = 100                    -- must be > min
+- step: number = 1                     -- must be > 0
+- largeStep: number = step * 10        -- PageUp/PageDown + Shift+Arrow
+
+- orientation: "horizontal" | "vertical" = "horizontal"
+- inverted: boolean = false            -- reverses the visible axis
+- disabled: boolean = false
+
+- minStepsBetweenThumbs: number = 0    -- crossing constraint for multi-thumb
+                                          0  = thumbs can touch, not cross
+                                          N  = must keep N*step apart
+                                          -Infinity = thumbs can cross freely
+
+## Returned
+
+{
+    value: () => number[],             -- read current values (snapshot copy)
+    setValue(values, reason?),         -- write; accepts array or single number
+    isDisabled() => boolean,           -- current disabled state
+    setDisabled(flag),                 -- runtime enable/disable; cancels any
+                                       --   in-flight drag, repaints aria-disabled,
+                                       --   data-disabled, and tabindex on every
+                                       --   attached thumb + the track
+    min, max, step, largeStep, orientation, inverted, thumbCount,
+    attachTrack(el),                   -- track element (clicks jump nearest thumb)
+    attachRange(el),                   -- range fill element (CSS vars set on it)
+    attachThumb(el, index),            -- thumb element at the given index
+    attachLabel(el),                   -- wires aria-labelledby on all thumbs
+    destroy(),
+    destroyed
+}
+
+## Positioning contract (consumer CSS)
+
+The primitive writes CSS custom properties; consumer styles them. No inline
+style.left or style.transform is written by the primitive.
+
+On each thumb:
+  --lh-thumb-pct        0-100, inverted-aware (the visible-axis position)
+  data-value            the snapped value
+  data-percentage       same as --lh-thumb-pct but with 2dp formatting
+  data-thumb-index      "0", "1", ...
+
+On the range fill:
+  --lh-range-start      0-100, inverted-aware
+  --lh-range-end        0-100, inverted-aware
+
+On the track:
+  data-orientation      "horizontal" | "vertical"
+  data-dragging         present while a drag is in progress
+
+Example consumer CSS:
+
+    .lh-track  { position: relative; height: 4px; background: #333; }
+    .lh-range  {
+        position: absolute;
+        left:  calc(var(--lh-range-start) * 1%);
+        width: calc((var(--lh-range-end) - var(--lh-range-start)) * 1%);
+        height: 100%;
+        background: var(--accent);
+    }
+    .lh-thumb  {
+        position: absolute;
+        left: calc(var(--lh-thumb-pct) * 1%);
+        transform: translateX(-50%);
+        width: 16px; height: 16px; border-radius: 50%;
+        background: #fff;
+    }
+
+## Keyboard model
+
+On a focused thumb:
+  ArrowRight / ArrowUp        +step
+  ArrowLeft / ArrowDown       -step
+  Shift+Arrow                 ±largeStep
+  PageUp                      +largeStep
+  PageDown                    -largeStep
+  Home                        snap to min
+  End                         snap to max
+
+Keyboard semantics are about VALUE direction, not screen direction. ArrowUp
+always increases the value regardless of orientation or inversion -- this
+matches what assistive tech expects.
+
+## Pointer drag
+
+- Pointerdown on a thumb starts a drag.
+- Pointerdown on the track (not a thumb) moves the nearest thumb to the
+  click position AND starts a drag from there (press-and-drag from anywhere).
+- During a drag, document-level pointermove and pointerup listeners are
+  installed; they're removed on pointerup or pointercancel.
+- happy-dom does not lay out elements; getBoundingClientRect returns zeros.
+  Real-browser drag works correctly because the consumer's CSS gives the
+  track real dimensions.
+
+## Disabled
+
+Pointer events are ignored. Keyboard events are ignored. Thumbs have
+tabindex="-1" (not focusable). aria-disabled="true" is set on each thumb.
+
+## ARIA
+
+- role="slider"               on each thumb
+- aria-valuenow               on each thumb (reflects the current value)
+- aria-valuemin, aria-valuemax on each thumb
+- aria-orientation            on each thumb
+- aria-labelledby             on each thumb when attachLabel(el) is called
+- aria-disabled               on each thumb when disabled
+
+## CSS contract
+
+This primitive's painted attributes follow the canonical CSS contract
+in `docs/CSS_CONTRACT.md`. See that doc for the cross-primitive
+taxonomy (booleans like `data-open` / `data-disabled` / `data-loading`,
+enums like `data-status` / `data-side`, ARIA pairings, host accessor
+naming, and event naming).

@@ -1,0 +1,107 @@
+# @zakkster/lite-headless / result
+
+Page-state primitive: success / error / warning / info / empty / 404 /
+403 / 500. The bigger sibling of `empty-state` — typically occupies
+the main content area to communicate an outcome with a centered icon,
+title, subtitle, and action row.
+
+## When to use result vs empty-state
+
+| | result | empty-state |
+|---|---|---|
+| Scope | page-level | container-level |
+| Typical use | "404 not found", "Submission successful" | "No tasks yet", "Empty inbox" |
+| Status vocabulary | rich (8 statuses) | none (just empty) |
+
+## Quick example
+
+```js
+import { createResult } from "@zakkster/lite-headless/result";
+
+const r = createResult({ status: "404" });
+r.attachRoot(rootEl);
+r.attachIcon(iconEl);
+r.attachTitle(titleEl);
+r.attachSubtitle(subtitleEl);
+r.attachActions(actionsEl);
+```
+
+## Options
+
+| Option | Default | Notes |
+|---|---|---|
+| `status` | `"info"` | One of: `success`, `error`, `warning`, `info`, `empty`, `404`, `403`, `500` |
+
+## API
+
+```ts
+{
+    status: string    // readonly
+
+    attachRoot(el): off
+    attachIcon(el): off
+    attachTitle(el): off
+    attachSubtitle(el): off
+    attachActions(el): off
+
+    destroy(): void
+}
+```
+
+## Painted attributes
+
+### Root (`[data-result-root]`)
+
+- `role="status"` (only if not pre-set; live-region for SR)
+- `data-status="<status>"`
+
+### Icon (`[data-result-icon]`)
+
+- `aria-hidden="true"` (decoration; title carries the meaning)
+
+### Title (`[data-result-title]`)
+
+- `data-result-title` slot marker
+
+### Subtitle (`[data-result-subtitle]`)
+
+- `data-result-subtitle` slot marker
+
+### Actions (`[data-result-actions]`)
+
+- `role="group"` (only if not pre-set)
+
+## Wrapper (`<lite-result>`)
+
+```html
+<lite-result status="404">
+    <div data-result-icon>📭</div>
+    <h2 data-result-title>Page not found</h2>
+    <p data-result-subtitle>The page you're looking for doesn't exist or has moved.</p>
+    <div data-result-actions>
+        <button>Go home</button>
+        <button>Contact support</button>
+    </div>
+</lite-result>
+```
+
+## CSS contract
+
+```css
+[data-result-root] {
+    display: flex; flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 60px 24px;
+    gap: 12px;
+}
+[data-result-icon] { font-size: 64px; opacity: 0.6; }
+[data-result-title] { font-size: 22px; margin: 0; }
+[data-result-subtitle] { font-size: 14px; opacity: 0.7; margin: 0 0 8px; }
+[data-result-actions] { display: flex; gap: 8px; }
+
+[data-result-root][data-status="error"] [data-result-icon] { color: var(--red); }
+[data-result-root][data-status="success"] [data-result-icon] { color: var(--green); }
+[data-result-root][data-status="404"] [data-result-icon] { color: var(--accent); }
+/* ...etc per status ... */
+```

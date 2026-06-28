@@ -1,0 +1,315 @@
+# @zakkster/lite-headless/sortable
+
+Headless drag-to-reorder list with keyboard fallback.
+
+## Quick example
+
+```js
+import { createSortable } from "@zakkster/lite-headless/sortable";
+
+const sortable = createSortable({
+    items: ["task-1", "task-2", "task-3"],
+    onReorder: (newOrder, info) => {
+        // commit your state. info: { reason, from, to, key }
+        console.log(newOrder, info);
+    },
+});
+
+sortable.attachRoot(listEl, { label: "Reorder tasks" });
+itemEls.forEach((el, i) => sortable.attachItem(el, taskIds[i]));
+
+// optional: register a grip handle so drag only starts when the
+// user grabs the dots, not the whole row
+sortable.attachHandle(handleEl, "task-1");
+```
+
+## Two modes
+
+**Framework mode (default)**: the primitive emits `onReorder` events
+but never moves DOM nodes. Your framework (React, Vue, Svelte, etc.)
+already owns the rendering of the list — when the event fires, you
+update your state and the framework re-renders. No DOM thrash, no
+double-update.
+
+**Vanilla mode** (`applyDOMReorder: true`): the primitive calls
+`appendChild` to physically reorder item elements in their parent on
+every commit. Use this in plain HTML pages without a framework. The
+DOM order will always match `sortable.items()` after a commit.
+
+## Options
+
+| Option              | Default     | Notes                                       |
+| ------------------- | ----------- | ------------------------------------------- |
+| `orientation`       | `"vertical"`| `"vertical"` or `"horizontal"`              |
+| `items`             | `[]`        | initial order (array of string keys)        |
+| `applyDOMReorder`   | `false`     | move DOM nodes on commit (vanilla mode)     |
+| `keyboardEnabled`   | `true`      | Space/arrow pickup-and-move flow            |
+| `disabled`          | `false`     | block all drag + keyboard                   |
+| `dragStartThreshold`| `5`         | px the pointer must move before drag starts |
+| `announceLive`      | `true`      | build a visually hidden aria-live region    |
+| `onReorder`         | -           | `(newOrder, info) => void`                  |
+| `onDragStart`       | -           | `(key) => void`                             |
+| `onDragEnd`         | -           | `(key, committed) => void`                  |
+
+`info.reason` values: `"api"`, `"api-swap"`, `"drag"`, `"keyboard"`,
+`"insert"`, `"remove"`, `"set"`.
+
+## Attachment methods
+
+| Method                       | Returns      | Notes                              |
+| ---------------------------- | ------------ | ---------------------------------- |
+| `attachRoot(el, { label? })` | cleanup `()` | role="listbox", aria-orientation, hidden aria-live region |
+| `attachItem(el, key, opts?)` | cleanup `()` | `opts: { disabled }`. tabindex=0 added if absent |
+| `attachHandle(el, key)`      | cleanup `()` | restricts drag start to this element |
+
+## Imperative API
+
+```js
+sortable.move(key, toIndex)        // move existing key to index
+sortable.swap(keyA, keyB)          // swap two keys
+sortable.setOrder([...])           // replace entire order
+sortable.insertAt(key, atIndex)    // add a new key
+sortable.removeKey(key)            // remove a key
+sortable.setDisabled(flag)         // disable / enable whole list
+sortable.setItemDisabled(key, flag)
+sortable.items()                   // current order array
+sortable.isDragging()              // pointer or keyboard drag in flight
+sortable.dragKey()                 // key currently being dragged
+sortable.destroy()
+```
+
+Reactive accessors (return signal getters; subscribe inside an `effect`):
+
+```js
+sortable.order()       // signal -> current array of keys
+sortable.dragging()    // signal -> currently-pointer-dragged key, or null
+sortable.grabbed()     // signal -> currently-keyboard-grabbed key, or null
+```
+
+## Pointer drag flow
+
+1. **`pointerdown`** on an item (or its registered handle): record
+   the start position. No visible state change yet.
+2. **`pointermove`** past `dragStartThreshold` pixels (5 by default):
+   drag begins. The item gets `data-dragging="true"`. The primitive
+   reads every other item's `getBoundingClientRect()` *once* and
+   caches the midpoints. Subsequent moves do not re-read the DOM.
+3. **`pointermove`** during drag: compute target slot via
+   cached-midpoint test (pointer-axis coord vs item midpoints).
+   The slot's item element gets `data-insert-before="true"` (or
+   `data-insert-after`), giving the consumer a CSS hook to draw an
+   insertion indicator.
+4. **`pointerup`**: commit the reorder if the slot changed.
+   `onReorder` fires with `info.reason: "drag"`.
+5. **`pointercancel`** or **`Escape`** during drag: revert the
+   data-attributes; no reorder commits.
+
+The cache is invalidated on every dragend. Window resize / scroll
+during a drag does NOT invalidate (we accept slightly-stale rects
+mid-drag for performance; in practice nothing repaints during the
+drag because the consumer typically blocks layout shifts).
+
+## Keyboard flow (WAI-ARIA pickup pattern)
+
+1. **Tab** focuses an item.
+2. **Space** (or **Enter**) picks up the item. `aria-grabbed="true"`
+   is set; the screen reader announces "Picked up item 3. Use arrows
+   to move, Space to drop, Escape to cancel."
+3. **Arrow ↑/↓** (vertical) or **←/→** (horizontal) moves the picked-
+   up item by one slot. Each move commits — `onReorder` fires with
+   `info.reason: "keyboard"`.
+4. **Home / End** jump to first / last position.
+5. **Space** (or **Enter**) drops. `aria-grabbed` is removed.
+6. **Escape** ends pickup mode. **Note**: tentative moves committed
+   during pickup are NOT reverted (the primitive doesn't keep an
+   undo stack; each arrow move IS a commit). If you need rollback,
+   snapshot the order at `onDragStart` and restore on
+   `onDragEnd(_, committed=false)`.
+
+## ARIA painted attributes
+
+| Element       | Attributes                                       |
+| ------------- | ------------------------------------------------ |
+| Root          | `role="listbox"`, `aria-orientation`, `aria-label`, `data-orientation` |
+| Item          | `role="option"`, `aria-grabbed` (during pickup), `aria-disabled`, `data-dragging`, `data-insert-before` / `data-insert-after` |
+| Handle        | `data-sortable-handle="true"`, `cursor: grab`     |
+
+A visually hidden `<div aria-live="polite">` is appended to the root
+for announcements during keyboard pickup ("Picked up item 3",
+"Item now at position 5", "Dropped"). Disable with
+`announceLive: false` if you have your own announcer.
+
+## Element wrapper
+
+```html
+<lite-sortable label="Reorder tasks">
+    <ul>
+        <li data-sortable-item="task-1">
+            <span data-sortable-handle>⋮⋮</span>
+            Buy milk
+        </li>
+        <li data-sortable-item="task-2">Walk dog</li>
+        <li data-sortable-item="task-3" data-disabled>Pay rent</li>
+    </ul>
+</lite-sortable>
+
+<script>
+    document.querySelector("lite-sortable").addEventListener("reorder", (e) => {
+        // e.detail.order   -- new array of keys
+        // e.detail.info    -- { reason, from, to, key, ... }
+    });
+</script>
+```
+
+Reactive attributes:
+
+- `disabled` — toggles the whole list
+
+Read-once attributes:
+
+- `label`, `orientation`, `apply-dom-reorder`, `no-keyboard`
+
+Dispatched events:
+
+- `reorder` — `{ detail: { order, info } }`
+- `dragstart` — `{ detail: { key } }`
+- `dragend` — `{ detail: { key, committed } }`
+
+## Pairing with `@zakkster/lite-store` and `@zakkster/lite-crdt`
+
+For non-trivial state — multi-tab sync, multi-user collaboration,
+optimistic updates with a server — pair sortable with the store /
+CRDT layer:
+
+```js
+import { createStore } from "@zakkster/lite-store";
+import { ORSet } from "@zakkster/lite-crdt";
+
+const store = createStore({ taskOrder: ["t1", "t2", "t3"] });
+
+// sync sortable -> store (drives downstream consumers via per-key
+// signals; framework re-renders the list)
+const sortable = createSortable({
+    items: store.taskOrder.slice(),
+    onReorder: (newOrder) => { store.taskOrder = newOrder; },
+});
+```
+
+For multi-user reorder over BroadcastChannel / WebSocket, the same
+pattern wraps `ORSet` with a per-op sequencer for stable
+convergence. The sortable primitive itself remains transport-
+agnostic — it just emits events.
+
+## Recommended CSS
+
+```css
+[data-sortable-item] {
+    user-select: none;          /* don't let text-select interfere with drag */
+    -webkit-user-select: none;
+    touch-action: none;         /* don't let touch-pan compete with drag */
+}
+```
+
+The primitive also calls `e.preventDefault()` on pointerdown
+(unless the press lands on an input/textarea/contenteditable
+descendant) and on every pointermove during a pending drag, so
+text selection won't start during the pre-threshold ramp. The CSS
+above is the belt; the primitive's preventDefault is the
+suspenders.
+
+## Animating reorders (FLIP recipe)
+
+Reorder events are point-in-time — the dragged item teleports from
+its old slot to its new one. For a smoother UX, layer a FLIP
+animation on top: capture rects BEFORE the commit, do the commit,
+read NEW rects AFTER, translate items back to where they were, then
+animate the transform to zero.
+
+With **GSAP Flip** (lightweight, opinionated):
+
+```js
+import { gsap } from "gsap";
+import { Flip } from "gsap/Flip";
+gsap.registerPlugin(Flip);
+
+const container = document.getElementById("list");
+const sortable  = document.getElementById("sortable");
+
+sortable.addEventListener("dragstart", () => {
+    // Capture state BEFORE the commit. We snapshot here rather than
+    // in onReorder because the dragstart event fires while items
+    // are still in their pre-drag positions.
+    window._flipState = Flip.getState(container.children);
+});
+sortable.addEventListener("reorder", () => {
+    // applyDOMReorder has already moved the nodes; animate from
+    // the captured pre-drag state to the new one.
+    Flip.from(window._flipState, {
+        duration: 0.4,
+        ease: "power1.inOut",
+        stagger: 0.03,
+    });
+});
+```
+
+With **zero deps** (rolling your own FLIP in ~30 lines):
+
+```js
+function flipBefore(els) {
+    const rects = new Map();
+    for (const el of els) rects.set(el, el.getBoundingClientRect());
+    return rects;
+}
+function flipAfter(rects) {
+    for (const [el, before] of rects) {
+        const after = el.getBoundingClientRect();
+        const dx = before.left - after.left;
+        const dy = before.top  - after.top;
+        if (dx === 0 && dy === 0) continue;
+        el.style.transition = "none";
+        el.style.transform  = `translate(${dx}px, ${dy}px)`;
+        // next frame: clear transition, let it animate to identity
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+            el.style.transition = "transform 0.3s ease";
+            el.style.transform  = "";
+        }));
+    }
+}
+
+let _flip = null;
+sortable.addEventListener("dragstart", () => {
+    _flip = flipBefore(container.children);
+});
+sortable.addEventListener("reorder", () => {
+    if (_flip) { flipAfter(_flip); _flip = null; }
+});
+```
+
+Same FLIP technique works for any reorder source — `move`, `swap`,
+`setOrder`, shuffle buttons. Wrap your mutation in the
+before/after pattern. The dragstart/dragend events only fire for
+pointer + keyboard pickup, so for imperative API calls, capture
+manually:
+
+```js
+function withFlip(mutate) {
+    const state = flipBefore(container.children);
+    mutate();
+    flipAfter(state);
+}
+
+withFlip(() => sortable.setOrder(shuffled));
+```
+
+Kept out of the primitive intentionally — animation timing,
+easing, and stagger are an aesthetic choice the consumer should
+own.
+
+
+## CSS contract
+
+This primitive's painted attributes follow the canonical CSS contract
+in `docs/CSS_CONTRACT.md`. See that doc for the cross-primitive
+taxonomy (booleans like `data-open` / `data-disabled` / `data-loading`,
+enums like `data-status` / `data-side`, ARIA pairings, host accessor
+naming, and event naming).

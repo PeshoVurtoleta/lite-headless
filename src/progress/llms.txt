@@ -1,0 +1,274 @@
+# @zakkster/lite-headless/progress
+
+Headless progress indicator. Linear bar or circular ring; determinate
+or indeterminate. The primitive owns reactive value clamping + ARIA
+painting + a CSS custom property `--progress` (0..1) on the root; the
+consumer provides the markup and CSS.
+
+## Quick example — linear
+
+```js
+import { createProgress } from "@zakkster/lite-headless/progress";
+
+const pg = createProgress({
+    value: 0,
+    max: 100,
+    label: "Uploading file",
+    onChange: (v, f) => console.log(`${v} (${(f*100).toFixed(0)}%)`),
+    onComplete: () => console.log("done"),
+});
+
+pg.attachRoot(rootEl);     // role=progressbar + --progress painted here
+pg.attachBar(barEl);       // optional: bar element gets --progress + data-progress
+```
+
+```html
+<div class="progress">
+    <div data-progress-bar></div>
+</div>
+```
+
+```css
+.progress {
+    height: 0.5rem;
+    background: var(--bg-2);
+    border-radius: 999px;
+    overflow: hidden;
+}
+[data-progress-bar] {
+    height: 100%;
+    background: var(--primary);
+    transform-origin: left center;
+    transform: scaleX(var(--progress));
+    transition: transform 200ms;
+}
+```
+
+## Quick example — circular
+
+```js
+const pg = createProgress({
+    value: 0,
+    max: 100,
+    variant: "circular",
+    label: "Saving",
+});
+pg.attachRoot(rootEl);
+pg.attachIndicator(indEl);
+```
+
+```html
+<div class="progress-ring">
+    <svg viewBox="0 0 36 36">
+        <circle class="track" cx="18" cy="18" r="16" />
+        <circle class="ind" data-progress-indicator cx="18" cy="18" r="16" />
+    </svg>
+</div>
+```
+
+```css
+.progress-ring svg {
+    width: 3rem;
+    height: 3rem;
+    transform: rotate(-90deg);   /* start at 12 o'clock */
+}
+.progress-ring circle {
+    fill: none;
+    stroke-width: 3;
+}
+.progress-ring .track { stroke: var(--bg-3); }
+.progress-ring .ind {
+    stroke: var(--primary);
+    stroke-linecap: round;
+    /* circumference = 2π * r = 2π * 16 ≈ 100.53 */
+    stroke-dasharray: 100.53;
+    stroke-dashoffset: calc(100.53 * (1 - var(--progress)));
+    transition: stroke-dashoffset 200ms;
+}
+```
+
+## Options
+
+| Option           | Default     | Notes                                          |
+| ---------------- | ----------- | ---------------------------------------------- |
+| `value`          | `0`         | Current value (clamped to [min, max])          |
+| `min`            | `0`         | Lower bound                                    |
+| `max`            | `100`       | Upper bound                                    |
+| `variant`        | `"linear"`  | `"linear"` or `"circular"` (controls data-variant only) |
+| `indeterminate`  | `false`     | Hides aria-valuenow, sets data-indeterminate   |
+| `label`          | -           | aria-label on root (skipped if root already has aria-label/labelledby) |
+| `valueText`      | -           | Custom aria-valuetext (overrides auto "NN%")   |
+| `onChange`       | -           | `(value, fraction) => void` fires on every paint |
+| `onComplete`     | -           | Fires once on first hit of max; refires if value drops then returns to max |
+
+## ARIA
+
+| Element      | Attributes painted by primitive                            |
+| ------------ | ---------------------------------------------------------- |
+| Root         | `role="progressbar"` · `aria-valuenow` (omitted when indeterminate) · `aria-valuemin` · `aria-valuemax` · `aria-valuetext` · `aria-label` (or `aria-labelledby` via attachLabel) · `data-progress-root` · `data-complete` (when value === max) · `data-loading` (when value < max) · `data-variant` · `data-indeterminate` |
+| Bar          | `data-progress-bar` · `data-progress="NN"` (0-100 int)     |
+| Indicator    | `data-progress-indicator` · `data-progress="NN"`           |
+
+The CSS custom property `--progress` (0..1 number) is set on root, bar,
+and indicator. Consumer CSS uses it for whatever rendering they choose:
+width %, scaleX, stroke-dashoffset, conic-gradient angle, etc.
+
+## State machine
+
+```
+construct
+    │
+    ▼
+┌──────────┐   value < max     ┌──────────┐
+│ loading  │ ────────────────► │ loading  │  (paints repeat as value changes)
+└──────────┘                   └────┬─────┘
+                                    │
+                              value >= max
+                                    │
+                                    ▼
+                              ┌──────────┐
+                              │ complete │  data-complete
+                              └──────────┘  onComplete fires once
+```
+
+`data-complete` is set whenever `value >= max && !indeterminate`,
+otherwise `"loading"`. `onComplete` fires on the 0→1 transition; if
+`setValue` later drops below `max` and returns to `max`, it fires again.
+
+## Indeterminate mode
+
+```js
+pg.setIndeterminate(true);    // hides aria-valuenow, sets data-indeterminate=""
+```
+
+When indeterminate:
+- `aria-valuenow` is removed from root (per ARIA spec for indeterminate progressbar)
+- `data-indeterminate` is set (consumer CSS animates the bar/indicator)
+- `aria-valuetext` defaults to "Loading" (override with `valueText` / `setValueText`)
+- `data-loading` stays set regardless of value
+
+Consumer CSS handles the animation:
+
+```css
+[data-progress-root][data-indeterminate] [data-progress-bar] {
+    animation: indeterminate-sweep 1.5s ease-in-out infinite;
+}
+@keyframes indeterminate-sweep {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+```
+
+## Bounds + clamping
+
+- `value` is always clamped into `[min, max]` on `setValue` and on construction
+- Changing `min`/`max` re-clamps the current value
+- `fraction()` returns `(value - min) / (max - min)`, clamped to `[0, 1]`
+- When `max <= min`, `fraction()` returns 0 (treat as "no progress")
+- Non-finite inputs (`NaN`, `Infinity`, non-numbers) to `setValue`/`setMin`/`setMax`
+  are silently ignored (no exception, no state change)
+
+## Element wrapper
+
+```html
+<lite-progress value="42" max="100" label="Uploading">
+    <div data-progress-bar></div>
+</lite-progress>
+
+<lite-progress value="0" max="100" indeterminate label="Saving">
+    <div data-progress-bar></div>
+</lite-progress>
+
+<lite-progress value="72" max="100" variant="circular" label="Sync">
+    <svg viewBox="0 0 36 36">
+        <circle class="track" cx="18" cy="18" r="16" fill="none"/>
+        <circle data-progress-indicator cx="18" cy="18" r="16" fill="none"/>
+    </svg>
+</lite-progress>
+```
+
+### Reactive attributes
+
+| Attribute        | Effect                                          |
+| ---------------- | ----------------------------------------------- |
+| `value`          | Reactive: changing it calls setValue            |
+| `min` / `max`    | Reactive: changing recalculates fraction        |
+| `indeterminate`  | Flag (presence/absence)                         |
+| `value-text`     | Custom aria-valuetext                           |
+| `label`          | Static aria-label (read once on attach)         |
+| `variant`        | Static `"linear"` or `"circular"` (read once)   |
+
+### Imperative API + events
+
+```js
+host.setValue(50)
+host.setMin(0)
+host.setMax(200)
+host.setIndeterminate(true)
+host.setValueText("step 3 of 7")
+host.value         // current value
+host.fraction      // 0..1
+host.isComplete    // boolean
+
+host.addEventListener("change",   e => /* { value, fraction } */);
+host.addEventListener("complete", e => /* {} */);
+```
+
+## Common patterns
+
+### File upload progress
+
+```js
+const pg = createProgress({ value: 0, max: file.size, label: file.name });
+pg.attachRoot(rootEl);
+pg.attachBar(barEl);
+
+xhr.upload.addEventListener("progress", e => {
+    if (e.lengthComputable) pg.setValue(e.loaded);
+});
+xhr.addEventListener("load", () => pg.setValue(file.size));
+```
+
+### Multi-step wizard
+
+```js
+const pg = createProgress({ value: 1, max: 5, valueText: "Step 1 of 5" });
+
+function goToStep(n) {
+    pg.setValue(n);
+    pg.setValueText(`Step ${n} of 5`);
+}
+```
+
+### Indeterminate while waiting, determinate once known
+
+```js
+const pg = createProgress({ indeterminate: true, label: "Searching..." });
+pg.attachRoot(rootEl);
+
+api.estimateSize().then(total => {
+    pg.setMax(total);
+    pg.setIndeterminate(false);   // switch to determinate now
+    api.stream().on("byte", () => pg.setValue(v => v + 1));
+});
+```
+
+## When NOT to use
+
+- **Indeterminate spinners with no progress context** — a CSS-only spinner
+  is lighter. Use this primitive only when there's actual progress to
+  communicate (even "we don't know how much" is meaningful when paired
+  with `indeterminate: true`).
+- **Stepper / wizard UI with named steps** — use `stepper` instead, which
+  has named-step ARIA and keyboard navigation. `progress` is for a single
+  number; `stepper` is for a sequence of labeled stations.
+- **Loading skeletons** — those should use a dedicated skeleton primitive
+  (coming) which coordinates multiple placeholders revealing together.
+
+## CSS contract
+
+This primitive's painted attributes follow the canonical CSS contract
+in `docs/CSS_CONTRACT.md`. See that doc for the cross-primitive
+taxonomy (booleans like `data-open` / `data-disabled` / `data-loading`,
+enums like `data-status` / `data-side`, ARIA pairings, host accessor
+naming, and event naming).

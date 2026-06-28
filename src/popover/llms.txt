@@ -1,0 +1,54 @@
+# @zakkster/lite-headless/popover
+
+createPopover(options) -> PopoverHandle
+
+## Options
+
+Inherits from createDialog. Additional:
+
+- placement: 12 values         -- 'top'|'bottom'|'left'|'right' x {default, -start, -end}
+- offset: number = 8           -- gap between anchor and content (px)
+- flip: boolean = true         -- try opposite side when main-axis overflows
+- shift: boolean = true        -- slide along cross-axis to stay in boundary
+- boundary: 'clipping'|'viewport'|HTMLElement = 'clipping'
+
+Default modal: false (overrides dialog default).
+
+## Returned
+
+Same as DialogHandle plus:
+- attachAnchor(el): off   -- positioning origin; defaults to trigger if not set
+- attachArrow(el): off    -- gets data-side, inline left/top (cross-axis offset)
+
+## Slot conventions (for <lite-popover>)
+
+- [data-trigger]: opens popover on click
+- [data-anchor]:  (optional) positioning anchor distinct from trigger
+- [data-content]: the popover panel
+- [data-arrow]:   (optional) arrow element; gets data-side + inline position
+- [data-close]:   closes popover on click (multiple allowed)
+
+## <lite-popover> attributes
+
+- open                                    -- reflects state, reactive
+- placement                               -- e.g. 'bottom-start'
+- offset                                  -- e.g. '8'
+- no-flip                                 -- flip:false
+- no-shift                                -- shift:false
+- modal                                   -- modal:true (default is false)
+- no-escape, no-outside, container, transition -- same as dialog
+
+## States exposed on content + arrow
+
+- data-open: present when open (boolean)
+- data-status: 'closed' | 'opening' | 'open' | 'closing'
+- data-side: 'top' | 'bottom' | 'left' | 'right' (effective placement after flip)
+- data-align: 'start' | 'center' | 'end'
+
+## CSS contract
+
+This primitive's painted attributes follow the canonical CSS contract
+in `docs/CSS_CONTRACT.md`. See that doc for the cross-primitive
+taxonomy (booleans like `data-open` / `data-disabled` / `data-loading`,
+enums like `data-status` / `data-side`, ARIA pairings, host accessor
+naming, and event naming).

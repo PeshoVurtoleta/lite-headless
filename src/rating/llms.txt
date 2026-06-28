@@ -1,0 +1,150 @@
+# @zakkster/lite-headless/rating
+
+Star/icon rating input. Used for reviews, feedback, satisfaction
+scores. Supports configurable item count, half-step values, hover
+preview, keyboard nav, read-only mode, and clearable on re-click.
+
+## API
+
+```js
+import { createRating } from "@zakkster/lite-headless/rating";
+
+const rating = createRating({
+    max: 5,
+    defaultValue: 0,
+    step: 1,                          // 1 (whole-star) or 0.5 (half-star)
+    readOnly: false,
+    clearable: false,                 // click selected item to zero
+    onValueChange: (next, prev, reason) => {},
+    onHoverChange: (hover) => {},
+    ariaLabel: "Rating",
+});
+```
+
+## Reactive accessors
+
+```js
+rating.value()         // committed value
+rating.hoverValue()    // null if not hovering, else the hover value
+rating.displayValue()  // hoverValue when hovering, else value
+rating.isReadOnly()
+```
+
+## Mutations
+
+```js
+rating.setValue(v, reason)
+rating.setHoverValue(v | null)
+rating.clear()                  // setValue(0)
+rating.setReadOnly(b)
+```
+
+## Attach
+
+```js
+rating.attachRoot(el)           // role=radiogroup; reactive data-value/display-value/max/step
+rating.attachItem(el, index)    // role=radio; click + hover handlers; data-filled/data-half-filled/data-empty
+rating.attachRail(el)           // optional: pointer-x mapping for half-step drag
+```
+
+`index` is 1-based -- the i-th star takes index `i`.
+
+## Painted attributes
+
+### Root (attachRoot)
+- `role="radiogroup"`, `aria-label`
+- `data-max`, `data-step`
+- `data-value`, `data-display-value`
+- `data-read-only`, `data-hovering` (when hover state present)
+
+### Items (attachItem)
+- `role="radio"`, `aria-checked="true|false"`
+- `data-index`
+- `data-filled` (displayValue >= index)
+- `data-half-filled` (displayValue between (index - step) and index, exclusive)
+- `data-empty` (otherwise)
+- `tabindex="0"` for the focused item (`Math.ceil(value)` or 1 if value=0)
+
+## Keyboard
+
+| Key            | Effect                              |
+|----------------|-------------------------------------|
+| ArrowRight/Up  | +step                               |
+| ArrowLeft/Down | -step                               |
+| Home / End     | 0 / max                             |
+| 1-9            | Set value directly (if <= max)      |
+
+Keyboard listener is on the root, so any item can have focus and the
+arrow keys work. Blocked in read-only mode.
+
+## Custom element
+
+```html
+<lite-rating value="3" max="5">
+    <button data-rating-item="1" aria-label="1 star">★</button>
+    <button data-rating-item="2" aria-label="2 stars">★</button>
+    <button data-rating-item="3" aria-label="3 stars">★</button>
+    <button data-rating-item="4" aria-label="4 stars">★</button>
+    <button data-rating-item="5" aria-label="5 stars">★</button>
+</lite-rating>
+```
+
+### Host attributes
+- `value="<num>"` (reactive)
+- `max="<int>"`
+- `step="1" | "0.5"`
+- `read-only` (reactive)
+- `clearable`
+- `aria-label="..."`
+
+### Host API
+```js
+host.ratingValue / .displayValue / .isReadOnly
+host.setValue(v) / .clear() / .setReadOnly(b)
+host._ratingInstance
+```
+
+### Custom element events
+- `valuechange` `{ detail: { value, previousValue, reason } }`
+
+## Half-step pattern
+
+For half-star ratings, set `step: 0.5` and either:
+
+1. **Per-item halves**: render each star as two clickable halves
+   (left half attaches index - 0.5, right attaches index). Slightly
+   more DOM but enables click-precision.
+2. **Rail-based**: render whole-star items, but attach a parent
+   `[data-rating-rail]` so the pointer-x position is mapped to a
+   half-step value during hover/drag. Less DOM, less precise on
+   touch, but smoother on mouse.
+
+The primitive supports both -- pick whichever matches your design.
+
+## Composition
+
+- **Feedback module**: rating + form-field for label/error + textarea
+  for "tell us more". Combine into a single submit handler.
+- **Read-only display**: in a product list, show average ratings via
+  `read-only` flag.
+- **Mood picker** (instead of stars): pass custom icons in the item
+  buttons; the primitive doesn't care what's inside the items.
+
+## Notes
+
+- `setHoverValue` is blocked in read-only mode (the primitive enforces
+  this for both API and pointer paths so read-only is truly read-only).
+- The default `tabindex` strategy puts focus on the currently-selected
+  item (or item 1 if none selected). This is the standard radiogroup
+  pattern -- Tab into the group lands on the current selection, then
+  arrow keys move within.
+- `step` must be exactly 1 or 0.5 -- the primitive throws on other
+  values to prevent subtle snap bugs.
+
+## CSS contract
+
+This primitive's painted attributes follow the canonical CSS contract
+in `docs/CSS_CONTRACT.md`. See that doc for the cross-primitive
+taxonomy (booleans like `data-open` / `data-disabled` / `data-loading`,
+enums like `data-status` / `data-side`, ARIA pairings, host accessor
+naming, and event naming).

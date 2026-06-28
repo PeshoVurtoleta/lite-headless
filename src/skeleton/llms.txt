@@ -1,0 +1,280 @@
+# @zakkster/lite-headless/skeleton
+
+Loading-state coordinator. Manages a `loading -> ready` state machine for one
+or more independent data sources, optionally gating the reveal with a
+`minVisibleMs` threshold to prevent flash. The consumer provides placeholder
+elements (with their own shimmer animation) and content elements; the
+primitive paints `data-loading` + `aria-busy` so consumer CSS can swap which is
+visible.
+
+## Quick example — single state
+
+```js
+import { createSkeleton } from "@zakkster/lite-headless/skeleton";
+
+const sk = createSkeleton({
+    minVisibleMs: 200,   // prevent flash if fetch resolves super-fast
+});
+
+sk.attachRoot(rootEl);
+sk.attachPlaceholder(placeholderEl);
+sk.attachContent(contentEl);
+
+// On data arrival:
+const data = await fetchUser();
+renderUserInto(contentEl, data);
+sk.reveal();
+```
+
+```html
+<div class="profile-card">
+    <div class="placeholder" data-skeleton>
+        <div class="shimmer-circle"></div>
+        <div class="shimmer-line wide"></div>
+        <div class="shimmer-line short"></div>
+    </div>
+    <div class="content" data-skeleton-content>
+        <!-- populated when data arrives -->
+    </div>
+</div>
+```
+
+```css
+[data-skeleton-root][data-loading] [data-skeleton-content] {
+    opacity: 0; visibility: hidden;
+}
+[data-skeleton-root][:not([data-loading])] [data-skeleton] {
+    display: none;
+}
+[data-skeleton-content] {
+    transition: opacity 250ms;
+}
+[data-skeleton] {
+    background: linear-gradient(90deg, #1a1c20 0%, #2a2d33 50%, #1a1c20 100%);
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.4s ease-in-out infinite;
+    border-radius: 4px;
+}
+@keyframes skeleton-shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+```
+
+## Quick example — multi-source coordination
+
+When the page has several independent data sources (user profile, recent
+posts, follower count), you want all placeholders to reveal at once when
+every source is ready. Declare the sources up front; `resolve()` them as
+they arrive; the primitive flips to ready when the last one resolves.
+
+```js
+const sk = createSkeleton({
+    sources: ["user", "posts", "followers"],
+    minVisibleMs: 200,
+});
+
+sk.attachRoot(rootEl);
+// ... attach placeholders + contents ...
+
+fetchUser().then(d => { renderUser(d);   sk.resolve("user"); });
+fetchPosts().then(d => { renderPosts(d); sk.resolve("posts"); });
+fetchFollowers().then(d => { renderFollowers(d); sk.resolve("followers"); });
+// When all three have called resolve(), sk.reveal() fires automatically.
+```
+
+`resolve()` on an undeclared source auto-registers it (so dynamic data sources
+work too). The all-resolved auto-reveal is only triggered when `sources.size > 0`
+in the internal map; calling `resolve("foo")` on a freshly-constructed skeleton
+with no declared sources will register and auto-reveal immediately, which is
+the right behavior for "one-shot" loads.
+
+## Options
+
+| Option            | Default      | Notes                                                  |
+| ----------------- | ------------ | ------------------------------------------------------ |
+| `sources`         | `[]`         | Array of source names for multi-source coordination    |
+| `minVisibleMs`    | `0`          | Minimum time placeholders stay visible after construction; reveal is deferred until this elapses |
+| `initiallyReady`  | `false`      | Start in `ready` state (e.g., SSR-prehydrated content) |
+| `onReveal`        | -            | Fires once on each `loading -> ready` edge             |
+| `onConceal`       | -            | Fires once on each `ready -> loading` edge             |
+
+## ARIA
+
+| Element       | Painted attributes                                                       |
+| ------------- | ------------------------------------------------------------------------ |
+| Root          | `role="status"` · `aria-live="polite"` · `aria-busy="true\|false"` · `data-skeleton-root` · `data-X="loading\|ready"` |
+| Placeholder   | `data-skeleton` · `data-loading` · `aria-hidden="true"` (when ready)       |
+| Content       | `data-skeleton-content` · `data-loading` · `aria-hidden="true"` (when loading) |
+
+`role="status"` + `aria-live="polite"` on the root means a screen reader will
+announce the content the moment the skeleton flips to ready. The polite
+liveness lets the announcement queue behind any in-progress utterance instead
+of interrupting it.
+
+## State machine
+
+```
+                      construct
+                          │
+                          ▼
+                  ┌──────────────┐
+       conceal()  │   loading    │
+       reset()    │ aria-busy=t  │  ◀───────────┐
+       ◀──────────┤              │              │
+                  └──────┬───────┘              │
+                         │                      │
+                         │  setReady(true)      │
+                         │  or all resolved     │
+                         │  (after minVisible)  │
+                         ▼                      │
+                  ┌──────────────┐              │
+                  │    ready     │              │
+                  │ aria-busy=f  ├──────────────┘
+                  │              │   conceal()
+                  └──────────────┘   reset()
+```
+
+## API
+
+```js
+sk.ready()                  // reactive boolean accessor
+sk.pendingSources()         // reactive: string[] of unresolved sources
+sk.isResolved(name)         // O(1) per-source predicate
+
+sk.setReady(true)           // reveal (respects minVisibleMs)
+sk.setReady(false)          // conceal (immediate; cancels pending timer)
+sk.reveal()                 // = setReady(true)
+sk.conceal()                // = setReady(false); also resets sources
+sk.resolve(source)          // mark a source resolved
+sk.reset()                  // mark all sources unresolved + setReady(false)
+
+sk.attachRoot(el)           // -> off() cleanup
+sk.attachPlaceholder(el)
+sk.attachContent(el)
+
+sk.destroy()
+```
+
+`attach*` returns an `off()` cleanup function that removes the painted
+attributes. Useful when the same skeleton drives multiple cards and you want
+to detach one without destroying the whole instance.
+
+## Common patterns
+
+### Fade in content, fade out placeholders
+
+```css
+[data-skeleton-content] { opacity: 0; transition: opacity 200ms; }
+[data-skeleton-root][:not([data-loading])] [data-skeleton-content] { opacity: 1; }
+[data-skeleton] { transition: opacity 150ms; }
+[data-skeleton-root][:not([data-loading])] [data-skeleton] {
+    opacity: 0; pointer-events: none;
+}
+/* After the fade, remove from layout: */
+[data-skeleton-root][:not([data-loading])] [data-skeleton] { display: none; }
+```
+
+### Skeleton inside a virtual table (loading rows)
+
+```js
+const tableSk = createSkeleton({ minVisibleMs: 250 });
+tableSk.attachRoot(tableContainer);
+
+// Render fake placeholder rows while loading:
+for (const placeholderRow of placeholderRows) {
+    tableSk.attachPlaceholder(placeholderRow);
+}
+tableSk.attachContent(realTableEl);
+
+fetch("/rows").then(rows => {
+    mountTable(realTableEl, rows);
+    tableSk.reveal();
+});
+```
+
+### Re-loading on filter change
+
+```js
+filterInput.addEventListener("input", () => {
+    sk.reset();   // back to loading
+    fetchFiltered(filterInput.value).then(rows => {
+        renderRows(rows);
+        sk.reveal();
+    });
+});
+```
+
+### Paired with a progress primitive for "loading > N%" UX
+
+```js
+const pg = createProgress({ value: 0, max: totalBytes });
+const sk = createSkeleton({ minVisibleMs: 200 });
+
+pg.attachRoot(progressEl);
+sk.attachRoot(skeletonRoot);
+sk.attachPlaceholder(placeholderEl);   // shows the spinning bar + skeleton
+sk.attachContent(contentEl);
+
+stream.on("byte", n => pg.setValue(n));
+stream.on("end", () => sk.reveal());   // progress will be at 100% by then
+```
+
+## Element wrapper
+
+```html
+<lite-skeleton sources="user posts" min-visible-ms="200">
+    <div data-skeleton class="placeholder-card">...</div>
+    <div data-skeleton-content class="real-card">...</div>
+</lite-skeleton>
+```
+
+```js
+const sk = document.querySelector("lite-skeleton");
+sk.resolve("user");
+sk.resolve("posts");
+// → fires CustomEvent "reveal" on the host
+```
+
+### Reactive attributes
+
+| Attribute        | Effect                                            |
+| ---------------- | ------------------------------------------------- |
+| `sources`        | Space-separated source names (read once on attach)|
+| `min-visible-ms` | Number; default 0 (read once on attach)           |
+| `ready`          | Flag attribute -- setting/removing toggles state  |
+
+### Imperative API + events
+
+```js
+host.setReady(true)
+host.reveal()
+host.conceal()
+host.resolve("name")
+host.reset()
+host.ready           // boolean accessor
+host.pendingSources  // string[] accessor
+
+host.addEventListener("reveal", () => ...);
+host.addEventListener("conceal", () => ...);
+```
+
+## When NOT to use
+
+- **A single inline spinner with no content swap** — a CSS-only spinner
+  is lighter. Use this primitive only when you have placeholder shapes
+  that need to coordinate with real content visibility.
+- **Per-row loading indicators in a list** — those are better handled by
+  the consumer's render loop directly; the skeleton is for "whole panel"
+  loading shells.
+- **Optimistic UI mutations** — when you're mutating something the user
+  already sees, you don't want to revert to skeleton. Use a smaller
+  "saving..." badge or progress primitive instead.
+
+## CSS contract
+
+This primitive's painted attributes follow the canonical CSS contract
+in `docs/CSS_CONTRACT.md`. See that doc for the cross-primitive
+taxonomy (booleans like `data-open` / `data-disabled` / `data-loading`,
+enums like `data-status` / `data-side`, ARIA pairings, host accessor
+naming, and event naming).

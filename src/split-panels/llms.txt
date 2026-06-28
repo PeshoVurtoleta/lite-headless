@@ -1,0 +1,145 @@
+# @zakkster/lite-headless / split-panels
+
+Headless resizable split panels. N panels separated by N-1 handles. Sizes
+are percentages of the container's main axis (sum to 100). The engine
+writes one CSS custom property per panel (`--lh-panel-{N}-pct`) to the
+container -- never inline width/height -- so consumer CSS composes the
+layout via grid or flex.
+
+Hot-path discipline: container rect cached once on pointerdown; pointermove
+does zero DOM reads. One array allocation per layout change (signal
+reference-equality requirement), bounded by frame rate.
+
+## Orientation
+
+Both orientations are supported via the `orientation` option, matching
+the convention used by sortable/carousel/slider:
+
+- `orientation: "horizontal"` (default) -- panels arranged left-to-right
+  (along the horizontal axis). Separator bars are **vertical lines**.
+  Keyboard nav: ArrowLeft / ArrowRight.
+- `orientation: "vertical"` -- panels arranged top-to-bottom (along the
+  vertical axis). Separator bars are **horizontal lines**. Keyboard nav:
+  ArrowUp / ArrowDown.
+
+For 2D layouts (IDE-style: top section + bottom terminal, where the top
+section has sidebar + editor + inspector), **nest two split-panels
+instances**: the inner container IS one of the outer's panels. Two
+independent layouts, two `onLayoutChange` callbacks, no shared state.
+Composes for any depth without needing a 2D grid primitive.
+
+```js
+// outer: vertical (top section + terminal stacked)
+const outer = createSplitPanels({ orientation: "vertical" });
+outer.attachContainer(rootEl);
+outer.attachPanel(topSectionEl, 0);
+outer.attachPanel(terminalEl,   1, { collapsible: true });
+outer.attachHandle(outerHandleEl, 0);
+
+// inner: horizontal (sidebar / editor / inspector)
+const inner = createSplitPanels({ orientation: "horizontal" });
+inner.attachContainer(topSectionEl);     // <-- same el that's outer's panel 0
+inner.attachPanel(sidebarEl,   0, { collapsible: true });
+inner.attachPanel(editorEl,    1);
+inner.attachPanel(inspectorEl, 2, { collapsible: true });
+inner.attachHandle(innerHandle0El, 0);
+inner.attachHandle(innerHandle1El, 1);
+```
+
+## API
+
+```
+createSplitPanels({
+    orientation:    "horizontal" | "vertical",  // default horizontal
+    layout?:        Signal<number[]>,           // controlled mode
+    defaultLayout?: number[],                   // seed values (percentages)
+    snapThreshold?: number,                     // collapse trigger, default 0.5
+    keyboardStep?:  number,                     // %/keystep, default 5
+    onLayoutChange?: (sizes, reason) => void,
+})
+
+  attachContainer(el)
+  attachPanel(el, idx, { minSize?, maxSize?, defaultSize?, collapsible? })
+  attachHandle(el, idx)         // handle between panel[idx] and panel[idx+1]
+
+  layout()                      // current percentages
+  setLayout(sizes, reason?)
+  collapsePanel(idx)
+  expandPanel(idx, sizeOverride?)
+  destroy()
+```
+
+## CSS contract
+
+The container gets `--lh-panel-0-pct`, `--lh-panel-1-pct`, ... as numeric
+values (not unit-suffixed). Use them however you want:
+
+```css
+/* horizontal arrangement (panels side by side) */
+.split[data-orientation="horizontal"] {
+    display: grid;
+    grid-template-columns:
+        calc(var(--lh-panel-0-pct) * 1%)
+        4px
+        calc(var(--lh-panel-1-pct) * 1%);
+}
+
+/* vertical arrangement (panels stacked) */
+.split[data-orientation="vertical"] {
+    display: grid;
+    grid-template-rows:
+        calc(var(--lh-panel-0-pct) * 1%)
+        4px
+        calc(var(--lh-panel-1-pct) * 1%);
+}
+```
+
+The container also gets `data-orientation="horizontal|vertical"` and
+`data-resizing` (during an active drag). Each handle gets `data-dragging`.
+
+## ARIA
+
+Handles are auto-wired with `role="separator"`, `aria-orientation`,
+`aria-valuenow`, `aria-valuemin`, `aria-valuemax`, `aria-valuetext`,
+`tabindex="0"`.
+
+### aria-orientation per the W3C spec
+
+Per [WAI-ARIA 1.2 § separator](https://www.w3.org/TR/wai-aria-1.2/#separator)
+and the [WAI-ARIA APG window-splitter pattern](https://www.w3.org/WAI/ARIA/apg/patterns/windowsplitter/),
+`aria-orientation` describes **the separator line itself**, which is
+**perpendicular** to the panel arrangement axis:
+
+| `orientation` prop | panel arrangement   | separator visual | `aria-orientation` |
+| ------------------ | ------------------- | ---------------- | ------------------ |
+| `"horizontal"`     | side by side        | vertical bar     | `"vertical"`       |
+| `"vertical"`       | stacked top/bottom  | horizontal bar   | `"horizontal"`     |
+
+The primitive auto-flips the string so consumers don't have to think
+about it. (This was previously inverted -- fixed in v0.7.16.)
+
+### Keyboard
+
+Each focused handle responds to:
+
+- ArrowLeft / ArrowRight (horizontal orientation only) -- ±`keyboardStep`%
+- ArrowUp / ArrowDown (vertical orientation only) -- ±`keyboardStep`%
+- Home -- collapse the left/upper panel to its min
+- End -- expand the left/upper panel to its max
+
+## Custom element wrapper
+
+```html
+<lite-split-panels orientation="horizontal">
+    <div data-panel data-min-size="15" data-default-size="25" data-collapsible>Side</div>
+    <div data-handle></div>
+    <div data-panel data-min-size="40">Main</div>
+</lite-split-panels>
+```
+
+Dispatches `CustomEvent('layoutchange', { detail: { layout, reason } })`.
+
+For nested layouts, just nest the elements -- each `<lite-split-panels>`
+is an independent primitive instance with its own orientation and
+layout.
+

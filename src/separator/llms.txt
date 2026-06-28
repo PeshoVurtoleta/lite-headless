@@ -1,0 +1,70 @@
+# @zakkster/lite-headless / separator
+
+A thin divider between content groups. Semantic by default (announced as a
+group boundary) or decorative (visual only, hidden from assistive tech).
+
+## Quick example
+
+```js
+import { createSeparator } from "@zakkster/lite-headless/separator";
+
+const s = createSeparator({ orientation: "horizontal" });
+s.attachRoot(hrEl);
+
+s.setOrientation("vertical");   // reactive; repaints data-orientation + aria
+```
+
+Decorative (no role, hidden from screen readers):
+```js
+createSeparator({ decorative: true });
+```
+
+## Options
+
+| Option | Default | Notes |
+|---|---|---|
+| `orientation` | `"horizontal"` | `horizontal \| vertical` |
+| `decorative` | `false` | `true` -> role="none" + aria-hidden (visual only) |
+
+## API
+
+```ts
+{
+    orientation(): "horizontal" | "vertical"
+    isDecorative: boolean                 // readonly
+    setOrientation(o): void
+
+    attachRoot(el): off
+    destroy(): void
+}
+```
+
+## Painted attributes
+
+- `data-separator-root` -- slot marker
+- `data-orientation="horizontal|vertical"` -- Class 3 enum, always present
+- `role="separator"` -- semantic mode (only if you didn't pre-set a role)
+- `aria-orientation="vertical"` -- semantic mode, vertical only (horizontal is the ARIA default)
+- `role="none"` + `aria-hidden="true"` -- decorative mode
+
+## CSS contract
+
+`data-orientation` is a Class 3 enum; `data-separator-root` is a Class 4 slot
+marker. The primitive paints no size -- the consumer draws the rule:
+
+```css
+[data-separator-root] { background: var(--border); }
+[data-separator-root][data-orientation="horizontal"] { block-size: 1px; inline-size: 100%; }
+[data-separator-root][data-orientation="vertical"]   { inline-size: 1px; block-size: 100%; }
+```
+
+## Wrapper (`<lite-separator>`)
+
+```html
+<lite-separator></lite-separator>
+<lite-separator orientation="vertical"></lite-separator>
+<lite-separator decorative></lite-separator>
+```
+
+Reactive: the `orientation` attribute flows through bidirectionally.
+Host: `setOrientation(o)`, `orientation` getter.

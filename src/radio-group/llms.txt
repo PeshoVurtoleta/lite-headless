@@ -1,0 +1,161 @@
+# @zakkster/lite-headless / radio-group
+
+ARIA `role="radiogroup"` + `role="radio"` per item. Single-select,
+exclusive, form-semantic. The right primitive for **Twitch Prediction
+outcomes**, **Poll options**, anything with "pick one and commit".
+
+## Distinct from toggle-group
+
+| | radio-group | toggle-group |
+|---|---|---|
+| ARIA role | `radiogroup` + `radio` | `group` + `aria-pressed` |
+| Selection | exactly one | one or many |
+| Semantic | form field | UI mode toggle |
+| Use for | poll options, settings | text-align, view modes, filter pills |
+
+Both share roving-tabindex + arrow-key nav. Pick by intent, not shape.
+
+## Quick example
+
+```js
+import { createRadioGroup } from "@zakkster/lite-headless/radio-group";
+
+const rg = createRadioGroup({
+    orientation: "vertical",        // default
+    required: true,
+    value: "no",                    // initial selection
+    onChange: (key, reason) => {},  // fires on selection change
+});
+
+rg.attachRoot(groupEl);
+rg.attachItem(yesEl, "yes");
+rg.attachItem(noEl,  "no");
+rg.attachItem(maybeEl, "maybe", { disabled: true });
+```
+
+## Options
+
+| Option | Default | Notes |
+| --- | --- | --- |
+| `orientation` | `"vertical"` | `"vertical"` or `"horizontal"`; affects arrow-key direction |
+| `value` | `null` | Initial checked key (must match an `attachItem` key) |
+| `required` | `false` | Paints `aria-required="true"` on the root |
+| `disabled` | `false` | Group-wide disabled state |
+| `onChange` | - | `(key, reason) => void`; reasons: `"click"`, `"keyboard"`, `"api"`, `"disabled"`, `"remove"` |
+
+## API
+
+```ts
+{
+    value(): string | null
+    isDisabled(): boolean
+    checkedKey: string | null    // sugar for value()
+    itemCount: number
+
+    setValue(key: string | null, reason?: string): void
+    setDisabled(b: boolean): void
+    setItemDisabled(keyOrEl: string | Element, disabled: boolean): void
+
+    attachRoot(el): off
+    attachItem(el, key: string, opts?: { disabled?: boolean }): off
+
+    destroy(): void
+    destroyed: boolean
+}
+```
+
+## Keyboard
+
+Per W3C ARIA APG for radio groups:
+
+| Key | Action |
+| --- | --- |
+| Tab | Move focus INTO the group on the checked radio (or first non-disabled if none checked). Does NOT change selection. |
+| ArrowDown / ArrowRight | Move focus AND selection to the next radio. Wraps. |
+| ArrowUp / ArrowLeft | Move focus AND selection to the previous radio. Wraps. |
+| Home | Move to the first non-disabled radio + select it. |
+| End | Move to the last non-disabled radio + select it. |
+| Space / Enter | Confirm selection on the currently focused radio. (Usually redundant — arrows already select. Included for completeness.) |
+
+Arrow direction follows `orientation`. Horizontal: ArrowLeft/Right.
+Vertical: ArrowUp/Down. (Both work in both orientations is non-standard;
+we follow the strict APG which means non-orientation arrows are ignored.)
+
+Disabled items are SKIPPED by arrow navigation, Home, and End.
+Group-disabled blocks all interaction.
+
+## Painted attributes
+
+### Root (`[data-radio-group-root]`)
+
+- `role="radiogroup"` (only if not pre-set)
+- `aria-orientation="horizontal"` (only when explicit; vertical is default)
+- `aria-required="true"` (when `required: true`)
+- `aria-disabled="true"` (when `setDisabled(true)`)
+
+### Items (`[data-radio-item]`)
+
+- `role="radio"` (only if not pre-set)
+- `aria-checked="true"|"false"` (literal string per ARIA spec)
+- `aria-disabled="true"` (per-item disabled only)
+- `tabindex="0"` on the checked item (or first non-disabled when none checked); `"-1"` on the rest. Managed by roving-focus.
+- `data-checked` (boolean — CSS hook; presence === `aria-checked="true"`)
+- `data-disabled` (boolean — CSS hook)
+
+## Wrapper (`<lite-radio-group>`)
+
+```html
+<lite-radio-group id="bet" value="yes" required>
+    <button data-radio-item value="yes">Yes (40%)</button>
+    <button data-radio-item value="no">No (60%)</button>
+    <button data-radio-item value="abstain" disabled>Abstain</button>
+</lite-radio-group>
+```
+
+Attributes:
+- `value="<key>"` — bidirectional with `host.value`
+- `orientation="vertical|horizontal"`
+- `required` (boolean)
+- `disabled` (boolean — group-wide)
+
+Per-item: each `[data-radio-item]` reads its key from `value="..."` and
+checks for a `disabled` attribute.
+
+Host accessors:
+- `host.value` / `host.checkedKey`
+- `host.isDisabled`, `host.itemCount`
+- `host.setValue(key)`, `host.setDisabled(b)`, `host.setItemDisabled(keyOrEl, b)`
+- `host._radioGroupInstance` (advanced)
+
+Event: `valuechange` — `{ detail: { value, reason } }`
+
+## Composition
+
+For Twitch Prediction with vote-share meters:
+
+```html
+<lite-radio-group id="prediction-outcome">
+    <label data-radio-item value="yes" class="outcome">
+        <span class="outcome-text">Yes — they'll win</span>
+        <lite-meter value="0.42" class="vote-share" aria-label="Yes share">
+            <div data-meter-fill></div>
+        </lite-meter>
+    </label>
+    <label data-radio-item value="no" class="outcome">
+        <span class="outcome-text">No — they'll lose</span>
+        <lite-meter value="0.58" class="vote-share" aria-label="No share">
+            <div data-meter-fill></div>
+        </lite-meter>
+    </label>
+</lite-radio-group>
+```
+
+The meter is a child element, not a radio item. The radio role is on
+the `<label>` (or `<button>`); the meter inside paints its own
+`role="meter"` so screen readers announce the share separately.
+
+## CSS contract
+
+Follows `docs/CSS_CONTRACT.md`. `data-checked`/`data-disabled` are
+Class-2 booleans. `data-radio-item`/`data-radio-group-root` are Class-4
+slot markers.
