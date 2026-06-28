@@ -1,0 +1,172 @@
+# @zakkster/lite-headless / button
+
+Reactive `pressed` / `loading` / `disabled` states + auto-locked click
+handler for async submit flows. Thin wrapper around the native
+`<button>` -- it owns the three-state ARIA wiring + the gating logic
+so consumers don't keep reimplementing it with subtle bugs.
+
+## When you need this
+
+- "Submit" with async backend → loading state + auto-disabled (prevents
+  the classic double-click bug).
+- Toggle button (Bold, Italic, Mute Mic) → `aria-pressed` paint.
+- Confirm-vote in Twitch Prediction → locks during request.
+
+For plain non-stateful buttons, use a native `<button>` directly; you
+don't need a primitive.
+
+## Quick example
+
+```js
+import { createButton } from "@zakkster/lite-headless/button";
+
+// Action button with async submit:
+const btn = createButton({
+    onPress: () => submitVote(),    // can return a Promise
+});
+btn.attachRoot(buttonEl);
+
+// Or call runAsync explicitly:
+btn.runAsync(async () => {
+    await submitVote();
+});
+
+// Toggle button:
+const bold = createButton({ toggle: true, pressed: false });
+bold.attachRoot(boldButtonEl);
+bold.setPressed(true);    // aria-pressed becomes "true"
+```
+
+## Options
+
+| Option | Default | Notes |
+| --- | --- | --- |
+| `toggle` | `false` | If true (or if `pressed` is a boolean), button is a toggle (paints `aria-pressed`). Click flips pressed automatically. |
+| `pressed` | `false` | Initial pressed state. Setting this implies `toggle: true`. |
+| `loading` | `false` | Initial loading state. |
+| `disabled` | `false` | Initial disabled state. |
+| `onPress` | - | `(ev) => any \| Promise<any>`. If it returns a Promise, the button auto-locks during the await (same as `runAsync`). |
+
+## API
+
+```ts
+{
+    // Accessors (reactive)
+    isPressed(): boolean
+    isLoading(): boolean
+    isDisabled(): boolean
+    canPress(): boolean    // true iff a click would be honored
+    toggle: boolean         // true if this is a toggle button
+
+    // Mutations
+    setPressed(b: boolean): void     // no-op if not a toggle button
+    setLoading(b: boolean): void
+    setDisabled(b: boolean): void
+    runAsync<T>(fn: () => Promise<T> | T): Promise<T | undefined>
+
+    // Attach
+    attachRoot(buttonEl): off
+
+    // Lifecycle
+    destroy(): void
+}
+```
+
+## Gating
+
+`canPress()` returns `true` iff:
+- not disabled
+- not loading
+- not destroyed
+
+When `canPress()` is false:
+- The click event is intercepted (`preventDefault` + `stopImmediatePropagation`).
+  Even JS-dispatched clicks (`el.click()`) are blocked, which native
+  `disabled` would not protect against.
+- `onPress` is not called.
+- `runAsync` returns `undefined` without invoking its `fn`.
+
+## Painted attributes (root)
+
+- `data-button-root` — slot marker
+- `data-pressed` — boolean; mirrors `isPressed()` (only meaningful for toggle buttons)
+- `data-loading` — boolean
+- `data-disabled` — boolean
+- `aria-pressed="true"|"false"` — painted on toggle buttons; literal string per ARIA spec
+- `aria-busy="true"` — painted during loading
+- `disabled` — native DOM attribute; set when either explicitly disabled OR loading
+
+Note on `disabled` ownership: the primitive sets `disabled` based on
+its internal state. If your consumer adds a `disabled` attribute
+externally (outside of `setDisabled`), the primitive won't see it as
+its own state -- the effect will overwrite it on the next paint.
+Always go through `setDisabled` or `host.setDisabled` on the wrapper.
+
+## Wrapper (`<lite-button>`)
+
+```html
+<lite-button id="submit-bet">Submit Bet</lite-button>
+
+<lite-button toggle pressed>Bold</lite-button>
+
+<lite-button loading>Submitting…</lite-button>
+```
+
+Attributes (all reactive):
+- `toggle` — boolean; makes it a toggle button
+- `pressed` — boolean (toggle only)
+- `loading` — boolean
+- `disabled` — boolean
+
+If the host is not a `<button>`, the wrapper adds `role="button"` and
+`tabindex="0"`. Strongly prefer a real `<button>` -- it gets you
+keyboard activation (Space/Enter) + form integration for free.
+
+Host methods:
+- `host.setPressed(b)`, `host.setLoading(b)`, `host.setDisabled(b)`
+- `host.runAsync(fn)` — convenience pass-through
+- `host._buttonInstance` (advanced)
+
+Host accessors:
+- `host.isPressed`, `host.isLoading`, `host.canPress`
+- `host.isDisabledState` — named to avoid clobbering the native
+  `disabled` DOM property reflection
+
+Event: `press` — `{ detail: { event } }` — fires when the button is
+activated (mouse, keyboard, or programmatic `el.click()`).
+
+## Composition
+
+### Twitch Prediction "Submit" pattern
+
+```html
+<lite-button id="submit" disabled>
+    <span data-button-label>Submit</span>
+    <span data-button-spinner aria-hidden="true">⟳</span>
+</lite-button>
+```
+
+```js
+const host = document.getElementById("submit");
+// Enable once a radio in the Prediction radio-group is checked:
+predictionRG.addEventListener("valuechange", (e) => {
+    host.setDisabled(e.detail.value == null);
+});
+host.addEventListener("press", async () => {
+    await host.runAsync(() => api.submitVote(predictionRG.value));
+});
+```
+
+```css
+[data-button-spinner] { display: none; }
+[data-loading] [data-button-spinner] {
+    display: inline-block;
+    animation: spin 1s linear infinite;
+}
+[data-loading] [data-button-label] { opacity: 0.6; }
+```
+
+## CSS contract
+
+Follows `docs/CSS_CONTRACT.md`. `data-pressed`/`data-loading`/`data-disabled`
+are Class-2 booleans. `data-button-root` is a Class-4 slot marker.

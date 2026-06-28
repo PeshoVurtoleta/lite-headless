@@ -1,0 +1,94 @@
+# @zakkster/lite-headless / badge
+
+Count indicator + dot variant. Small decoration typically anchored to
+another element (button, avatar, menu item).
+
+## Quick example
+
+```js
+import { createBadge } from "@zakkster/lite-headless/badge";
+
+const b = createBadge({
+    count: 3,
+    max: 99,          // count > max paints "99+"
+    intent: "danger",
+});
+b.attachRoot(badgeEl);
+
+b.setCount(5);        // reactive
+b.increment();        // → 6
+b.reset();            // → 0; hides (data-hidden) unless showZero: true
+```
+
+Dot mode:
+```js
+createBadge({ dot: true, intent: "success" });
+```
+
+## Options
+
+| Option | Default | Notes |
+|---|---|---|
+| `count` | `0` | Initial count |
+| `max` | `99` | Counts over this show "max+" (e.g., "99+") |
+| `dot` | `false` | Dot mode (no number, just a dot) |
+| `showZero` | `false` | If false, hides when count === 0 |
+| `intent` | `"default"` | `default \| primary \| success \| info \| warning \| danger` |
+
+## API
+
+```ts
+{
+    count(): number
+    displayed(): string       // "5", "99+", etc.
+    isDot: boolean            // readonly
+    max: number               // readonly
+    intent: string            // readonly
+
+    setCount(n: number): void
+    increment(by?: number): void
+    decrement(by?: number): void
+    reset(): void
+
+    attachRoot(el): off
+
+    destroy(): void
+}
+```
+
+## Painted attributes
+
+- `data-badge-root` — slot marker
+- `data-intent="..."` — intent color
+- `data-dot` — boolean, dot mode
+- `data-count="<displayed>"` — count mode only; shows e.g. "3" or "99+"
+- `data-hidden` + `hidden` — when count === 0 and `showZero === false`
+- `aria-label` — auto-generated ("3 items", "Indicator") only if not pre-set
+
+## Wrapper (`<lite-badge>`)
+
+```html
+<lite-badge count="3" intent="danger">3</lite-badge>
+<lite-badge dot intent="success"></lite-badge>
+<lite-badge count="105" max="99" intent="primary"></lite-badge>
+```
+
+Reactive: `count` attribute flows through bidirectionally.
+Host methods: `setCount(n)`, `increment()`, `decrement()`, `reset()`.
+
+## Composition
+
+Typical mounting pattern: position a `<lite-badge>` absolutely over
+the corner of a parent element.
+
+```html
+<button class="bell-wrap">
+    🔔
+    <lite-badge count="3" intent="danger" class="bell-badge">3</lite-badge>
+</button>
+```
+
+```css
+.bell-wrap { position: relative; }
+.bell-badge { position: absolute; top: -4px; right: -4px; }
+```

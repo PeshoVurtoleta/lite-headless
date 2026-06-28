@@ -1,0 +1,108 @@
+# @zakkster/lite-headless / backtop
+
+"Back to top" floating button. Shows after the user scrolls past a
+threshold; click scrolls back to top (smooth by default).
+
+## Quick example
+
+```js
+import { createBackTop } from "@zakkster/lite-headless/backtop";
+
+const bt = createBackTop({
+    threshold: 200,        // px past which the button shows
+    smooth: true,          // default true; set false for instant jump
+    onActivate: (reason) => {},
+});
+
+bt.attachTarget(window);   // or an element for an internal scroll container
+bt.attachButton(buttonEl);
+```
+
+## Options
+
+| Option | Default | Notes |
+|---|---|---|
+| `threshold` | `200` | px past which the button shows |
+| `smooth` | `true` | Smooth scroll vs instant jump |
+| `onActivate` | - | `(reason: string) => void` |
+
+## API
+
+```ts
+{
+    isVisible(): boolean
+    threshold(): number
+    smooth: boolean       // readonly
+
+    attachTarget(el: Element | Window | null): off
+    attachButton(buttonEl): off
+    scrollToTop(reason?: string): void
+
+    destroy(): void
+}
+```
+
+## Painted attributes
+
+### Button (`[data-backtop]`)
+
+- `data-visible` — boolean, true when scrolled past threshold
+- `hidden` — when not visible (for SR + non-CSS)
+- `aria-label="Back to top"` — only if not pre-set
+
+## Scroll-target semantics
+
+`attachTarget(window)` (default) listens to window scroll and reads
+`window.scrollY`. Pass an `HTMLElement` to track that container's
+`scrollTop` instead. `null` is equivalent to window.
+
+Scroll listener uses `{ passive: true }` and throttles paint via
+`requestAnimationFrame` — never reads layout during the scroll
+event itself, so it's safe to attach on long pages.
+
+## Wrapper (`<lite-backtop>`)
+
+```html
+<lite-backtop threshold="300">
+    <button data-backtop-button class="fab" type="button">↑</button>
+</lite-backtop>
+
+<!-- Or scoped to a scroll container -->
+<div id="article" style="overflow:auto; height: 600px;">
+    <article>...</article>
+    <lite-backtop target="#article" threshold="200">
+        <button data-backtop-button>↑</button>
+    </lite-backtop>
+</div>
+```
+
+Attributes:
+- `threshold` — px (default 200)
+- `smooth` — set to `"false"` for instant jump
+- `target` — CSS selector for the scroll container; defaults to window
+
+Host methods: `scrollToTop(reason)`.
+Host accessors: `isVisible`, `threshold`, `_backtopInstance`.
+
+Event: `backtop` — `{ detail: { reason } }`.
+
+## CSS contract
+
+The button starts with `hidden`; consumer styles a `data-visible`
+transition (opacity, transform) for the fade-in. Typical FAB pattern:
+
+```css
+[data-backtop] {
+    position: fixed;
+    bottom: 24px; right: 24px;
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    cursor: pointer;
+    opacity: 0; transform: translateY(8px);
+    transition: opacity 180ms, transform 180ms;
+}
+[data-backtop][data-visible] { opacity: 1; transform: translateY(0); }
+[data-backtop][hidden] { display: none; }   /* override inline-flex */
+```

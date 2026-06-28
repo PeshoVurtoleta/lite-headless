@@ -1,0 +1,187 @@
+# @zakkster/lite-headless/carousel
+
+Headless carousel per WAI-ARIA APG carousel pattern (basic with manual +
+autoplay variants).
+
+## Quick example
+
+```js
+import { createCarousel } from "@zakkster/lite-headless/carousel";
+
+const carousel = createCarousel({
+    autoplay: 4000,
+    loop: true,
+    onIndexChange: (i, reason) => console.log("now", i, "via", reason),
+});
+
+carousel.attachRoot(rootEl, { label: "Featured products" });
+carousel.attachViewport(viewportEl);
+slidesEls.forEach((el, i) => carousel.attachSlide(el, i));
+carousel.attachPrev(prevBtn);
+carousel.attachNext(nextBtn);
+indicatorsEls.forEach((el, i) => carousel.attachIndicator(el, i));
+carousel.attachPlayPause(playBtn);
+```
+
+## Options
+
+| Option                 | Default        | Notes                                          |
+| ---------------------- | -------------- | ---------------------------------------------- |
+| `orientation`          | `"horizontal"` | `"horizontal"` or `"vertical"`                 |
+| `autoplay`             | `null`         | ms interval; `null` = no autoplay              |
+| `autoplayBehavior`     | `"pause"`      | `"pause"` or `"resume"` on hover/focus out     |
+| `loop`                 | `false`        | wrap at edges                                  |
+| `defaultIndex`         | `0`            | initial slide                                  |
+| `uniformSlideWidth`    | `false`        | opt-in fast path (scrollLeft math vs IO)       |
+| `respectReducedMotion` | `true`         | auto-disable autoplay if user prefers          |
+| `scrollBehavior`       | `"smooth"`     | passed to scrollIntoView/scrollTo              |
+| `onIndexChange`        | -              | `(index, reason)` callback                     |
+| `onPlayingChange`      | -              | `(playing, reason)` callback                   |
+
+`reason` strings: `"set"`, `"go"`, `"scroll"`, `"keyboard"`, `"user-nav"`,
+`"user-toggle"`, `"autoplay-end"`, `"attribute"`.
+
+## Source of truth
+
+The current slide index is derived from one of two sources:
+
+- **Default (correctness)**: `IntersectionObserver` reports
+  `intersectionRatio` per slide; the slide with the highest ratio wins.
+  Handles uneven slide widths, partial scroll positions, and any
+  scroll-snap layout.
+- **Opt-in fast path** (`uniformSlideWidth: true`): rAF-throttled
+  `scrollLeft / slideWidth` math. Single passive scroll listener, no
+  observer overhead, no allocation per frame. Use when all slides are
+  the same width.
+
+The imperative API (`go`/`next`/`prev`) commits the index optimistically
+before scroll settles, so consumers see the new index immediately after
+their call. The scroll-driven path then re-confirms (no-op if matching).
+
+## Layout
+
+The primitive is layout-agnostic. Provide the viewport with:
+
+```css
+.viewport {
+    overflow: auto;
+    scroll-snap-type: x mandatory;
+    display: flex;
+}
+.viewport > .slide {
+    scroll-snap-align: start;
+    flex: 0 0 100%;
+}
+```
+
+For vertical: `scroll-snap-type: y mandatory` and `flex-direction: column`.
+
+## Attachment methods
+
+| Method                          | Returns         | Notes                              |
+| ------------------------------- | --------------- | ---------------------------------- |
+| `attachRoot(el, { label? })`    | cleanup `()`    | role="region", aria-roledescription="carousel" |
+| `attachViewport(el)`            | cleanup `()`    | scrollable container; keyboard nav |
+| `attachSlide(el, idx, opts?)`   | cleanup `()`    | `opts: { label }`                  |
+| `attachPrev(el)` / `attachNext` | cleanup `()`    | button; auto aria-label + aria-controls |
+| `attachIndicator(el, idx)`      | cleanup `()`    | role="tab"; tabindex roving        |
+| `attachPlayPause(el)`           | cleanup `()`    | toggle; aria-pressed reactive      |
+
+## Imperative API
+
+```js
+carousel.go(i, behavior?)           // behavior: "smooth" | "auto"
+carousel.next() / prev()
+carousel.first() / last()
+carousel.play() / pause() / toggle()
+carousel.isPlaying()                // boolean
+carousel.index()             // number
+carousel.slideCount()               // number
+carousel.destroy()                  // idempotent
+```
+
+Reactive accessors (return signal getters; subscribe inside an `effect`):
+
+```js
+carousel.index()                    // signal -> current index
+carousel.playing()                  // signal -> is autoplay running
+```
+
+## Keyboard (when viewport has focus)
+
+- `ArrowLeft` / `ArrowRight` (horizontal) — prev / next
+- `ArrowUp` / `ArrowDown` (vertical) — prev / next
+- `Home` / `End` — first / last
+- Any keyboard nav pauses autoplay (sticky until user resumes)
+
+Indicator tablist: each indicator has `tabindex="0"` when current,
+`tabindex="-1"` otherwise (roving tabindex pattern). Consumers can also
+add arrow-key handling on the tablist for tab-to-tab navigation.
+
+## Autoplay behavior
+
+Per WAI-ARIA APG recommendation:
+
+- Pause on hover (if `autoplayBehavior: "pause"`)
+- Pause on focus-within
+- Pause on any user navigation (prev/next/indicator/keyboard)
+- Resume on hover-out **only if** the user hasn't manually paused
+- Reduced-motion users: autoplay off by default
+  (override with `respectReducedMotion: false`)
+- At end-of-list (no loop): autoplay stops with reason
+  `"autoplay-end"`
+
+## ARIA painted attributes
+
+| Element       | Attributes                                       |
+| ------------- | ------------------------------------------------ |
+| Root          | `role="region"`, `aria-roledescription="carousel"`, `aria-label`, `data-orientation` |
+| Viewport      | `aria-live="off"` while playing, `"polite"` while paused/manual |
+| Slide         | `role="group"`, `aria-roledescription="slide"`, `aria-label="N of M"`, `data-active (boolean)` |
+| Prev / Next   | `aria-label`, `aria-controls` (viewport id)      |
+| Indicator     | `role="tab"`, `aria-selected`, `aria-controls`, `tabindex`, `data-active` |
+| Play/Pause    | `aria-pressed`, `aria-label`, `data-playing (boolean)` |
+
+## Element wrapper
+
+```html
+<lite-carousel label="Featured" autoplay="4000" loop>
+    <button data-carousel-prev>←</button>
+    <div data-carousel-viewport tabindex="0">
+        <div data-carousel-slide>Slide 1</div>
+        <div data-carousel-slide>Slide 2</div>
+        <div data-carousel-slide>Slide 3</div>
+    </div>
+    <button data-carousel-next>→</button>
+    <div role="tablist">
+        <button data-carousel-indicator>●</button>
+        <button data-carousel-indicator>○</button>
+        <button data-carousel-indicator>○</button>
+    </div>
+    <button data-carousel-play-pause>⏯</button>
+</lite-carousel>
+```
+
+Slides and indicators auto-derive their index from sibling order, OR
+the consumer can specify `data-index="N"` for explicit numbering.
+
+Reactive attributes:
+
+- `index` — current slide (two-way; v0.7.12 cascade guard applied)
+
+Read-once attributes:
+
+- `label`, `orientation`, `autoplay`, `loop`, `uniform-slide-width`
+
+Dispatched events:
+
+- `indexchange` — `{ detail: { index, reason } }`
+- `playingchange` — `{ detail: { playing, reason } }`
+
+## CSS contract
+
+This primitive's painted attributes follow the canonical CSS contract
+in `docs/CSS_CONTRACT.md`. See that doc for the cross-primitive
+taxonomy (booleans like `data-open` / `data-disabled` / `data-loading`,
+enums like `data-status` / `data-side`, ARIA pairings, host accessor
+naming, and event naming).

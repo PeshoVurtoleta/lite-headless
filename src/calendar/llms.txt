@@ -1,0 +1,168 @@
+# @zakkster/lite-headless/calendar
+
+Headless month-view calendar for admin dashboards. Displays events on
+a date grid. Not for date input (use createDatePicker for that).
+
+## API
+
+```js
+import { createCalendar } from "@zakkster/lite-headless/calendar";
+
+const cal = createCalendar({
+    defaultView: new Date(),
+    defaultEvents: [
+        { id: "1", start: new Date(2026, 5, 10), title: "Meeting", color: "#3b82f6" },
+    ],
+    defaultSelectedDate: null,
+    weekStartsOn: 0,
+    onViewChange:  (viewMonth, reason) => {},
+    onEventClick:  (event, domEvent)   => {},
+    onDateClick:   (date,  domEvent)   => {},
+    onSelectedDateChange: (date, reason) => {},
+});
+```
+
+## Event shape
+
+```js
+{
+    id:      string,         // required, unique
+    start:   Date,            // required
+    end:     Date | null,     // optional; null = same-day at start time
+    title:   string,          // required
+    allDay:  boolean,         // optional
+    color:   string | null,   // CSS color string for chip styling
+    meta:    {},              // consumer-defined extras
+}
+```
+
+Multi-day events: an event with start < end returns from `eventsForDay()`
+for every day in [start..end]. Consumer detects continuation styling by
+comparing event.start to cellDate.startOfDay.
+
+## Reactive accessors
+
+```js
+cal.view()             // Date (start of current view month)
+cal.events()           // Event[] (sorted by start)
+cal.selectedDate()     // Date | null
+```
+
+## Mutations
+
+```js
+cal.setView(d)               // jumps to start-of-month of d
+cal.setSelectedDate(d|null)  // sets the highlighted day
+cal.setEvents(arr)           // replace the whole events list
+cal.addEvent(ev)             // append (dedup'd by id)
+cal.removeEvent(id)
+cal.updateEvent(id, partial) // merge partial into existing event
+cal.goToPrevMonth()
+cal.goToNextMonth()
+cal.goToToday()
+```
+
+## Queries (non-reactive)
+
+```js
+cal.eventsForDay(date)       // Event[] overlapping the day
+cal.getEvent(id)             // Event | null
+cal.getDaysInView(monthDate?) // 42-cell array {date,inMonth,isToday}
+```
+
+## Attach methods
+
+```js
+cal.attachRoot(el)                  // host element (role=application)
+cal.attachGrid(el)                  // grid container (role=grid)
+cal.attachMonthLabel(el)            // reactive month/year label
+cal.attachPrevMonth(el)             // click -> goToPrevMonth
+cal.attachNextMonth(el)             // click -> goToNextMonth
+cal.attachDayCell(el, date)         // role=gridcell, paints state attrs
+cal.attachEvent(el, eventId)        // click/keyboard -> onEventClick
+```
+
+Each returns an `off()` function. All offs run in LIFO order at `destroy()`.
+
+## Painted attributes
+
+### Day cells (set by attachDayCell)
+- `role="gridcell"`
+- `data-date="YYYY-M-D"` (unpadded; matches dayKey from datepicker)
+- `data-day-of-week="0..6"`
+- `data-outside-month` if date is not in current view month
+- `data-today` if date is today
+- `data-selected` + `aria-selected="true|false"` per selectedDate
+
+### Event elements (set by attachEvent)
+- `role="button"` + `tabindex="0"`
+- `data-event-id="<id>"`
+- `data-event-color="<color>"` if event.color is set
+- `data-event-all-day` if event.allDay is true
+- `data-event-missing` if the event is no longer in the events list
+
+## Custom element
+
+```html
+<lite-calendar view="2026-06-01" week-starts-on="0">
+    <header>
+        <button data-cal-prev>‹</button>
+        <span  data-cal-label></span>
+        <button data-cal-next>›</button>
+    </header>
+    <div data-cal-grid>
+        <!-- consumer renders day cells via [data-cal-day][data-date] -->
+        <!-- and event chips via [data-cal-event-id] -->
+    </div>
+</lite-calendar>
+```
+
+### Custom element host API
+
+```js
+host.view                              // Date (accessor)
+host.events                            // Event[] (accessor)
+host.selectedDate                      // Date | null (accessor)
+host.setView(d) / .setEvents(arr) / .setSelectedDate(d)
+host.addEvent(ev) / .removeEvent(id) / .updateEvent(id, partial)
+host.goToPrevMonth() / .goToNextMonth() / .goToToday()
+host.eventsForDay(date) / .getEvent(id) / .getDaysInView()
+host._calendarInstance                 // raw primitive escape hatch
+```
+
+### Custom element events
+- `viewchange`     `{ detail: { view: Date, reason } }`
+- `eventclick`     `{ detail: { event } }`
+- `dateclick`      `{ detail: { date } }`
+- `selectedchange` `{ detail: { date: Date | null } }`
+
+## Composition
+
+Calendar pairs naturally with:
+- `lite-popover` for "click date → show event creation popover"
+- `lite-dialog` for "click event → show event detail modal"
+- `lite-toast`  for "event saved" notifications
+- `lite-skeleton` for loading state while fetching events
+
+Multi-day rendering: query `eventsForDay(cellDate)` per cell, render chip
+elements, mark continuations via `event.start < cellDate` /
+`event.end > endOfCellDay` to apply CSS for arrow heads / tails.
+
+## Notes
+
+- The primitive doesn't build the grid DOM. Consumer creates cells (a
+  6×7 grid of `<button>` or `<div>` is typical) and calls
+  `attachDayCell(el, date)`. The wrapper variant auto-discovers cells
+  via `[data-cal-day][data-date]`.
+- Date helpers are imported from `@zakkster/lite-headless/datepicker`
+  to avoid duplication.
+- No portaling, no positioner. Headless calendars don't have an overlay
+  story; they compose with popover/dialog for that.
+
+## CSS contract
+
+This primitive's painted attributes follow the canonical CSS contract
+in `docs/CSS_CONTRACT.md`. See that doc for the cross-primitive
+taxonomy (booleans like `data-open` / `data-disabled` / `data-loading`,
+enums like `data-status` / `data-side`, ARIA pairings, host accessor
+naming, and event naming).

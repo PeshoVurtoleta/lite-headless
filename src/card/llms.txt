@@ -1,0 +1,146 @@
+# @zakkster/lite-headless / card
+
+Container primitive with header / body / footer slots, optionally
+**collapsible** or **dismissible**. The cornerstone of every admin
+dashboard.
+
+## Quick example
+
+```js
+import { createCard } from "@zakkster/lite-headless/card";
+
+const card = createCard({
+    collapsible: true,
+    dismissible: true,
+    label: "Recent orders",
+    onCollapseChange: (collapsed, reason) => {},
+    onDismiss: (reason) => {},
+});
+
+card.attachRoot(cardEl);
+card.attachBody(bodyEl);
+card.attachCollapseTrigger(headerEl);   // click anywhere in header toggles
+card.attachDismissButton(xButton);
+```
+
+## Options
+
+| Option | Default | Notes |
+|---|---|---|
+| `collapsible` | `false` | Enable collapsible state machine |
+| `dismissible` | `false` | Enable dismissible state machine |
+| `collapsed` | `false` | Initial collapsed state (requires `collapsible`) |
+| `dismissed` | `false` | Initial dismissed state (requires `dismissible`) |
+| `label` | `null` | Sets `aria-label` + `role="region"` (only if root has neither pre-set) |
+| `onCollapseChange` | - | `(collapsed: boolean, reason: string) => void` |
+| `onDismiss` | - | `(reason: string) => void` |
+
+## API
+
+```ts
+{
+    isCollapsed(): boolean
+    isDismissed(): boolean
+    collapsible: boolean    // readonly
+    dismissible: boolean    // readonly
+
+    setCollapsed(b: boolean, reason?: string): void
+    toggle(reason?: string): void
+    dismiss(reason?: string): void
+    reopen(): void
+
+    attachRoot(el): off
+    attachBody(el): off
+    attachCollapseTrigger(el): off
+    attachDismissButton(el): off
+
+    destroy(): void
+}
+```
+
+## Painted attributes
+
+### Root (`[data-card-root]`)
+
+- `role="region"` + `aria-label="<label>"` — when `label` provided
+- `data-open` — boolean, while collapsed (Class-2 boolean CSS hook)
+- `data-hidden` — boolean, while dismissed
+- `hidden` — when dismissed (for SR + non-CSS contexts)
+
+### Body (`[data-card-body]`)
+
+- `id` — auto-generated for `aria-controls` linkage (when collapsible)
+- `hidden` — when collapsed
+
+### Collapse trigger
+
+- `aria-expanded="true|false"` — flipped on toggle
+- `aria-controls=<body-id>` — wires to the body for SR navigation
+
+### Dismiss button (`[data-card-dismiss]`)
+
+- `aria-label="Dismiss"` — only if not pre-set
+
+## Wrapper (`<lite-card>`)
+
+```html
+<lite-card collapsible dismissible label="Sales Q3">
+    <div data-card-header>
+        Sales Q3
+        <button data-card-collapse-trigger aria-label="Toggle">−</button>
+        <button data-card-dismiss>×</button>
+    </div>
+    <div data-card-body>
+        ...content...
+    </div>
+    <div data-card-footer>
+        <button>View all</button>
+    </div>
+</lite-card>
+```
+
+Attributes:
+- `collapsible` — boolean; enables the state machine
+- `dismissible` — boolean
+- `collapsed` — boolean; reactive (host attribute mirrors internal state)
+- `dismissed` — boolean
+- `label` — sets `aria-label`
+
+Slots (auto-discovered):
+- `[data-card-header]` — visual header. If `collapsible` and no explicit
+  `[data-card-collapse-trigger]`, the header itself becomes the toggle.
+- `[data-card-body]` — content
+- `[data-card-footer]` — actions area
+- `[data-card-collapse-trigger]` — explicit toggle (optional; falls back to header)
+- `[data-card-dismiss]` — dismiss button
+
+Host methods: `toggle()`, `collapse()`, `expand()`, `dismiss()`, `reopen()`.
+Host accessors: `isCollapsed`, `isDismissed`, `_cardInstance`.
+
+Events:
+- `collapsechange` — `{ detail: { collapsed, reason } }`
+- `dismiss` — `{ detail: { reason } }`
+
+## CSS contract
+
+`data-open` and `data-hidden` are Class-2 booleans. The body's
+`hidden` attribute handles content visibility natively; CSS hooks
+(`data-card-root[data-open]`) let you style the chrome (chevron
+rotation, etc.).
+
+## Composition
+
+Card composes naturally with other primitives:
+
+```html
+<lite-card collapsible>
+    <div data-card-header>
+        <lite-avatar name="Alice" class="av-sm"><img data-avatar-img><span data-avatar-fallback></span></lite-avatar>
+        Recent activity
+        <button data-card-collapse-trigger>−</button>
+    </div>
+    <div data-card-body>
+        <lite-timeline>...</lite-timeline>
+    </div>
+</lite-card>
+```

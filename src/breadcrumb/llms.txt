@@ -1,0 +1,155 @@
+# @zakkster/lite-headless/breadcrumb
+
+Navigation trail (breadcrumb) showing the user's path through
+hierarchical content. The last item is marked `aria-current="page"`
+to indicate the current location; earlier items are ancestors
+(typically links).
+
+## Quick example
+
+```js
+import { createBreadcrumb } from "@zakkster/lite-headless/breadcrumb";
+
+const bc = createBreadcrumb({
+    onItemClick: (key, idx, event) => {
+        // intercept for SPA routing if needed
+        event.preventDefault();
+        router.navigate(key);
+    },
+});
+
+bc.attachRoot(navEl);
+bc.attachList(olEl);
+bc.attachItem(homeEl,      "home");
+bc.attachItem(projectsEl,  "projects");
+bc.attachItem(currentEl,   "this-project");  // auto-current (last)
+```
+
+## Options
+
+| Option         | Default       | Notes                              |
+| -------------- | ------------- | ---------------------------------- |
+| `separator`    | `"/"`         | Default text for separators        |
+| `onItemClick`  | -             | `(key, index, event) => void`      |
+
+## Current item resolution
+
+The last attached item is automatically the current. Override by:
+
+- Passing `current: true` to `attachItem(el, key, {current: true})`
+  (sticky -- stays until explicit setCurrent or another item is
+  marked)
+- Calling `bc.setCurrent("some-key")`
+- Setting `current` attribute on `<lite-breadcrumb>`
+
+`setCurrent(null)` clears the explicit choice; the marker falls
+back to the last-attached item.
+
+When the current item is detached, the marker shifts to the new
+last-attached.
+
+## ARIA
+
+| Element     | Attributes                                                     |
+| ----------- | -------------------------------------------------------------- |
+| Root        | `role="navigation"` · `aria-label="Breadcrumb"` (unless overridden) |
+| List        | `role="list"`                                                  |
+| Items       | `role="listitem"` · `aria-current="page"` on current · `data-current="true"` for CSS |
+| Separator   | `aria-hidden="true"` · `data-bc-sep`                           |
+
+Screen readers announce "navigation: Breadcrumb. List of 3 items.
+Home, link. Projects, link. This project, current page."
+
+## Separator handling
+
+Two strategies, both supported:
+
+**(a) Pure CSS** — use `::after` on items:
+```css
+[data-bc-item]:not(:last-child)::after {
+    content: " / ";
+    margin: 0 0.5rem;
+    color: var(--text-faint);
+    aria-hidden: true;       /* sadly not directly settable from CSS */
+}
+```
+Note: CSS `aria-hidden` isn't a real thing — but generated content
+is not in the accessibility tree, so screen readers won't read
+`::after` content. This is the recommended approach.
+
+**(b) Real DOM separators** — pass to `attachSeparator(el)`:
+```html
+<ol>
+    <li data-bc-item="home"><a>Home</a></li>
+    <span data-bc-sep></span>      <!-- aria-hidden="true" set by primitive -->
+    <li data-bc-item="projects"><a>Projects</a></li>
+    <span data-bc-sep></span>
+    <li data-bc-item="current">Current</li>
+</ol>
+```
+
+The wrapper auto-detects `[data-bc-sep]` and wires them.
+
+## Element wrapper
+
+```html
+<lite-breadcrumb current="projects">
+    <ol data-bc-list>
+        <li data-bc-item="home"><a href="/">Home</a></li>
+        <li data-bc-item="projects"><a href="/projects">Projects</a></li>
+        <li data-bc-item="this-project">This project</li>
+    </ol>
+</lite-breadcrumb>
+```
+
+### Attributes
+
+| Attribute    | Effect                                       |
+| ------------ | -------------------------------------------- |
+| `current`    | Reactive: key of current item                |
+| `separator`  | Default separator text                       |
+
+### Imperative API + events
+
+```js
+host.setCurrent(key)
+host.current        // string | null
+host.items          // [{ key, label, current }]
+
+host.addEventListener("itemclick", e => e.detail.key);
+```
+
+## Common pattern: SPA navigation
+
+```html
+<lite-breadcrumb id="bc">
+    <ol data-bc-list>
+        <li data-bc-item="home"><a href="/">Home</a></li>
+        <li data-bc-item="docs"><a href="/docs">Docs</a></li>
+        <li data-bc-item="guide">Style Guide</li>
+    </ol>
+</lite-breadcrumb>
+
+<script>
+    bc.addEventListener("itemclick", (e) => {
+        e.detail.originalEvent.preventDefault();
+        myRouter.navigate(`/${e.detail.key}`);
+    });
+</script>
+```
+
+## When NOT to use
+
+- Single-page apps with no navigable hierarchy — breadcrumb is for
+  showing where the user IS, not for general navigation. Use the
+  `menu` or `tabs` primitive for navigation actions.
+- Step-by-step wizards — use `stepper`, which is semantically
+  different (shows progress through a flow, not location in a tree).
+
+## CSS contract
+
+This primitive's painted attributes follow the canonical CSS contract
+in `docs/CSS_CONTRACT.md`. See that doc for the cross-primitive
+taxonomy (booleans like `data-open` / `data-disabled` / `data-loading`,
+enums like `data-status` / `data-side`, ARIA pairings, host accessor
+naming, and event naming).

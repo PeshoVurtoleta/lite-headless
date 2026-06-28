@@ -1,0 +1,182 @@
+# @zakkster/lite-headless/avatar
+
+User avatar with image + deterministic-color initials fallback.
+Classic admin-theme component: try to load the image, fall back
+to the user's initials on a hue-derived color background if no
+src or load fails.
+
+## Quick example
+
+```js
+import { createAvatar } from "@zakkster/lite-headless/avatar";
+
+const av = createAvatar({
+    src: "alice.jpg",
+    name: "Alice Lee",          // used for initials + color hash
+    fallbackDelay: 0,           // ms to wait before showing fallback
+                                // (prevents flash for fast loads)
+});
+
+av.attachRoot(rootEl);          // data-loaded painted here
+av.attachImage(imgEl);          // <img>; hidden when in fallback state
+av.attachFallback(fallbackEl);  // data-initials + data-color-hue painted here
+```
+
+```html
+<span class="avatar">
+    <img alt="">
+    <span class="avatar-fallback"></span>     <!-- shown when no img or img fails -->
+</span>
+```
+
+## Options
+
+| Option           | Default | Notes                                               |
+| ---------------- | ------- | --------------------------------------------------- |
+| `src`            | `null`  | Image src                                           |
+| `name`           | `""`    | User's full name (used for initials + color hash)   |
+| `initials`       | -       | Override the derived initials                       |
+| `fallbackDelay`  | `0`     | ms to wait before showing fallback (anti-flash)     |
+| `onLoad`         | -       | callback                                            |
+| `onError`        | -       | callback (fires before fallback delay)              |
+
+## State machine
+
+```
+construct (with src)
+    │
+    ▼
+┌──────────┐
+│ loading  │   img.src assigned
+└────┬─────┘
+     │
+   load? ──── yes ────→ ┌────────┐
+     │                  │ image  │  (img visible, fallback hidden)
+   error?               └────────┘
+     │
+     ▼
+  fallbackDelay ───→ ┌──────────┐
+                    │ fallback │  (img hidden, fallback visible)
+                    └──────────┘
+```
+
+`state()` returns one of `"loading"`, `"image"`, `"fallback"`.
+The root's `data-loaded` is true ONLY when the image has loaded; absent during loading AND fallback
+for CSS purposes (the consumer cares whether the image or the
+initials are showing).
+
+## deriveInitials algorithm
+
+Exported helper (used by `createAvatar` internally; also useful
+on its own):
+
+```js
+import { deriveInitials } from "@zakkster/lite-headless/avatar";
+
+deriveInitials("Alice Lee")          // "AL"
+deriveInitials("Jean-Paul Sartre")   // "JS"  (hyphen = word break)
+deriveInitials("M. Curie")           // "MC"  (dot = word break)
+deriveInitials("john_doe")           // "JD"
+deriveInitials("Cher")               // "C"   (single capitalized name → 1 letter)
+deriveInitials("zakkster")           // "ZA"  (all-lowercase username → 2 letters)
+deriveInitials("john@example.com")   // "JO"  (strip @domain, then 2-letter username)
+deriveInitials("")                   // "?"
+```
+
+## hueFromString — deterministic color
+
+```js
+import { hueFromString } from "@zakkster/lite-headless/avatar";
+
+hueFromString("alice")    // → 142  (always 142 for "alice")
+hueFromString("bob")      // → 87
+```
+
+FNV-1a hash → hue in [0, 360). Same input always produces the
+same hue (stable across reloads). Consumer CSS uses the hue:
+
+```css
+[data-avatar-fallback] {
+    background: oklch(60% 0.14 var(--hue));
+    color: oklch(95% 0.02 var(--hue));
+}
+```
+
+The primitive sets `--hue` as a CSS custom property on the
+fallback element directly, so `var(--hue)` resolves to the right
+number per-avatar.
+
+## CSS contract
+
+```css
+.avatar {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    overflow: hidden;
+}
+
+.avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+[data-avatar-fallback] {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #888;       /* fallback */
+    color: #fff;
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+}
+
+@supports (color: oklch(0 0 0)) {
+    [data-avatar-fallback] {
+        background: oklch(60% 0.14 var(--hue));
+        color:      oklch(95% 0.02 var(--hue));
+    }
+}
+
+[data-avatar-fallback]::after {
+    content: attr(data-initials);
+}
+```
+
+## Element wrapper
+
+```html
+<lite-avatar name="Alice Lee" src="alice.jpg">
+    <img data-avatar-img alt="">
+    <span data-avatar-fallback></span>
+</lite-avatar>
+```
+
+### Attributes
+
+| Attribute        | Effect                                          |
+| ---------------- | ----------------------------------------------- |
+| `src`            | Reactive: changing it re-attempts load          |
+| `name`           | Initials + color hash source                    |
+| `initials`       | Override derived initials                       |
+| `fallback-delay` | ms                                              |
+
+### Imperative API + events
+
+```js
+host.setSrc(newSrc)
+host.state         // "loading" | "image" | "fallback"
+host.initials      // string
+host.colorHash     // 0..359
+
+host.addEventListener("load",  e => {});
+host.addEventListener("error", e => {});
+```

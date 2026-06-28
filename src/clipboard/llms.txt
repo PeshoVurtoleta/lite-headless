@@ -1,0 +1,76 @@
+# @zakkster/lite-headless / clipboard
+
+Copy-to-clipboard with transient feedback. Owns the `copied` flag (auto-resets
+after `timeout`) and an `error` flag. The write is injectable, so it is fully
+testable and supports an execCommand fallback.
+
+## Quick example
+
+```js
+import { createClipboard } from "@zakkster/lite-headless/clipboard";
+
+const c = createClipboard({
+    value: "npm i @zakkster/lite-headless",
+    timeout: 2000,     // ms the "copied" state stays on (0 = until reset())
+});
+c.attachTrigger(buttonEl);    // click copies + flips data-copied
+c.attachIndicator(checkEl);   // shows while data-copied
+
+await c.copy();        // programmatic; resolves true on success
+c.setValue("new text");
+```
+
+Inject a custom writer (fallback / tests):
+```js
+createClipboard({ value: "x", write: async (text) => myFallback(text) });
+```
+
+## Options
+
+| Option | Default | Notes |
+|---|---|---|
+| `value` | `""` | Text to copy |
+| `timeout` | `2000` | ms before `copied` auto-resets; `0` disables auto-reset |
+| `write` | Clipboard API | `(text) => Promise`; default uses `navigator.clipboard.writeText` |
+| `onCopy` | -- | `(text) => void` after a successful copy |
+| `onError` | -- | `(err) => void` if the write throws |
+
+## API
+
+```ts
+{
+    value(): string
+    isCopied(): boolean
+    isError(): boolean
+    setValue(v: string): void
+    copy(): Promise<boolean>
+    reset(): void
+
+    attachRoot(el): off
+    attachTrigger(el): off
+    attachIndicator(el): off
+
+    destroy(): void
+}
+```
+
+## Painted attributes
+
+- `data-clipboard-root` / `data-clipboard-trigger` / `data-clipboard-indicator` -- slot markers
+- `data-copied` -- boolean, present during the copied window
+- `data-error` -- boolean, present if the last copy threw
+- trigger `type="button"` -- only if the trigger is a `<button>`
+- trigger `aria-label` -- "Copy" / "Copied", only if not pre-set
+- indicator `aria-live="polite"` -- so the copied text is announced
+
+## Wrapper (`<lite-clipboard>`)
+
+```html
+<lite-clipboard value="npm i @zakkster/lite-headless" timeout="2000">
+  <button data-trigger>Copy</button>
+  <span data-indicator>Copied!</span>
+</lite-clipboard>
+```
+
+Reactive: the `value` attribute flows through bidirectionally.
+Host: `copy()`, `reset()`, `setValue(v)`, `value`, `copied`.

@@ -1,0 +1,119 @@
+# @zakkster/lite-headless/banner
+
+Dismissible page-level alert. Distinct from `toast` (floating +
+ephemeral); a banner is a static slot in the page that can be
+shown/hidden and re-opened.
+
+## API
+
+```js
+import { createBanner } from "@zakkster/lite-headless/banner";
+
+const banner = createBanner({
+    defaultOpen: true,
+    defaultKind: "warning",              // info | success | warning | error
+    dismissOnEscape: true,
+    onOpenChange: (open) => {},
+    onDismiss: () => {},
+});
+
+banner.attachRoot(rootEl);
+banner.attachDismissButton(btnEl);
+banner.dismiss();
+banner.show();
+banner.setKind("error");
+```
+
+## Reactive accessors
+
+```js
+banner.isOpen()    // boolean
+banner.kind()    // "info" | "success" | "warning" | "error"
+```
+
+## Mutations
+
+```js
+banner.setOpen(b)
+banner.show() / .dismiss()
+banner.setKind(k)
+```
+
+## Painted attributes (attachRoot)
+
+| attr           | when                                            |
+|----------------|-------------------------------------------------|
+| `data-kind`    | always (`info | success | warning | error`)     |
+| `data-open`    | when open                                       |
+| `data-hidden`  | when dismissed                                  |
+| `role`         | `alert` (warning/error) or `status` (info/success) |
+| `aria-live`    | `assertive` (warning/error) or `polite` (info/success) |
+
+## Dismiss button (attachDismissButton)
+
+- Sets `type="button"` if not present
+- Sets `aria-label="Dismiss"`
+- Wires click → `dismiss()`
+
+## Escape dismiss
+
+`dismissOnEscape: true` installs a document-level keydown listener
+that calls `dismiss()` on Escape while open. Off by default because
+page-level Escape is often used for other purposes (closing dialogs).
+
+## Custom element
+
+```html
+<lite-banner kind="warning" dismiss-on-escape>
+    <p>Your session expires in 5 minutes.</p>
+    <button data-banner-dismiss aria-label="Dismiss">×</button>
+</lite-banner>
+```
+
+### Host API
+```js
+host.isOpen / host.kind     // accessors
+host.show() / .dismiss() / .setKind(k) / .setOpen(b)
+host._bannerInstance
+```
+
+### Host attributes
+- `kind="info|success|warning|error"`
+- `dismissed`                  -- starts dismissed (or reactively dismisses)
+- `dismiss-on-escape`          -- enables Escape-key dismiss
+
+### Custom element events
+- `openchange` `{ detail: { open } }`
+- `dismiss`
+
+## Composition
+
+- Page header: persistent maintenance/announcement banner. `kind="info"`.
+- Form-level error: server-side validation rejected the submit. `kind="error"`.
+- Trial-ends warning: 7 days left. `kind="warning"`.
+- Onboarding complete: thanks for joining. `kind="success"`.
+
+Pair with `lite-skeleton` for a delayed-content pattern (banner with a
+skeleton placeholder until the message text loads from a feature flag
+service).
+
+## Notes
+
+- `aria-live="assertive"` on warning/error means screen readers
+  interrupt their current speech to announce the banner. Use sparingly
+  -- info/success default to `polite` so they queue.
+- The primitive does NOT remove the banner from the DOM on dismiss; it
+  toggles `data-hidden` so the consumer can animate a fade-out via
+  CSS. If you want hard-remove semantics, watch `openchange` and
+  remove the element after the transition.
+- Multi-banner stacks are the consumer's responsibility -- this
+  primitive manages one banner at a time. For ephemeral floating
+  multi-stacks, use `toast`. For history, use `notification-center`.
+
+## CSS contract
+
+This primitive's painted attributes follow the canonical CSS contract
+in `docs/CSS_CONTRACT.md`. See that doc for the cross-primitive
+taxonomy (booleans like `data-open` / `data-disabled` / `data-loading`,
+enums like `data-status` / `data-side`, ARIA pairings, host accessor
+naming, and event naming).
