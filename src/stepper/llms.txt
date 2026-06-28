@@ -1,0 +1,106 @@
+# @zakkster/lite-headless / stepper
+
+Headless numeric stepper (W3C `role="spinbutton"`). A single `value`
+signal drives both an input element (parsed on commit) and one or more
+increment/decrement controls. The display is locale-aware via
+`Intl.NumberFormat` by default; consumers can also pass a custom
+formatter/parser pair for currency, percentages, time-of-day, etc.
+
+Hot-path discipline: arrow keys and button clicks go through one
+`publish()` per interaction; `_isTyping` guards the reactive sync so
+button-driven updates don't clobber user typing. The default parser
+derives decimal/group separators ONCE from the formatter at
+construction (no per-keystroke `formatToParts`).
+
+## API
+
+createStepper({
+    value?:        Signal<number>,            // controlled mode
+    defaultValue?: number,
+    min?:          number,                    // default -Infinity
+    max?:          number,                    // default  Infinity
+    step?:         number,                    // default 1
+    largeStep?:    number,                    // default 10 (shift+arrow, PageUp/Down)
+    precision?:    number,                    // default Intl formatting fraction digits
+    formatter?:    (n) => string,             // custom formatter
+    parser?:       (str) => number,           // custom parser
+    locale?:       string,                    // for default Intl.NumberFormat
+    disabled?:     boolean,                   // initial disabled state
+    selectOnFocus?: boolean,
+    repeatDelay?:    number,                  // default 400ms
+    repeatInterval?: number,                  // default 50ms
+    onValueChange?: (value, reason) => void,
+})
+
+  attachInput(el)            // role=spinbutton, takes keystrokes
+  attachIncrement(el)        // any element; click + pointerdown + Enter/Space + auto-repeat
+  attachDecrement(el)
+  attachReadout(el)          // display-only; textContent reactively updates
+
+  value()                    // raw number
+  displayValue()             // formatted string
+  setValue(n, reason?)
+  increment(amount?)         // default = step
+  decrement(amount?)
+  setDisabled(flag)
+  destroy()
+
+## Keyboard contract (on the input)
+
+  ArrowUp   / ArrowDown    -> +/- step
+  shift + ArrowUp/Down     -> +/- largeStep
+  PageUp    / PageDown     -> +/- largeStep
+  Home      / End          -> min / max (if finite)
+  Enter                    -> commit current text
+
+Increment/decrement controls also activate on Enter and Space, with
+pointer-hold auto-repeat after `repeatDelay`.
+
+## Locale-aware formatting
+
+Default formatter:
+
+  new Intl.NumberFormat(locale, {
+      minimumFractionDigits: precision,
+      maximumFractionDigits: precision,
+      useGrouping: false,
+  });
+
+Default parser derives separators from `formatToParts` once at
+construction:
+
+  de-DE -> decimal "," group "."    -> "3,14"      parses to 3.14
+  en-US -> decimal "." group ","    -> "1,000.5"   parses to 1000.5
+
+If you pass a custom formatter (currency, percent, etc.) supply a
+matching parser -- the default parser only handles plain numeric text.
+
+## Custom element
+
+<lite-stepper min="0" max="100" step="1" value="50" large-step="10">
+  <button data-decrement>−</button>
+  <input data-input>
+  <button data-increment>+</button>
+</lite-stepper>
+
+Or display-only:
+
+<lite-stepper min="0" max="9" step="1" value="3">
+  <button data-decrement>−</button>
+  <output data-readout></output>
+  <button data-increment>+</button>
+</lite-stepper>
+
+Attributes: `min`, `max`, `step`, `large-step`, `precision`, `locale`,
+`value`, `disabled`, `select-on-focus`. The `value` and `disabled`
+attributes are reactively synced via `useAttr`.
+
+Dispatches `CustomEvent('valuechange', { detail: { value, reason } })`.
+
+## CSS contract
+
+This primitive's painted attributes follow the canonical CSS contract
+in `docs/CSS_CONTRACT.md`. See that doc for the cross-primitive
+taxonomy (booleans like `data-open` / `data-disabled` / `data-loading`,
+enums like `data-status` / `data-side`, ARIA pairings, host accessor
+naming, and event naming).

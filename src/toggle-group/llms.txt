@@ -1,0 +1,214 @@
+# @zakkster/lite-headless/toggle-group
+
+Headless segmented control / toggle group with WAI-ARIA semantics.
+Two modes:
+
+- **`single`** — exclusive selection (like a radio group, but
+  rendered as buttons with `aria-pressed` — the segmented-control
+  pattern, e.g., a view-mode selector: List / Grid / Card).
+- **`multi`** — independent toggles (each item has its own
+  `aria-pressed`, e.g., text-formatting buttons: B / I / U / S).
+
+## Quick example — single mode
+
+```js
+import { createToggleGroup } from "@zakkster/lite-headless/toggle-group";
+
+const tg = createToggleGroup({
+    type: "single",
+    defaultValue: "list",
+    onValueChange: (value, reason) => setView(value),
+});
+
+tg.attachRoot(groupEl);     // role=group + data-orientation
+tg.attachItem(btnList, "list");
+tg.attachItem(btnGrid, "grid");
+tg.attachItem(btnCard, "card");
+```
+
+## Quick example — multi mode
+
+```js
+const tg = createToggleGroup({
+    type: "multi",
+    defaultValue: ["bold"],
+    onValueChange: (value, reason) => applyStyles(value),  // value is string[]
+});
+
+tg.attachItem(btnB, "bold");
+tg.attachItem(btnI, "italic");
+tg.attachItem(btnU, "underline");
+```
+
+## Options
+
+| Option           | Default        | Notes                                                    |
+| ---------------- | -------------- | -------------------------------------------------------- |
+| `type`           | `"single"`     | `"single"` or `"multi"`                                  |
+| `defaultValue`   | -              | `string` (single) or `string[]` (multi)                  |
+| `value`          | -              | Signal for controlled mode (read-only)                   |
+| `disabled`       | `false`        | Group-wide disabled                                      |
+| `loop`           | `true`         | Arrow nav wraps at edges                                 |
+| `allowDeselect`  | `false`        | Single mode: clicking current deselects? Multi always allows |
+| `orientation`    | `"horizontal"` | Arrow nav uses ←/→ (horizontal) or ↑/↓ (vertical)        |
+| `onValueChange`  | -              | `(value, reason) => void`                                |
+
+`reason` values: `"click"`, `"keyboard"`, `"set"`, `"imperative"`,
+`"item-disabled"` (when an item is disabled while selected),
+`"attribute"` (from the wrapper's attribute observer).
+
+## Differences from `radio-group` / `tabs`
+
+- **Buttons with `aria-pressed`**, not `role="radio"`. The
+  segmented-control pattern is a "group of toggle buttons", not a
+  radio group. Screen readers announce "toggle button pressed" /
+  "not pressed" rather than "selected" / "unselected".
+- **Manual activation only**. Focus does NOT select. This matches
+  the toolbar APG pattern: users can arrow through items without
+  selecting them, then explicitly toggle with Space / Enter or
+  click. In contrast, tabs (with `activation: "automatic"`) and
+  radio groups select on focus.
+- **Multi mode**. Tabs and radio groups are exclusive-only; toggle
+  group supports both single AND multi-selection.
+
+## Keyboard
+
+| Key                         | Action                                                    |
+| --------------------------- | --------------------------------------------------------- |
+| ArrowRight (horizontal) / ArrowDown (vertical) | Move focus to next item (loops if `loop=true`) |
+| ArrowLeft / ArrowUp         | Move focus to previous item                               |
+| Home                        | Move focus to first item                                  |
+| End                         | Move focus to last item                                   |
+| Space, Enter                | Toggle/select the focused item                            |
+
+Disabled items are skipped during arrow navigation.
+
+## ARIA
+
+| Element | Attributes                                                          |
+| ------- | ------------------------------------------------------------------- |
+| Root    | `role="group"`, `data-orientation`, consumer-provided `aria-label`  |
+| Item    | `aria-pressed="true|false"`, `data-X="on|off"`, `aria-disabled`, `data-disabled`, `data-focused` (when focus is on it), real `disabled` (when target is `<button>`), `tabindex` (roving: 0 on focused, -1 on rest) |
+
+The wrapper does NOT set `aria-label` on the root automatically.
+The consumer is expected to provide one via `aria-label="View mode"`
+on the host, or via `aria-labelledby` pointing to an external
+label element. This avoids inventing generic labels that hurt a11y.
+
+## Attachment methods
+
+| Method                       | Effect                                          |
+| ---------------------------- | ----------------------------------------------- |
+| `attachRoot(el)`             | role=group, data-orientation                    |
+| `attachItem(el, key, opts?)` | Wires click + keyboard listeners + ARIA paint   |
+
+`opts.disabled: boolean` on `attachItem` marks the item disabled
+from the start. The first non-disabled item gets `tabindex="0"`
+automatically so the group is keyboard-reachable from a fresh Tab.
+
+## Imperative API
+
+```js
+tg.value()                       // string | string[] (depending on type)
+tg.disabled()
+tg.contains(key)                 // works for both modes
+tg.items()                       // [{ key, disabled }, ...]
+tg.type                          // "single" | "multi"
+tg.orientation                   // "horizontal" | "vertical"
+
+tg.setValue(v, reason?)          // v is string (single) or string[] (multi)
+tg.toggleItem(key, reason?)
+tg.setDisabled(flag)             // group-wide
+tg.setItemDisabled(key, flag)    // per-item; removes from selection if it was selected
+
+tg.destroy()
+```
+
+## Custom element wrapper
+
+```html
+<!-- single mode -->
+<lite-toggle-group aria-label="View mode" value="grid">
+    <button data-tg-item="list">List</button>
+    <button data-tg-item="grid">Grid</button>
+    <button data-tg-item="card">Card</button>
+</lite-toggle-group>
+
+<!-- multi mode (comma-separated value attribute) -->
+<lite-toggle-group type="multi" value="bold,italic" aria-label="Text formatting">
+    <button data-tg-item="bold">B</button>
+    <button data-tg-item="italic">I</button>
+    <button data-tg-item="underline">U</button>
+    <button data-tg-item="strike">S</button>
+</lite-toggle-group>
+```
+
+### Attributes
+
+| Attribute        | Effect                                                  |
+| ---------------- | ------------------------------------------------------- |
+| `type`           | `"single"` (default) or `"multi"`                       |
+| `value`          | Reactive: string or comma-separated keys                |
+| `disabled`       | Reactive: group-wide disable                            |
+| `orientation`    | `"horizontal"` (default) or `"vertical"`                |
+| `loop`           | `"false"` disables wrap-around (default true)           |
+| `allow-deselect` | Single mode: clicking current item deselects            |
+
+### Imperative API on host
+
+```js
+host.setValue(v, reason?)
+host.toggleItem(key, reason?)
+host.contains(key)
+host.setDisabled(flag)
+host.setItemDisabled(key, flag)
+host.value        // read-only
+host.disabled     // read-only
+host.type         // read-only
+```
+
+### Dispatched events
+
+- `change` — `{ detail: { value, reason } }`
+
+## CSS contract
+
+```css
+lite-toggle-group {
+    display: inline-flex;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 2px;
+    background: var(--bg-2);
+}
+lite-toggle-group[data-orientation="vertical"] {
+    flex-direction: column;
+}
+lite-toggle-group [data-tg-item] {
+    background: transparent; border: none;
+    padding: 6px 12px;
+    color: var(--text-dim);
+}
+lite-toggle-group [data-tg-item]:hover:not([aria-pressed="true"]):not([data-disabled]) {
+    background: var(--bg-3);
+}
+lite-toggle-group [data-tg-item][aria-pressed="true"] {
+    background: var(--cyan-dim);
+    color: #fff;
+}
+lite-toggle-group [data-tg-item][data-disabled] {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+```
+
+## When to use what
+
+| Need                              | Use                                          |
+| --------------------------------- | -------------------------------------------- |
+| Single-select buttons (view mode) | `toggle-group type="single"`                 |
+| Multi-select buttons (formatting) | `toggle-group type="multi"`                  |
+| Radio-button form input           | `<input type="radio">` (native, with `name`) |
+| Tabs with associated panels       | `tabs` primitive                             |
+| Single boolean toggle             | `switch` primitive                           |
+| Single command button             | `<button>` (native)                          |

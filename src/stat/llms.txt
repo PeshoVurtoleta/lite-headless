@@ -1,0 +1,146 @@
+# @zakkster/lite-headless/stat
+
+KPI dashboard card: label + numeric value (with tween animation) +
+optional trend indicator (direction + magnitude).
+
+## API
+
+```js
+import { createStat } from "@zakkster/lite-headless/stat";
+
+const stat = createStat({
+    defaultValue: 1234,
+    defaultLabel: "Revenue",
+    defaultUnit: "$",
+    defaultTrend: { direction: "up", value: 12.5 },
+    formatter: (n) => n.toLocaleString(),
+    trendFormatter: (t) => `${t.direction === "up" ? "+" : "-"}${t.value}%`,
+    animationDuration: 600,    // ms; 0 disables tween
+    onValueChange: (next, prev) => {},
+});
+```
+
+## Reactive accessors
+
+```js
+stat.value()         // number (current target)
+stat.displayValue()  // number (current frame's tween value)
+stat.label()         // string
+stat.unit()          // string
+stat.trend()         // { direction: "up"|"down"|"flat", value: number } | null
+```
+
+## Mutations
+
+```js
+stat.setValue(v)               // triggers tween from displayValue to v
+stat.setLabel(s)
+stat.setUnit(s)
+stat.setTrend({direction, value} | null)
+```
+
+## Attach
+
+```js
+stat.attachRoot(el)     // role=group; paints data-trend-direction + data-has-trend
+stat.attachLabel(el)    // textContent = label
+stat.attachValue(el)    // textContent = formatter(displayValue); aria-live=polite
+stat.attachUnit(el)     // textContent = unit
+stat.attachTrend(el)    // textContent = trendFormatter(trend); data-trend-* attrs + data-hidden
+```
+
+## Painted attributes
+
+### Root (attachRoot)
+- `role="group"`
+- `data-trend-direction="up|down|flat"` (when trend present)
+- `data-has-trend` (when trend present)
+
+### Trend (attachTrend)
+- `data-trend-direction="up|down|flat"`
+- `data-trend-value="<num>"`
+- `data-hidden` (when no trend)
+
+## Tween behavior
+
+Updating `value` triggers a quadratic ease-out tween of `displayValue`
+over `animationDuration` ms. The target value is set immediately;
+only the displayed value animates. Multiple `setValue` calls in quick
+succession re-target the same tween from the current frame (no jumpy
+resets).
+
+Default formatter:
+- abs(n) >= 1000:  `Math.round(n).toLocaleString()`  → "1,234"
+- abs(n) >= 1:     `n.toFixed(0)`                     → "42"
+- otherwise:       `n.toFixed(2)`                     → "0.85"
+
+Override via `formatter` option for "%", "$", custom locales, etc.
+
+## Custom element
+
+```html
+<lite-stat
+    value="1234"
+    label="Revenue"
+    unit="$"
+    trend-direction="up"
+    trend-value="12.5"
+    animation-duration="600"
+>
+    <span     data-stat-label></span>
+    <strong   data-stat-value></strong>
+    <span     data-stat-unit></span>
+    <small    data-stat-trend></small>
+</lite-stat>
+```
+
+### Host API
+```js
+host.value / .displayedValue / .trend     // accessors
+host.setValue(v) / .setLabel(s) / .setUnit(s) / .setTrend(t)
+host._statInstance
+```
+
+### Host attributes
+- `value="<number>"`
+- `label="..."`
+- `unit="..."`
+- `trend-direction="up|down|flat"` + `trend-value="<num>"`
+- `animation-duration="<ms>"`
+
+### Custom element events
+- `valuechange` `{ detail: { value, previousValue } }`
+
+## Composition
+
+- **Dashboard grid**: 4-6 stats side by side. Set the value from a
+  reactive source (effect that reads a fetched API result).
+- **Animated counter on enter**: bind a value-from-0 tween to an
+  intersection-observer trigger.
+- **Big number display**: `formatter: (n) => n.toLocaleString()` plus
+  `unit: "users"` for "12,345 users".
+- **Percentage with sign**:
+  ```js
+  formatter: (n) => Math.round(n * 100) + "%"
+  trendFormatter: (t) => (t.direction === "up" ? "+" : "-") + t.value.toFixed(1) + " pp"
+  ```
+
+## Notes
+
+- The tween uses `requestAnimationFrame` when available, falling back
+  to `setTimeout(16)` so the primitive works in Node test environments
+  (happy-dom doesn't ship rAF globally).
+- `aria-live="polite"` on the value element means screen readers will
+  announce numeric updates. For high-frequency updates (live ticker)
+  consider attaching to a separate hidden element or setting a custom
+  formatter that includes the label.
+- The primitive does NOT manage the trend arrow icon -- that's the
+  consumer's job (use CSS `[data-trend-direction="up"] .arrow-up` etc).
+
+## CSS contract
+
+This primitive's painted attributes follow the canonical CSS contract
+in `docs/CSS_CONTRACT.md`. See that doc for the cross-primitive
+taxonomy (booleans like `data-open` / `data-disabled` / `data-loading`,
+enums like `data-status` / `data-side`, ARIA pairings, host accessor
+naming, and event naming).

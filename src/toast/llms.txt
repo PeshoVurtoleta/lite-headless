@@ -1,0 +1,258 @@
+# @zakkster/lite-headless/toast
+
+Headless ephemeral notifications with auto-dismiss, swipe-to-dismiss,
+pause-on-hover, stack management, and a live region for screen
+readers.
+
+## Quick example
+
+```js
+import { createToast } from "@zakkster/lite-headless/toast";
+
+const toast = createToast({
+    placement: "bottom-right",
+    duration:  5000,
+    maxStack:  5,
+});
+
+toast.attachRoot(viewportEl);
+
+// Show a simple string toast
+toast.show("Saved!");
+
+// Show with custom element
+const el = document.createElement("div");
+el.className = "my-toast my-toast-success";
+el.innerHTML = `
+    <span class="icon">✓</span>
+    <span class="message">Order placed</span>
+    <button data-toast-close aria-label="Dismiss">×</button>
+`;
+toast.show(el, { duration: 3000 });
+
+// Urgent (uses role="alert" -> assertive announcement)
+toast.show("Connection lost", { urgent: true });
+```
+
+## Options
+
+| Option            | Default          | Notes                                              |
+| ----------------- | ---------------- | -------------------------------------------------- |
+| `placement`       | `"bottom-right"` | One of 6 standard placements (see below)           |
+| `duration`        | `5000`           | ms before auto-dismiss; `0` = no auto-dismiss      |
+| `swipeToDismiss`  | `true`           | pointer/touch swipe enabled                        |
+| `swipeDirection`  | `"auto"`         | `"auto" | "left" | "right" | "up" | "down"`        |
+| `swipeThreshold`  | `50`             | px of motion before commit-dismiss                 |
+| `maxStack`        | `5`              | visible toast cap; overflow evicts oldest          |
+| `pauseOnHover`    | `true`           | pointer over the stack freezes auto-dismiss        |
+| `pauseOnFocus`    | `true`           | focus inside the stack freezes auto-dismiss        |
+| `announceLive`    | `true`           | build a hidden aria-live region for status toasts  |
+| `defaultUrgent`   | `false`          | role=alert vs role=status for toasts without opt   |
+| `onShow`          | -                | `(id) => void`                                     |
+| `onDismiss`       | -                | `(id, reason) => void`                             |
+
+`reason` values: `"manual"`, `"auto-dismiss"`, `"swipe"`,
+`"close-button"`, `"maxstack-evict"`, `"clear"`, `"destroy"`,
+or any custom string passed to `dismiss(id, reason)`.
+
+## Placement
+
+Six standard placements determine WHERE in the viewport new toasts
+appear and which direction the swipe-to-dismiss goes:
+
+```
+   top-left      top-center      top-right
+   bottom-left   bottom-center   bottom-right
+```
+
+- **top-*** placements: new toasts insert at the TOP of the viewport
+  (visual stack grows DOWNWARD away from the screen edge)
+- **bottom-*** placements: new toasts append at the BOTTOM (visual
+  stack grows UPWARD)
+
+The placement also drives `swipeDirection: "auto"`:
+- right placements → swipe right
+- left placements → swipe left
+- top-center → swipe up
+- bottom-center → swipe down
+
+The actual screen position of the viewport is **CSS-controlled** by
+the consumer. The primitive only sets `data-placement="..."` on the
+viewport; consumer CSS does the positioning:
+
+```css
+lite-toast {
+    position: fixed;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    pointer-events: none;       /* let clicks through gaps */
+}
+lite-toast > * { pointer-events: auto; }
+
+lite-toast[data-placement="bottom-right"] { bottom: 1rem; right: 1rem; }
+lite-toast[data-placement="top-right"]    { top:    1rem; right: 1rem; }
+/* ... */
+```
+
+## Attachment methods
+
+| Method                | Returns      | Notes                                |
+| --------------------- | ------------ | ------------------------------------ |
+| `attachRoot(el)`      | cleanup `()` | The viewport. role=region, hidden aria-live region appended |
+
+## Imperative API
+
+```js
+toast.show(content, opts?)
+// content: string | HTMLElement
+// opts: { id?, duration?, urgent?, dismissible? }
+// returns: { id, el, dismiss(reason?), update(content, opts?) }
+
+toast.dismiss(id, reason?)
+toast.clear(reason?)
+
+toast.count()        // number of active toasts
+toast.getEntries()   // [{ id, urgent }, ...]
+toast.destroy()
+```
+
+The control object returned by `show()` is the easiest way to dismiss
+or update a specific toast:
+
+```js
+const t = toast.show("Uploading...", { duration: 0, id: "upload" });
+// ... later, when upload completes
+t.update("Uploaded ✓", { duration: 2000 });
+// ... or on error
+t.dismiss("upload-failed");
+```
+
+## Close button auto-handling
+
+Any descendant inside the toast element with `[data-toast-close]`
+gets a click listener that dismisses the toast:
+
+```html
+<div class="my-toast">
+    <span>Message</span>
+    <button data-toast-close aria-label="Dismiss">×</button>
+</div>
+```
+
+## Swipe-to-dismiss
+
+The primitive listens for `pointerdown` on the toast and tracks the
+gesture. During the swipe, it writes two CSS custom properties to
+the toast element:
+
+```css
+--lh-toast-swipe-x: 42px;
+--lh-toast-swipe-y: 0px;
+```
+
+Consumer CSS chooses what to do with the motion (translate, rotate,
+opacity, etc.):
+
+```css
+[data-toast-id] {
+    transform: translate(var(--lh-toast-swipe-x, 0), var(--lh-toast-swipe-y, 0));
+}
+[data-toast-id][data-swiping] {
+    transition: none;          /* don't transition during the swipe */
+    opacity: 0.7;
+}
+[data-toast-id][data-dismissing] {
+    /* exit animation hook fires the moment commit happens */
+    opacity: 0;
+    transform: translateX(100%);
+    transition: transform 200ms, opacity 200ms;
+}
+```
+
+The primitive enforces the dismiss-direction: motion the wrong way
+along the axis is clamped to zero (so a swipe RIGHT on a bottom-right
+toast moves the toast right; swiping LEFT does nothing visible).
+When the swipe distance exceeds `swipeThreshold`, the primitive
+sets `data-dismissing="true"` and dismisses with `reason: "swipe"`.
+
+Swipes that start on `<button>`, `<a>`, `<input>`, `<textarea>`,
+or `<select>` children are ignored — so close buttons, links, and
+inputs inside the toast remain interactive.
+
+## Pause-on-hover / Pause-on-focus
+
+When the user's pointer is over the stack (or focus is inside it),
+auto-dismiss timers freeze. On hover-out / focus-out they resume
+with the REMAINING time preserved — a toast that was 4 seconds into
+a 5-second duration resumes with 1 second left, not a fresh 5.
+
+The primitive sets `data-paused="true"` on each affected toast
+during the pause (useful for visualising the freeze with a CSS
+animation pause-state hook).
+
+## ARIA painted attributes
+
+| Element       | Attributes                                    |
+| ------------- | --------------------------------------------- |
+| Root          | `role="region"`, `aria-label="Notifications"`, `data-placement` |
+| Toast (status)| `role="status"`, `aria-live="polite"`, `aria-atomic="true"`, `data-toast-id`, `data-placement` |
+| Toast (urgent)| `role="alert"`, `aria-live="assertive"`, `aria-atomic="true"`   |
+| Swiping toast | `data-swiping="true"`                         |
+| Dismissing    | `data-dismissing="true"` (exit-animation hook)|
+| Paused        | `data-paused="true"`                          |
+
+A visually-hidden polite aria-live region is appended to the
+viewport (unless `announceLive: false`). All non-urgent toasts
+re-announce through it so screen readers consistently pick up the
+content regardless of how the toast element is composed. Urgent
+toasts skip the live region (their own `role="alert"` triggers a
+direct assertive announcement).
+
+## Custom element wrapper
+
+```html
+<lite-toast placement="bottom-right" duration="5000" max-stack="5"></lite-toast>
+
+<script>
+    const t = document.querySelector("lite-toast");
+    document.getElementById("save-btn").addEventListener("click", async () => {
+        const h = t.show("Saving...", { duration: 0, id: "save" });
+        try {
+            await api.save();
+            h.update("Saved ✓", { duration: 2000 });
+        } catch (e) {
+            h.update("Failed: " + e.message, { duration: 4000, urgent: true });
+        }
+    });
+</script>
+```
+
+Reactive attributes: none in v1.
+
+Dispatched events:
+
+- `show` — `{ detail: { id } }`
+- `dismiss` — `{ detail: { id, reason } }`
+
+## Comparison to other UI patterns
+
+| Pattern        | Use toast for...                                            |
+| -------------- | ----------------------------------------------------------- |
+| Toast          | Ephemeral, non-blocking status updates                      |
+| `<dialog>`     | Modal interactions that BLOCK until the user responds       |
+| Inline message | Form validation, contextual info next to the source         |
+| Snackbar       | Same primitive — "snackbar" is just bottom-center toast     |
+
+Don't use toast for:
+- Confirmations that need user action (use a dialog instead)
+- Permanent notifications (use an inline message or notification panel)
+- Errors the user MUST address before continuing (use a dialog)
+
+## CSS contract
+
+This primitive's painted attributes follow the canonical CSS contract
+in `docs/CSS_CONTRACT.md`. See that doc for the cross-primitive
+taxonomy (booleans like `data-open` / `data-disabled` / `data-loading`,
+enums like `data-status` / `data-side`, ARIA pairings, host accessor
+naming, and event naming).

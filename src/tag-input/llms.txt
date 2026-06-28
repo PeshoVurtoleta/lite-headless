@@ -1,0 +1,220 @@
+# @zakkster/lite-headless/tag-input
+
+Multi-value tag/chip input. A text field plus a list of tag chips: typing + delimiter creates a tag, click X to remove, Backspace in empty input enters tag-selection mode for keyboard-driven removal. Used in label pickers, recipient lists, search filter UIs, anything where the user enters several short string values.
+
+## Quick example
+
+```js
+import { createTagInput } from "@zakkster/lite-headless/tag-input";
+
+const tagInput = createTagInput({
+    maxItems: 8,
+    onChange: (tags) => filterResults(tags),
+});
+
+tagInput.attachRoot(rootEl);
+tagInput.attachInput(inputEl);
+
+// Render the tag chips yourself in an effect:
+import { effect } from "@zakkster/lite-signal";
+effect(() => {
+    tagListEl.innerHTML = "";
+    tagInput.tags().forEach((tag, i) => {
+        const chip = makeChip(tag);
+        if (tagInput.activeIndex() === i) chip.classList.add("active");
+        chip.querySelector(".x").onclick = () => tagInput.removeTag(i);
+        tagListEl.appendChild(chip);
+    });
+});
+```
+
+The primitive owns the tag array + active-index state + keyboard wiring. The consumer owns chip rendering -- the standard pattern is a `for tag of tags()` effect (or, with the `<lite-tag-input>` wrapper, automatic chip painting).
+
+## Behavior
+
+### Delimiters
+
+Default: `["Enter", "Tab", ","]`. The first two are key names; the comma is a single-character delimiter. On `keydown`, if the key matches a delimiter AND the input has text, we commit: the value is normalized + validated + added. The keystroke is swallowed (`preventDefault`).
+
+Pass custom delimiters:
+```js
+createTagInput({ delimiters: ["Enter", " ", ";"] })   // space + semicolon
+```
+
+### Paste-split
+
+The `pasteSplitOn` option is a `RegExp` (default `/[,\n;]/`). When the user pastes text containing at least one match, the paste is split on that regex, each fragment is trimmed + run through the pipeline, and the paste event is consumed. Paste of `"red, green, blue"` -> three tags. Paste of `"single"` (no delimiter) -> normal browser paste, lands in the input field.
+
+### Backspace (two-step)
+
+The standard chip-input dance:
+
+```
+Input has text:           Backspace edits text as usual (browser default).
+Input is empty:           First Backspace highlights the LAST tag (activeIndex set).
+Input is empty + active:  Second Backspace removes the active tag.
+```
+
+This two-step is the convention in Gmail, Stack Overflow, Linear, etc. -- it prevents accidental removal when the user just wanted to keep deleting input text. If you want one-step, watch `onChange` and undo accordingly, or use `delete` to make the second step part of the user's intent.
+
+### Validation pipeline
+
+For each candidate (typed, pasted, or programmatic):
+
+1. `trim()` if `trim: true` (default).
+2. `normalize()` if provided (transform the string -- lowercase, slugify, etc.).
+3. **empty?** rejected with reason `"empty"`.
+4. **duplicate?** rejected with `"duplicate"` (unless `allowDuplicates: true`).
+5. **at maxItems?** rejected with `"max-items"`.
+6. `validate(tag, currentTags)` if provided. Return `false` or a non-empty string to reject; the string is forwarded as the reason.
+
+Each rejection fires `onInvalid(value, reason)`. Successful adds fire `onAdd(tag)` and `onChange(tagsArray)`.
+
+### Keyboard
+
+| Key                  | Behavior                                                    |
+| -------------------- | ----------------------------------------------------------- |
+| Enter / Tab / ,      | (delimiters) commit current text                            |
+| Backspace (empty)    | first press highlights last; next removes it                |
+| Delete (tag active)  | remove active tag                                           |
+| ArrowLeft (empty)    | move active toward earlier tags                             |
+| ArrowRight (active)  | move toward later tags / back to input                      |
+| Home (empty)         | jump to first tag                                           |
+| End                  | back to input                                               |
+| any printable (active) | exits tag-active mode (typing resumes)                    |
+
+## Options
+
+| Option              | Default                | Notes                                            |
+| ------------------- | ---------------------- | ------------------------------------------------ |
+| `initialValue`      | `[]`                   | filtered through pipeline (no `onInvalid` fires) |
+| `maxItems`          | `Infinity`             |                                                  |
+| `allowDuplicates`   | `false`                |                                                  |
+| `delimiters`        | `["Enter","Tab",","]`  | mixed: key names + single chars                  |
+| `pasteSplitOn`      | `/[,\n;]/`             |                                                  |
+| `trim`              | `true`                 |                                                  |
+| `normalize`         | -                      | `(tag) => string`                                |
+| `validate`          | -                      | `(tag, currentTags) => boolean \| string`        |
+| `onChange`          | -                      | `(tags) => void`                                 |
+| `onAdd`             | -                      | `(tag) => void`                                  |
+| `onRemove`          | -                      | `(tag, index) => void`                           |
+| `onInvalid`         | -                      | `(tag, reason) => void`                          |
+| `ariaLabel`         | `"Tags"`               | root group label                                 |
+
+## API
+
+```js
+tagInput.tags()                 // readonly string[]
+tagInput.count()                // number
+tagInput.canAddMore()           // tags.length < maxItems
+tagInput.activeIndex()          // -1 = input focused, else tag index
+tagInput.inputValue()           // current text in the input
+
+tagInput.addTag(s, source)      // -> boolean (added?)
+tagInput.removeTag(index)       // -> boolean
+tagInput.removeLast()           // -> boolean
+tagInput.clear()
+tagInput.setTags(array)         // bulk replace; runs full pipeline per item
+tagInput.setActiveIndex(i)      // -1 to focus input
+tagInput.focusInput()
+
+tagInput.attachRoot(el)         // -> off()
+tagInput.attachInput(inputEl)   // -> off()
+tagInput.destroy()
+```
+
+## ARIA contract
+
+The primitive writes the following attributes via reactive effects:
+
+| Element | Attributes painted                                                  |
+| ------- | ------------------------------------------------------------------- |
+| Root    | `role="group"` · `aria-label` · `data-tag-root` · `data-tag-count="N"` · `data-tag-active="i\|-"` |
+| Input   | `data-tag-input-field`                                              |
+
+For the tag chips, the consumer paints `data-tag-index="i"` and `data-tag-active="true"` when `activeIndex() === i`. The wrapper element (`<lite-tag-input>`) does this automatically.
+
+## Common patterns
+
+### Email recipient list
+
+```js
+const recipients = createTagInput({
+    delimiters: ["Enter", "Tab", ",", " "],
+    normalize: (s) => s.toLowerCase(),
+    validate: (s) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s) || "not an email",
+});
+```
+
+### Category picker (max 5)
+
+```js
+const cats = createTagInput({
+    maxItems: 5,
+    initialValue: existingCategories,
+    onChange: (tags) => persist(postId, tags),
+});
+```
+
+### Slug normalizer
+
+```js
+createTagInput({
+    normalize: (s) => s.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""),
+});
+```
+
+## Element wrapper
+
+```html
+<lite-tag-input max-items="8" aria-label="Categories">
+    <div data-tag-list></div>
+    <input data-tag-input-slot placeholder="Add a tag...">
+</lite-tag-input>
+```
+
+The wrapper auto-attaches:
+- the descendant `[data-tag-input-slot]` (first match) as the input
+- watches for the `[data-tag-list]` container and renders chips into it (one `<span data-tag-chip>` per tag, with a built-in `<button data-tag-remove>` for the X)
+
+Each rendered chip carries `data-tag-index="i"` and `data-tag-active="true"` (when active). Style with `[data-tag-chip] { ... }` and `[data-tag-chip][data-tag-active="true"] { ... }`.
+
+### Attributes
+
+| Attribute            | Effect                              |
+| -------------------- | ----------------------------------- |
+| `max-items`          | 1..256 (default Infinity)           |
+| `allow-duplicates`   | `"true"` enables                    |
+| `aria-label`         | Root group label                    |
+
+### Imperative API + events
+
+```js
+host.tags           // string[] (getter)
+host.activeIndex    // number (getter)
+host.canAddMore     // boolean (getter)
+host.addTag(s)
+host.removeTag(i)
+host.clear()
+host.setTags(array)
+host.focusInput()
+
+host.addEventListener("change",  (e) => /* e.detail = { tags } */);
+host.addEventListener("add",     (e) => /* e.detail = { tag } */);
+host.addEventListener("remove",  (e) => /* e.detail = { tag, index } */);
+host.addEventListener("invalid", (e) => /* e.detail = { tag, reason } */);
+```
+
+## When NOT to use
+
+- **A single text input with a free-form value**: just use `<input>`.
+- **A select-from-known-options multi-pick**: use `<lite-combobox>` with `multi: true` (or a similar selection model) -- tag input is for FREE-FORM entry; combobox is for picking from a defined list.
+- **Heavy autocomplete / suggestion dropdown integration**: build a custom combobox+tag-input composite if you need typeahead suggestions while typing tags. The primitive deliberately doesn't bake autocomplete in -- different consumers want very different suggestion sources (network, fuzzy, recent, etc.).
+
+## CSS contract
+
+This primitive's painted attributes follow the canonical CSS contract
+in `docs/CSS_CONTRACT.md`. See that doc for the cross-primitive
+taxonomy (booleans like `data-open` / `data-disabled` / `data-loading`,
+enums like `data-status` / `data-side`, ARIA pairings, host accessor
+naming, and event naming).

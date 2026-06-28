@@ -1,0 +1,122 @@
+# @zakkster/lite-headless / timeline
+
+Vertical activity log with per-item markers. Each item has a `type`
+(default/success/warning/danger/info) controlling marker color. Mostly
+a layout + ARIA primitive — items are static and consumer-rendered;
+the primitive paints data attributes for styling and ARIA roles for
+screen-reader navigation.
+
+## Quick example
+
+```js
+import { createTimeline } from "@zakkster/lite-headless/timeline";
+
+const tl = createTimeline({});
+tl.attachRoot(rootEl);
+tl.attachItem(item1, { type: "success" });
+tl.attachItem(item2, { type: "warning" });
+tl.attachItem(item3, { type: "default" });
+```
+
+## Options
+
+| Option | Default | Notes |
+|---|---|---|
+| (none) | - | Timeline is a layout primitive; items carry the state |
+
+## Item options (per `attachItem`)
+
+| Option | Default | Notes |
+|---|---|---|
+| `type` | `"default"` | One of: `default`, `success`, `warning`, `danger`, `info` |
+
+## API
+
+```ts
+{
+    itemCount: number    // readonly
+
+    attachRoot(el): off
+    attachItem(el, opts?: { type?: string }): off
+    setItemType(el, type: string): void   // mutate type after attach
+
+    destroy(): void
+}
+```
+
+## Painted attributes
+
+### Root (`[data-timeline-root]`)
+
+- `role="list"` (only if not pre-set)
+
+### Items (`[data-timeline-item]`)
+
+- `role="listitem"` (only if not pre-set)
+- `data-type="default|success|warning|danger|info"`
+
+### Markers (`[data-timeline-marker]` inside an item)
+
+- `aria-hidden="true"` (decoration only — the item itself announces it)
+
+## Wrapper (`<lite-timeline>`)
+
+```html
+<lite-timeline>
+    <div data-timeline-item data-type="success">
+        <span data-timeline-marker></span>
+        <time data-timeline-time>09:14</time>
+        <div data-timeline-content>
+            <strong>Order #1234</strong> shipped to customer
+        </div>
+    </div>
+    <div data-timeline-item data-type="warning">
+        <span data-timeline-marker></span>
+        <time data-timeline-time>08:52</time>
+        <div data-timeline-content>
+            Inventory low for SKU-887
+        </div>
+    </div>
+    <div data-timeline-item>
+        <span data-timeline-marker></span>
+        <time data-timeline-time>08:30</time>
+        <div data-timeline-content>
+            <strong>alice</strong> logged in
+        </div>
+    </div>
+</lite-timeline>
+```
+
+Items are auto-wired via the role observer; you can dynamically add
+or remove `<div data-timeline-item>` children and they'll be attached
+automatically.
+
+Host methods: `setItemType(el, type)`.
+
+## CSS contract
+
+`data-type` is a Class-3 enum. Consumer styles the marker color per
+type via `[data-timeline-marker]` selectors inside `[data-type="..."]`.
+Example:
+
+```css
+[data-timeline-item] {
+    display: grid;
+    grid-template-columns: 16px 80px 1fr;
+    gap: 12px;
+    padding: 8px 0;
+    position: relative;
+}
+[data-timeline-marker] {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--accent);
+    margin-top: 4px;
+}
+[data-timeline-item][data-type="success"] [data-timeline-marker] { background: var(--green); }
+[data-timeline-item][data-type="warning"] [data-timeline-marker] { background: var(--orange); }
+[data-timeline-item][data-type="danger"]  [data-timeline-marker] { background: var(--red); }
+```
+
+For the connecting line between markers, use a `::before` pseudo-element
+on the item (or absolute-positioned line on the root).

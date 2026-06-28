@@ -1,0 +1,83 @@
+# @zakkster/lite-headless / tag
+
+Display tag (status pill). Distinct from `tag-input` (which is the
+multi-value input that produces tag-like chips). This is a single
+status display element with intent colors + optional close button.
+
+## Quick example
+
+```js
+import { createTag } from "@zakkster/lite-headless/tag";
+
+const tag = createTag({
+    intent: "success",        // default | primary | success | info | warning | danger
+    closable: true,
+    onClose: (reason) => {},
+});
+
+tag.attachRoot(tagEl);
+tag.attachCloseButton(xBtn);
+```
+
+## Options
+
+| Option | Default | Notes |
+|---|---|---|
+| `intent` | `"default"` | One of: `default`, `primary`, `success`, `info`, `warning`, `danger` |
+| `closable` | `false` | Adds close-button wiring + paints `data-closable` |
+| `onClose` | - | `(reason: string) => void` |
+
+## API
+
+```ts
+{
+    intent(): string
+    isRemoved(): boolean
+    closable: boolean    // readonly
+
+    setIntent(v: string): void
+    close(reason?: string): void
+    reset(): void
+
+    attachRoot(el): off
+    attachCloseButton(el): off
+
+    destroy(): void
+}
+```
+
+## Painted attributes
+
+### Root (`[data-tag-root]`)
+
+- `data-intent="default|primary|success|info|warning|danger"`
+- `data-closable` — boolean, when closable
+- `data-hidden` — boolean, after close
+- `hidden` — after close (for SR + non-CSS)
+
+### Close button (`[data-tag-close]`)
+
+- `aria-label="Remove tag"` — only if not pre-set
+
+## Wrapper (`<lite-tag>`)
+
+```html
+<lite-tag intent="success">Shipped</lite-tag>
+
+<lite-tag intent="warning" closable>
+    Pending review
+    <button data-tag-close>×</button>
+</lite-tag>
+```
+
+Attributes:
+- `intent` — string; reactive
+- `closable` — boolean
+
+Host methods: `setIntent(v)`, `close()`, `reset()`.
+Event: `close` — `{ detail: { reason } }`.
+
+## CSS contract
+
+`data-intent` is a Class-3 enum. Consumer paints intent colors via
+`[data-tag-root][data-intent="success"] { background: ...; color: ...; }`.

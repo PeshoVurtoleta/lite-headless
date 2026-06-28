@@ -1,0 +1,171 @@
+# @zakkster/lite-headless/steps
+
+Multi-step process indicator. NOT the numeric stepper (that's
+`stepper` for +/- on a number). This is the "step 3 of 5" pattern used
+in checkout flows, onboarding wizards, multi-page forms, and approval
+workflows.
+
+## Per-step status
+
+- **`complete`** — passed; can navigate back to it
+- **`current`** — the active step
+- **`pending`** — not yet reached
+- **`error`** — failed validation; needs attention (explicit override)
+
+Default status is derived from each step's index vs the current index.
+`setStepStatus(id, "error")` overrides for that one step.
+
+## API
+
+```js
+import { createSteps } from "@zakkster/lite-headless/steps";
+
+const steps = createSteps({
+    steps: [
+        { id: "account", title: "Account" },
+        { id: "billing", title: "Billing" },
+        { id: "review",  title: "Review" },
+    ],
+    defaultCurrent: 0,
+    orientation: "horizontal",     // or "vertical"
+    allowBack: true,                // can navigate to completed steps
+    allowSkip: false,               // can jump forward past current
+    onStepChange: (nextIdx, prevIdx, reason) => {},
+    onComplete: () => {},           // current === steps.length
+});
+```
+
+## Reactive accessors
+
+```js
+steps.steps()           // StepDef[]
+steps.current()         // number (or -1 if no steps, or length if complete)
+steps.currentStep()     // StepDef | null
+steps.statusOf(idOrIndex)
+steps.isComplete()      // current >= steps.length
+steps.progress()        // 0..1 fraction
+```
+
+## Queries (non-reactive)
+
+```js
+steps.getStep(id)
+steps.indexOf(id)
+steps.canNavigateTo(i)
+```
+
+## Mutations
+
+```js
+steps.next() / .prev()
+steps.setCurrent(i, reason)
+steps.setCurrentById(id, reason)
+steps.setSteps(arr)              // replaces; clamps current; drops orphan overrides
+steps.setStepStatus(id, "error" | null)
+```
+
+## Attach
+
+```js
+steps.attachRoot(el)             // role=list; data-orientation, data-step-count, data-current-index, data-complete
+steps.attachStep(el, id)         // role=listitem; data-status, data-current/error/complete, aria-current, tabindex
+steps.attachNextButton(el)       // disables when complete
+steps.attachPrevButton(el)       // disables on first step
+```
+
+Step elements click-to-navigate when `canNavigateTo()` returns true.
+Disabled steps have `tabindex="-1"` so they're skipped by tab order.
+
+## Painted attributes
+
+### Root
+| attr                 | when                                 |
+|----------------------|--------------------------------------|
+| `role`               | `list`                               |
+| `aria-label`         | `Progress`                           |
+| `data-orientation`   | `horizontal` or `vertical`           |
+| `data-step-count`    | number of steps                      |
+| `data-current-index` | current index (-1 to length)         |
+| `data-complete`      | when isComplete()                    |
+
+### Step elements
+| attr             | when                                          |
+|------------------|-----------------------------------------------|
+| `role`           | `listitem`                                    |
+| `data-step-id`   | the step id                                   |
+| `data-status`    | `complete | current | pending | error`        |
+| `data-index`     | step's index                                  |
+| `data-navigable` | canNavigateTo() === true                       |
+| `data-current`   | when status === "current"                     |
+| `data-complete`  | when status === "complete"                    |
+| `data-error`     | when status === "error"                       |
+| `aria-current`   | `step` (current) or `false`                   |
+| `tabindex`       | `0` (navigable) or `-1` (not navigable)       |
+
+## Custom element
+
+```html
+<lite-steps orientation="horizontal" current="1">
+    <ol>
+        <li data-step-id="account">Account</li>
+        <li data-step-id="billing">Billing</li>
+        <li data-step-id="review">Review</li>
+    </ol>
+    <div>
+        <button data-step-prev>Back</button>
+        <button data-step-next>Continue</button>
+    </div>
+</lite-steps>
+```
+
+The wrapper auto-discovers steps from `[data-step-id]` markup and
+the prev/next buttons. The `title` field of each step defaults to
+the element's textContent.
+
+### Host attributes
+- `current="<int>"`
+- `orientation="horizontal|vertical"`
+- `allow-skip`
+- `no-back`
+
+### Host API
+```js
+host.index / .step / .isComplete / .progress
+host.next() / .prev() / .setCurrent(i) / .setCurrentById(id)
+host.setStepStatus(id, "error" | null)
+host._stepsInstance
+```
+
+### Custom element events
+- `stepchange` `{ detail: { current, previous, reason } }`
+- `complete`
+
+## Composition
+
+- **Wizard**: pair with `dialog` for a modal wizard. Each step's content
+  swaps in based on `currentStep().id`.
+- **Multi-page form**: bind a `form-field` set per step; on Next, run
+  validation, call `setStepStatus(id, "error")` if invalid (the step
+  stays current and shows the error indicator); else call `next()`.
+- **Vertical timeline**: orientation="vertical" + custom CSS for the
+  connecting line between steps.
+- **Approval flow**: steps reflect submission status from a server
+  poll; mark rejected steps as "error".
+
+## Notes
+
+- `current` can equal `steps.length` -- that's the "complete" terminal
+  state. `isComplete()` returns true. Next button auto-disables.
+- The primitive doesn't render content per step -- only the indicator.
+  Pair with your own slot-swap logic to render per-step UI.
+- Status overrides are per-step-id, so re-ordering or removing steps
+  preserves the right overrides (orphan overrides are dropped on
+  `setSteps`).
+
+## CSS contract
+
+This primitive's painted attributes follow the canonical CSS contract
+in `docs/CSS_CONTRACT.md`. See that doc for the cross-primitive
+taxonomy (booleans like `data-open` / `data-disabled` / `data-loading`,
+enums like `data-status` / `data-side`, ARIA pairings, host accessor
+naming, and event naming).

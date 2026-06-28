@@ -1,0 +1,75 @@
+# @zakkster/lite-headless / tabs
+
+Headless tabs primitive built on the v0.7.4 roving-focus core. A
+tablist with N triggers and N panels, one active at a time. Active
+state reactive; controllable via signal or attribute.
+
+## API
+
+createTabs({
+    defaultValue,                        // initial active key
+    value?:        Signal<string>,       // controlled mode
+    orientation:   "horizontal" | "vertical",  // default horizontal
+    activation:    "automatic" | "manual",     // default automatic
+    loop:          boolean,              // default true
+    typeahead:     boolean,              // default false (off by design)
+    onValueChange: (key, reason) => void,
+})
+
+  attachTablist(el)
+  attachTab(el, key, { disabled?: boolean })
+  attachPanel(el, key)
+
+  value()                       // current active key
+  setValue(key, reason?)
+  setDisabled(key, flag)        // fallback to next enabled if active gets disabled
+  next() | prev() | first() | last()
+  destroy()
+
+## Activation modes
+
+- "automatic" (default): ArrowKey moves focus AND activates the tab in
+  one step. Non-destructive content where switching is free (most apps).
+- "manual": ArrowKey moves focus only; user presses Enter/Space to
+  activate. For destructive content (forms with unsaved state).
+
+## Keyboard
+
+horizontal: ArrowLeft / ArrowRight
+vertical:   ArrowUp   / ArrowDown
+Home / End: first / last enabled tab
+Enter / Space (manual mode): activate focused tab
+
+## ARIA
+
+- Tablist:    role="tablist", aria-orientation
+- Tab:        role="tab", aria-selected, aria-controls=<panelId>,
+              roving tabindex (0 on selected, -1 on the rest)
+- Tabpanel:   role="tabpanel", aria-labelledby=<tabId>, tabindex="0",
+              `hidden` on inactive panels
+
+## CSS contract
+
+Each tab gets `data-active (boolean)`. Each panel gets the same
+plus `hidden` when inactive. Style via:
+
+  [data-tab][data-active]    { border-bottom: 2px solid; }
+  [data-tab][:not([data-active])]  { color: var(--text-dim); }
+  [data-panel][hidden]               { /* browser default: display:none */ }
+
+## Custom element wrapper
+
+<lite-tabs value="overview" orientation="horizontal" activation="automatic">
+  <div data-tablist>
+    <button data-tab="overview">Overview</button>
+    <button data-tab="settings">Settings</button>
+    <button data-tab="billing" data-disabled>Billing</button>
+  </div>
+  <div data-panel="overview">overview content</div>
+  <div data-panel="settings">settings content</div>
+  <div data-panel="billing">billing content</div>
+</lite-tabs>
+
+Dispatches `CustomEvent('valuechange', { detail: { value, reason } })`.
+Mirrors active key to the host's `value` attribute so external
+MutationObservers / route sync work naturally.

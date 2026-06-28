@@ -1,0 +1,180 @@
+# @zakkster/lite-headless/switch
+
+Headless boolean toggle control with WAI-ARIA `role="switch"`
+semantics. Visually a sliding switch (consumer-styled); semantically
+distinct from a checkbox -- a switch is for INSTANT-COMMIT settings
+("Enable notifications", "Dark mode"), a checkbox is for selection
+state that's later submitted via a form.
+
+WAI-ARIA APG: https://www.w3.org/WAI/ARIA/apg/patterns/switch/
+
+## Quick example
+
+```js
+import { createSwitch } from "@zakkster/lite-headless/switch";
+
+const sw = createSwitch({
+    defaultChecked: false,
+    onChange: (checked, reason) => {
+        console.log("now:", checked, "via:", reason);
+    },
+});
+
+sw.attachRoot (rootEl);    // role=switch, listeners, ARIA
+sw.attachLabel(labelEl);   // aria-labelledby auto-wired
+sw.attachThumb(thumbEl);   // visual thumb (gets data-checked)
+sw.attachInput(inputEl);   // optional native checkbox for forms
+```
+
+## Options
+
+| Option           | Default | Notes                                              |
+| ---------------- | ------- | -------------------------------------------------- |
+| `defaultChecked` | `false` | Uncontrolled seed                                  |
+| `checked`        | -       | Signal<boolean> for controlled mode (read-only)    |
+| `disabled`       | `false` | Initial disabled state                             |
+| `required`       | `false` | Sets aria-required + on native input if attached   |
+| `onChange`       | -       | `(checked, reason) => void`                        |
+
+`reason` values: `"click"`, `"keyboard"`, `"label-click"`,
+`"input-change"`, `"toggle"`, `"set"`, plus any custom string
+passed to `setChecked(v, "custom-reason")`.
+
+## Controlled vs uncontrolled
+
+```js
+// Uncontrolled (default): primitive owns the state
+const sw = createSwitch({ defaultChecked: true });
+sw.toggle();                  // primitive flips its internal signal
+
+// Controlled: external signal owns the state
+const myState = signal(false);
+const sw = createSwitch({
+    checked: myState,
+    onChange: (v) => myState.set(v),    // consumer updates manually
+});
+```
+
+In controlled mode the primitive READS from your signal but never
+writes to it. The consumer is responsible for updating in response
+to `onChange`. This is the same contract as React's controlled
+inputs.
+
+## Attachment methods
+
+| Method              | Effect                                                                |
+| ------------------- | --------------------------------------------------------------------- |
+| `attachRoot(el)`    | role=switch, aria-checked, tabindex, click/keyboard listeners        |
+| `attachLabel(el)`   | aria-labelledby auto-wired; click on label toggles (and focuses root)|
+| `attachThumb(el)`   | visual element; gets `data-checked` and `data-disabled` synced        |
+| `attachInput(el)`   | hidden native checkbox for `<form>` submission                        |
+
+The root is typically a `<button type="button">` for native keyboard
+semantics, but the primitive doesn't enforce -- any focusable element
+works.
+
+## CSS contract
+
+The root and thumb both get these attributes synced to state:
+
+```css
+[data-switch-root] {
+    /* default styles: off-state track */
+}
+[data-switch-root][data-checked="true"] {
+    /* on-state track */
+}
+[data-switch-root][data-disabled] {
+    /* dimmed appearance */
+}
+[data-switch-root][data-pressed] {
+    /* active-press feedback */
+}
+[data-switch-thumb] {
+    /* default thumb position */
+}
+[data-switch-thumb][data-checked="true"] {
+    /* shifted thumb position */
+}
+```
+
+## Keyboard
+
+| Key             | Action          |
+| --------------- | --------------- |
+| Space           | Toggle          |
+| Enter           | Toggle (also)   |
+
+Per WAI-ARIA APG, Space is the primary toggle key. Enter is
+"optional" but widely-expected, so the primitive supports both.
+
+## Form integration
+
+If you want native `<form>` submission, pass a hidden native
+`<input type="checkbox">` to `attachInput(el)`. The primitive
+syncs state in both directions:
+
+- Primitive state -> input.checked (so form submission gets the value)
+- Input.change (e.g., from browser autofill) -> primitive state
+
+The native input also serves as the no-JS fallback. Style it
+visually-hidden so the consumer's switch markup is what the user sees:
+
+```css
+input[type="checkbox"].lh-switch-input {
+    position: absolute; width: 1px; height: 1px;
+    clip: rect(0,0,0,0); border: 0; padding: 0; margin: -1px;
+    overflow: hidden; white-space: nowrap;
+}
+```
+
+The custom element wrapper does this automatically when `name=` is set.
+
+## Custom element wrapper
+
+```html
+<lite-switch name="notifications" default-checked>
+    <span data-switch-label>Notifications</span>
+    <button data-switch-root type="button" aria-label="Notifications">
+        <span data-switch-thumb></span>
+    </button>
+</lite-switch>
+```
+
+### Attributes
+
+| Attribute         | Effect                                                       |
+| ----------------- | ------------------------------------------------------------ |
+| `default-checked` | Initial checked state (uncontrolled)                         |
+| `checked`         | Reactive: set/remove to update state from outside            |
+| `disabled`        | Reactive: set/remove to toggle disabled                      |
+| `required`        | Sets aria-required + native input required                   |
+| `name`            | Creates auto-hidden checkbox for form submission             |
+| `value`           | Value attr on the hidden input (default `"on"`)              |
+
+### Imperative API on host
+
+```js
+host.toggle(reason?)
+host.setChecked(bool, reason?)
+host.setDisabled(bool)
+host.checked   // read-only
+host.disabled  // read-only
+```
+
+### Dispatched events
+
+- `change` -- `{ detail: { checked, reason } }`
+
+## Comparison to checkbox / radio
+
+| Use switch for...           | Use checkbox/radio for...                |
+| --------------------------- | ---------------------------------------- |
+| Instant-commit settings     | Form values submitted on submit          |
+| "On/Off" semantic           | "Selected/Unselected" semantic           |
+| Dark mode, notifications,   | Agree to terms, select multiple options, |
+| feature flags, sync, etc.   | radio buttons in a group                 |
+
+The visual difference is also semantic: users intuit that flipping
+a switch immediately changes a system state, while toggling a
+checkbox typically defers the change until submission.
