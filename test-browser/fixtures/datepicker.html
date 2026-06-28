@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>lite-headless · datepicker fixture</title>
+<style>
+    body { font: 14px/1.4 system-ui, sans-serif; margin: 40px; }
+    .dp { width: 320px; }
+    .dp-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .dp-nav { padding: 4px 10px; background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px; cursor: pointer; }
+    .dp-label { margin: 0; font-size: 16px; font-weight: 600; cursor: pointer; user-select: none; }
+    .dp-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; font-size: 12px; color: #6b7280; margin-bottom: 4px; text-align: center; }
+    .dp-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+    .dp-grid button {
+        background: transparent; border: 1px solid transparent;
+        padding: 6px 0; border-radius: 4px; cursor: pointer;
+        font: inherit;
+    }
+    .dp-grid button[data-outside-month] { color: #d1d5db; }
+    .dp-grid button[data-today] { border-color: #1d4ed8; }
+    .dp-grid button[data-selected] { background: #1d4ed8; color: white; }
+    .dp-grid button[data-focused] { outline: 2px solid #1d4ed8; outline-offset: 1px; }
+    .dp-grid[data-view="months"],
+    .dp-grid[data-view="years"] {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+    }
+    .dp-grid[data-view="months"] button,
+    .dp-grid[data-view="years"] button {
+        padding: 16px 0;
+    }
+    .dp-grid button[data-outside-decade] { color: #d1d5db; }
+    #readout { margin-top: 16px; font-family: monospace; }
+</style>
+</head>
+<body>
+
+<div class="dp">
+    <div class="dp-header">
+        <button class="dp-nav" id="prev" aria-label="previous">‹</button>
+        <h2 class="dp-label" id="label"></h2>
+        <button class="dp-nav" id="next" aria-label="next">›</button>
+    </div>
+    <div class="dp-weekdays">
+        <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span>
+        <span>Thu</span><span>Fri</span><span>Sat</span>
+    </div>
+    <div class="dp-grid" id="grid" tabindex="-1"></div>
+</div>
+<div id="readout">no selection</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "@zakkster/lite-signal":  "/node_modules/@zakkster/lite-signal/Signal.js",
+    "@zakkster/lite-element": "/node_modules/@zakkster/lite-element/Element.js"
+  }
+}
+</script>
+<script type="module">
+    import { createDatePicker } from "../../src/datepicker/index.js";
+
+    // pinned today for reproducible focus / today-marker behavior
+    const TODAY = new Date(2026, 5, 11);
+
+    const picker = createDatePicker({
+        today: TODAY,
+        onValueChange: (v) => {
+            const d = v[0];
+            document.getElementById("readout").textContent = d
+                ? `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`
+                : "no selection";
+        },
+    });
+    picker.attachGrid(document.getElementById("grid"));
+    picker.attachGridContainer(document.getElementById("grid"));
+    picker.attachMonthLabel(document.getElementById("label"), { clickToCycle: true });
+    picker.attachPrevMonth(document.getElementById("prev"));
+    picker.attachNextMonth(document.getElementById("next"));
+
+    // Reusable 42-cell day grid + dynamic month/year grids
+    const grid = document.getElementById("grid");
+    const dayCells = [];
+    for (let i = 0; i < 42; i++) {
+        const b = document.createElement("button");
+        b.type = "button";
+        grid.appendChild(b);
+        dayCells.push(b);
+    }
+
+    function repaintDays() {
+        const days = picker.getDaysInView();
+        for (let i = 0; i < 42; i++) {
+            dayCells[i].textContent = String(days[i].getDate());
+            picker.attachDay(dayCells[i], days[i]);
+        }
+    }
+    function repaintMonths() {
+        // hide day cells, show 12 month cells
+        for (const c of dayCells) c.style.display = "none";
+        let mEls = Array.from(grid.querySelectorAll("[data-month-cell]"));
+        if (mEls.length === 0) {
+            for (let i = 0; i < 12; i++) {
+                const b = document.createElement("button");
+                b.type = "button";
+                b.setAttribute("data-month-cell", "");
+                grid.appendChild(b);
+                mEls.push(b);
+            }
+        }
+        const months = picker.getMonthsInView();
+        for (let i = 0; i < 12; i++) {
+            mEls[i].style.display = "";
+            mEls[i].textContent = months[i].toLocaleDateString(undefined, { month: "short" });
+            picker.attachMonth(mEls[i], months[i]);
+        }
+    }
+    function repaintYears() {
+        for (const c of dayCells) c.style.display = "none";
+        let yEls = Array.from(grid.querySelectorAll("[data-year-cell]"));
+        if (yEls.length === 0) {
+            for (let i = 0; i < 12; i++) {
+                const b = document.createElement("button");
+                b.type = "button";
+                b.setAttribute("data-year-cell", "");
+                grid.appendChild(b);
+                yEls.push(b);
+            }
+        }
+        const years = picker.getYearsInView();
+        for (let i = 0; i < 12; i++) {
+            yEls[i].style.display = "";
+            yEls[i].textContent = String(years[i].getFullYear());
+            picker.attachYear(yEls[i], years[i]);
+        }
+    }
+    function hideMonthCells() {
+        for (const el of grid.querySelectorAll("[data-month-cell]")) el.style.display = "none";
+    }
+    function hideYearCells() {
+        for (const el of grid.querySelectorAll("[data-year-cell]")) el.style.display = "none";
+    }
+    function showDayCells() {
+        for (const c of dayCells) c.style.display = "";
+    }
+
+    function repaint() {
+        const v = picker.view();
+        if (v === "days") { showDayCells(); hideMonthCells(); hideYearCells(); repaintDays(); }
+        else if (v === "months") { hideMonthCells(); hideYearCells(); repaintMonths(); }
+        else { hideMonthCells(); hideYearCells(); repaintYears(); }
+    }
+    repaint();
+    picker.viewMonth.subscribe(repaint);
+    picker.view.subscribe(repaint);
+
+    window.__datepicker = { picker };
+</script>
+</body>
+</html>

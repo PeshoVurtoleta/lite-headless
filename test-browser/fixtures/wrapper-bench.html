@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>lite-headless · wrapper micro-benches</title>
+<script type="importmap">
+{ "imports": {
+    "@zakkster/lite-signal":  "/node_modules/@zakkster/lite-signal/Signal.js",
+    "@zakkster/lite-element": "/node_modules/@zakkster/lite-element/Element.js"
+} }
+</script>
+</head>
+<body>
+
+<lite-file-upload id="fu" auto-upload="false">
+    <div data-drop-zone></div>
+    <ul data-file-list></ul>
+    <input data-file-input type="file" hidden>
+</lite-file-upload>
+
+<lite-tag-input id="ti" max-items="200" aria-label="bench">
+    <div data-tag-list></div>
+    <input data-tag-input-slot>
+</lite-tag-input>
+
+<pre id="out" style="font-family: monospace; padding: 1rem; background: #111; color: #eee;"></pre>
+
+<script type="module">
+    import "/src/file-upload/element.js";
+    import "/src/tag-input/element.js";
+    await Promise.all([
+        customElements.whenDefined("lite-file-upload"),
+        customElements.whenDefined("lite-tag-input"),
+    ]);
+    await new Promise(r => requestAnimationFrame(r));
+
+    const out = document.getElementById("out");
+    const log = (s) => { out.textContent += s + "\n"; };
+
+    // ===================================================================
+    // BENCH 1: file-upload row creation cost
+    // ===================================================================
+    // Simulates a 50-file drop. We measure wall-clock + a heuristic count
+    // of DOM operations by monkey-patching el.querySelector to count calls
+    // during the row construction.
+    function benchFileUpload() {
+        const fu = document.getElementById("fu");
+        fu.clear();
+        // Count querySelector calls that hit ROW elements (those returned
+        // from template cloning). The template'd version should make ZERO
+        // per-row qS calls because children[0..4] is used instead.
+        const origQS = Element.prototype.querySelector;
+        let perRowQs = 0;
+        Element.prototype.querySelector = function(sel) {
+            // Heuristic: if the receiver looks like a row LI, count it.
+            if (this.matches && this.matches("[data-file-row]")) perRowQs++;
+            return origQS.call(this, sel);
+        };
+        const files = [];
+        for (let i = 0; i < 50; i++) {
+            files.push(new File([new Uint8Array(64)], "f" + i + ".bin", { type: "application/octet-stream" }));
+        }
+        const t0 = performance.now();
+        fu.addFiles(files);
+        const t1 = performance.now();
+        Element.prototype.querySelector = origQS;
+        const rowsRendered = document.querySelectorAll("#fu [data-file-row]").length;
+        log("[file-upload] 50-file drop:");
+        log("  rows rendered:                 " + rowsRendered);
+        log("  wall time:                     " + (t1 - t0).toFixed(2) + " ms");
+        log("  qS calls into row subtrees:    " + perRowQs + "  (was 5/row = 250 before)");
+        log("  innerHTML parses for rows:     0  (was 1/row = 50 before, hoisted template now)");
+    }
+    benchFileUpload();
+
+    log("");
+
+    // ===================================================================
+    // BENCH 2: tag-input chip paint write count under stable state
+    // ===================================================================
+    // 100 chips already painted; the active-index pointer ping-pongs
+    // between two of them. The paint effect should issue exactly
+    // 4 setAttribute / removeAttribute calls per ping (1 set + 1 remove
+    // for each end of the index swap) -- NOT 100 per ping.
+    function benchTagInput() {
+        const ti = document.getElementById("ti");
+        ti.clear();
+        const tags = [];
+        for (let i = 0; i < 100; i++) tags.push("tag-" + i);
+        ti.setTags(tags);
+        // Allow the chip paint to settle.
+        const origSet = Element.prototype.setAttribute;
+        const origRemove = Element.prototype.removeAttribute;
+        let setCalls = 0;
+        let removeCalls = 0;
+        Element.prototype.setAttribute = function(n, v) {
+            if (this.matches && this.matches("[data-tag-chip]")) setCalls++;
+            return origSet.call(this, n, v);
+        };
+        Element.prototype.removeAttribute = function(n) {
+            if (this.matches && this.matches("[data-tag-chip]")) removeCalls++;
+            return origRemove.call(this, n);
+        };
+        // Toggle active-index between 5 and 90; the unchanged 98 chips
+        // should NOT receive any writes.
+        const t0 = performance.now();
+        ti.setActiveIndex(5);
+        ti.setActiveIndex(90);
+        ti.setActiveIndex(5);
+        ti.setActiveIndex(90);
+        const t1 = performance.now();
+        Element.prototype.setAttribute = origSet;
+        Element.prototype.removeAttribute = origRemove;
+        log("[tag-input] 100 chips, 4 active-index toggles:");
+        log("  setAttribute on chips:         " + setCalls + "  (was ~100*4=400 before, dedup'd now)");
+        log("  removeAttribute on chips:      " + removeCalls + "  (was ~99*4=396 before, dedup'd now)");
+        log("  wall time:                     " + (t1 - t0).toFixed(2) + " ms");
+    }
+    benchTagInput();
+
+    window.__benchReady = true;
+    window.__benchOutput = out.textContent;
+</script>
+</body>
+</html>

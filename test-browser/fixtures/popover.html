@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>lite-headless · popover fixture</title>
+<style>
+    body { font: 14px/1.4 system-ui, sans-serif; margin: 0; }
+    .stage {
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows:    1fr 1fr;
+    }
+    .corner { display: flex; align-items: center; justify-content: center; }
+    .tl { padding-top: 20px;    padding-left: 20px;    align-items: flex-start; justify-content: flex-start; }
+    .tr { padding-top: 20px;    padding-right: 20px;   align-items: flex-start; justify-content: flex-end; }
+    .bl { padding-bottom: 20px; padding-left: 20px;    align-items: flex-end;   justify-content: flex-start; }
+    .br { padding-bottom: 20px; padding-right: 20px;   align-items: flex-end;   justify-content: flex-end; }
+    button {
+        padding: 6px 12px; background: #1d4ed8; color: white;
+        border: 0; border-radius: 4px; cursor: pointer;
+    }
+    .pop {
+        background: #1f2937; color: white; padding: 12px;
+        border-radius: 6px; min-width: 220px; min-height: 100px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+    .pop:not([data-open]) { display: none; }
+
+    /* a "card" with overflow: hidden, anchor inside it -- for clipping test */
+    .card {
+        position: absolute;
+        left: 280px; top: 260px;
+        width: 240px; height: 180px;
+        background: #fafafa;
+        border: 1px solid #d1d5db;
+        overflow: hidden;
+        padding: 16px;
+    }
+</style>
+</head>
+<body>
+
+<div class="stage">
+    <div class="corner tl"><button id="trigger-tl">TL</button></div>
+    <div class="corner tr"><button id="trigger-tr">TR</button></div>
+    <div class="corner bl"><button id="trigger-bl">BL</button></div>
+    <div class="corner br"><button id="trigger-br">BR</button></div>
+</div>
+
+<div id="pop-tl" class="pop">top-left popover</div>
+<div id="pop-tr" class="pop">top-right popover</div>
+<div id="pop-bl" class="pop">bottom-left popover</div>
+<div id="pop-br" class="pop">bottom-right popover</div>
+
+<div class="card" id="card">
+    <button id="trigger-clip">in-card</button>
+</div>
+<div id="pop-clip" class="pop">clipped popover</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "@zakkster/lite-signal":  "/node_modules/@zakkster/lite-signal/Signal.js",
+    "@zakkster/lite-element": "/node_modules/@zakkster/lite-element/Element.js"
+  }
+}
+</script>
+<script type="module">
+    import { createPopover } from "../../src/popover/index.js";
+
+    // 4 corner popovers, all configured with placement:"bottom" so we can
+    // observe which actually flip vs not based on viewport position.
+    function mount(triggerId, contentId, placement) {
+        const p = createPopover({
+            container: document.body,
+            placement,
+            offset: 8,
+            boundary: "viewport",
+        });
+        p.attachTrigger(document.getElementById(triggerId));
+        p.attachContent(document.getElementById(contentId));
+        return p;
+    }
+
+    const tl = mount("trigger-tl", "pop-tl", "bottom");
+    const tr = mount("trigger-tr", "pop-tr", "bottom");
+    const bl = mount("trigger-bl", "pop-bl", "bottom");
+    const br = mount("trigger-br", "pop-br", "bottom");
+
+    // For the "clipping" test, the trigger lives inside a 240x180 card with
+    // overflow:hidden. boundary:"clipping" should treat the card as the
+    // boundary, flipping if the popover would extend past it.
+    const clip = createPopover({
+        container: document.body,
+        placement: "bottom",
+        offset: 8,
+        boundary: "clipping",
+    });
+    clip.attachTrigger(document.getElementById("trigger-clip"));
+    clip.attachContent(document.getElementById("pop-clip"));
+
+    window.__popovers = { tl, tr, bl, br, clip };
+</script>
+</body>
+</html>

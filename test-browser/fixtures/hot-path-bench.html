@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>lite-headless · hot-path benchmarks (v0.7.36)</title>
+<script type="importmap">
+{ "imports": {
+    "@zakkster/lite-signal":  "/node_modules/@zakkster/lite-signal/Signal.js",
+    "@zakkster/lite-element": "/node_modules/@zakkster/lite-element/Element.js"
+} }
+</script>
+</head>
+<body>
+
+<div id="dp-grid" style="display:none"></div>
+<div id="cb-trigger"></div>
+<div id="cb-list" role="listbox"></div>
+
+<div id="tabs-host">
+    <div id="tabs-list" role="tablist"></div>
+    <div id="tabs-panels"></div>
+</div>
+
+<pre id="out" style="font-family: monospace; padding: 1rem; background: #111; color: #eee; white-space: pre-wrap;"></pre>
+
+<script type="module">
+    import { createDatePicker } from "/src/datepicker/index.js";
+    import { createCombobox }   from "/src/combobox/index.js";
+    import { createTabs }       from "/src/tabs/index.js";
+
+    const out = document.getElementById("out");
+    const log = (s) => { out.textContent += s + "\n"; };
+
+    function hookWrites(matchFn) {
+        const origSet = Element.prototype.setAttribute;
+        const origRemove = Element.prototype.removeAttribute;
+        let set = 0, remove = 0;
+        Element.prototype.setAttribute = function(n, v) {
+            if (matchFn(this)) set++;
+            return origSet.call(this, n, v);
+        };
+        Element.prototype.removeAttribute = function(n) {
+            if (matchFn(this)) remove++;
+            return origRemove.call(this, n);
+        };
+        return () => {
+            Element.prototype.setAttribute = origSet;
+            Element.prototype.removeAttribute = origRemove;
+            return { set, remove };
+        };
+    }
+
+    // ──────────────────────────────────────────────────────────────────
+    // BENCH 1: datepicker grid (range-hover repaint)
+    // ──────────────────────────────────────────────────────────────────
+    {
+        const picker = createDatePicker({
+            mode: "range",
+            defaultValue: [new Date(2026, 5, 10), null],
+            defaultView: new Date(2026, 5, 1),
+        });
+        const grid = document.getElementById("dp-grid");
+        const startWeekday = new Date(2026, 5, 1).getDay();
+        for (let i = 0; i < 42; i++) {
+            const d = new Date(2026, 5, 1 - startWeekday + i);
+            const cell = document.createElement("button");
+            cell.type = "button";
+            grid.appendChild(cell);
+            picker.attachDay(cell, d);
+        }
+        await new Promise(r => requestAnimationFrame(r));
+
+        const stop = hookWrites(el => el.hasAttribute && el.hasAttribute("data-date"));
+        const t0 = performance.now();
+        for (let day = 11; day <= 20; day++) {
+            picker.hoverDate.set(new Date(2026, 5, day));
+        }
+        await new Promise(r => requestAnimationFrame(r));
+        const t1 = performance.now();
+        const { set, remove } = stop();
+        log("[datepicker] 42-cell range grid, 10 hover steps:");
+        log("  setAttribute on day cells:    " + set);
+        log("  removeAttribute on day cells: " + remove);
+        log("  TOTAL writes:                 " + (set + remove));
+        log("  wall time:                    " + (t1 - t0).toFixed(2) + " ms");
+        log("");
+        picker.destroy();
+    }
+
+    // ──────────────────────────────────────────────────────────────────
+    // BENCH 2: combobox listbox (selection mirror across 200 items)
+    // ──────────────────────────────────────────────────────────────────
+    {
+        const cb = createCombobox({ defaultValue: "opt-0" });
+        const trigger = document.getElementById("cb-trigger");
+        const list = document.getElementById("cb-list");
+        cb.attachTrigger(trigger);
+        cb.attachListbox(list);
+        const optionEls = new Set();
+        for (let i = 0; i < 200; i++) {
+            const opt = document.createElement("div");
+            opt.setAttribute("role", "option");
+            opt.textContent = "Option " + i;
+            list.appendChild(opt);
+            cb.attachItem(opt, { value: "opt-" + i, label: "Option " + i });
+            optionEls.add(opt);
+        }
+        await new Promise(r => requestAnimationFrame(r));
+
+        const stop = hookWrites(el => optionEls.has(el));
+        const t0 = performance.now();
+        // Move selection 5 times through different options.
+        for (const v of ["opt-50", "opt-100", "opt-25", "opt-175", "opt-0"]) {
+            cb.setValue(v);
+        }
+        await new Promise(r => requestAnimationFrame(r));
+        const t1 = performance.now();
+        const { set, remove } = stop();
+        log("[combobox] 200-item listbox, 5 selection changes:");
+        log("  setAttribute on options:      " + set);
+        log("  removeAttribute on options:   " + remove);
+        log("  TOTAL writes:                 " + (set + remove));
+        log("  wall time:                    " + (t1 - t0).toFixed(2) + " ms");
+        log("");
+        cb.destroy();
+    }
+
+    // ──────────────────────────────────────────────────────────────────
+    // BENCH 3: tabs panel visibility (toggle hidden on every value change)
+    // ──────────────────────────────────────────────────────────────────
+    {
+        const tabs = createTabs({ defaultValue: "tab-0" });
+        const tablistEl = document.getElementById("tabs-list");
+        const panelsEl = document.getElementById("tabs-panels");
+        tabs.attachTablist(tablistEl);
+        for (let i = 0; i < 20; i++) {
+            const t = document.createElement("button");
+            t.type = "button";
+            t.setAttribute("data-tab-btn", "");
+            tablistEl.appendChild(t);
+            tabs.attachTab(t, "tab-" + i);
+            const p = document.createElement("div");
+            p.setAttribute("data-tab-panel", "");
+            panelsEl.appendChild(p);
+            tabs.attachPanel(p, "tab-" + i);
+        }
+        await new Promise(r => requestAnimationFrame(r));
+
+        const stop = hookWrites(el => el.hasAttribute && el.hasAttribute("data-tab-panel"));
+        const t0 = performance.now();
+        for (let i = 0; i < 10; i++) {
+            tabs.setValue("tab-" + (i % 20));
+        }
+        await new Promise(r => requestAnimationFrame(r));
+        const t1 = performance.now();
+        const { set, remove } = stop();
+        log("[tabs] 20 panels, 10 value changes:");
+        log("  setAttribute on panels:       " + set);
+        log("  removeAttribute on panels:    " + remove);
+        log("  TOTAL writes:                 " + (set + remove));
+        log("  wall time:                    " + (t1 - t0).toFixed(2) + " ms");
+        log("");
+        tabs.destroy();
+    }
+
+    log("Numbers are post-v0.7.36 with toggleAttr + setAttr dirty-check.");
+    window.__benchReady = true;
+    window.__benchOutput = out.textContent;
+</script>
+</body>
+</html>

@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>lite-headless · nesting-scope fixture</title>
+<script type="importmap">
+{ "imports": {
+    "@zakkster/lite-signal":  "/node_modules/@zakkster/lite-signal/Signal.js",
+    "@zakkster/lite-element": "/node_modules/@zakkster/lite-element/Element.js"
+} }
+</script>
+</head>
+<body>
+
+<!-- =========================================================================
+     NESTING CASE A: outer skeleton contains an inner skeleton.
+     The outer's `[data-skeleton]` placeholder MUST attach to the outer
+     instance, and the inner's must attach to the inner. Crucially the
+     outer must NOT claim the inner's placeholder.
+     ========================================================================= -->
+<lite-skeleton id="sk-outer" sources="outer">
+    <div data-skeleton id="sk-outer-placeholder">outer placeholder</div>
+    <lite-skeleton id="sk-inner" sources="inner">
+        <div data-skeleton id="sk-inner-placeholder">inner placeholder</div>
+    </lite-skeleton>
+</lite-skeleton>
+
+<!-- =========================================================================
+     NESTING CASE B: outer progress with an inner progress in its tree.
+     Each `[data-progress-bar]` must wire to its own host.
+     ========================================================================= -->
+<lite-progress id="pg-outer" value="42" variant="linear">
+    <div data-progress-bar id="pg-outer-bar"></div>
+    <div>
+        <lite-progress id="pg-inner" value="80" variant="linear">
+            <div data-progress-bar id="pg-inner-bar"></div>
+        </lite-progress>
+    </div>
+</lite-progress>
+
+<!-- =========================================================================
+     NESTING CASE C: outer file-upload containing an inner file-upload.
+     Outer's [data-file-input] / [data-drop-zone] / [data-file-pick]
+     MUST stay on the outer; inner's must stay on the inner.
+     ========================================================================= -->
+<lite-file-upload id="fu-outer">
+    <div data-drop-zone id="fu-outer-zone">outer zone</div>
+    <ul data-file-list id="fu-outer-list"></ul>
+    <input data-file-input id="fu-outer-input" type="file" hidden>
+    <lite-file-upload id="fu-inner">
+        <div data-drop-zone id="fu-inner-zone">inner zone</div>
+        <ul data-file-list id="fu-inner-list"></ul>
+        <input data-file-input id="fu-inner-input" type="file" hidden>
+    </lite-file-upload>
+</lite-file-upload>
+
+<!-- =========================================================================
+     NESTING CASE D: outer tag-input containing an inner tag-input.
+     ========================================================================= -->
+<lite-tag-input id="tg-outer">
+    <div data-tag-list id="tg-outer-list"></div>
+    <input data-tag-input-slot id="tg-outer-slot">
+    <lite-tag-input id="tg-inner">
+        <div data-tag-list id="tg-inner-list"></div>
+        <input data-tag-input-slot id="tg-inner-slot">
+    </lite-tag-input>
+</lite-tag-input>
+
+<!-- =========================================================================
+     NESTING CASE E: outer pin-input contains an inner one. Each must
+     get exactly its own length-many [data-pin-slot] inputs (3 each here).
+     ========================================================================= -->
+<lite-pin-input id="pin-outer" length="3">
+    <input data-pin-slot id="pin-outer-0">
+    <input data-pin-slot id="pin-outer-1">
+    <input data-pin-slot id="pin-outer-2">
+    <lite-pin-input id="pin-inner" length="3">
+        <input data-pin-slot id="pin-inner-0">
+        <input data-pin-slot id="pin-inner-1">
+        <input data-pin-slot id="pin-inner-2">
+    </lite-pin-input>
+</lite-pin-input>
+
+<!-- =========================================================================
+     NESTING CASE F: outer inline-edit with inner inline-edit. Each
+     instance must wire only its own display/input slots.
+     ========================================================================= -->
+<lite-inline-edit id="ie-outer" value="outer-value">
+    <span data-inline-edit-display-slot id="ie-outer-display" tabindex="0"></span>
+    <input data-inline-edit-input-slot id="ie-outer-input" type="text">
+    <div>
+        <lite-inline-edit id="ie-inner" value="inner-value">
+            <span data-inline-edit-display-slot id="ie-inner-display" tabindex="0"></span>
+            <input data-inline-edit-input-slot id="ie-inner-input" type="text">
+        </lite-inline-edit>
+    </div>
+</lite-inline-edit>
+
+<script type="module">
+    import "/src/skeleton/element.js";
+    import "/src/progress/element.js";
+    import "/src/file-upload/element.js";
+    import "/src/tag-input/element.js";
+    import "/src/pin-input/element.js";
+    import "/src/inline-edit/element.js";
+
+    // Wait two task-ticks so MutationObservers run their initial scans
+    // and slot wiring resolves.
+    await new Promise(r => setTimeout(r, 60));
+    window.__nestingReady = true;
+</script>
+</body>
+</html>

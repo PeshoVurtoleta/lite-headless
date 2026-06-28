@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>lite-headless · command palette fixture</title>
+<style>
+    body { font: 14px system-ui, sans-serif; margin: 32px; max-width: 600px; }
+    h2 { font-size: 1rem; margin: 1.5rem 0 0.5rem; }
+    button { padding: 0.375rem 0.875rem; margin-right: 0.5rem; }
+
+    .cmd-modal {
+        position: fixed;
+        top: 20%;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 90%;
+        max-width: 480px;
+        background: #fff;
+        border: 1px solid #d4d4d4;
+        border-radius: 6px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+        padding: 0.5rem;
+        z-index: 1000;
+    }
+    .cmd-modal[hidden] { display: none; }
+    .cmd-input {
+        width: 100%;
+        padding: 0.625rem 0.875rem;
+        border: 1px solid #e5e5e5;
+        border-radius: 4px;
+        font: inherit;
+        outline: none;
+    }
+    .cmd-input:focus { border-color: #2563eb; }
+    .cmd-list {
+        list-style: none;
+        margin: 0.5rem 0 0;
+        padding: 0;
+        max-height: 360px;
+        overflow-y: auto;
+    }
+    .cmd-list[hidden] { display: none; }
+    .cmd-list li {
+        padding: 0.5rem 0.75rem;
+        cursor: pointer;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .cmd-list li[aria-selected="true"],
+    .cmd-list li[data-active="true"] {
+        background: #2563eb;
+        color: #fff;
+    }
+    .cmd-list .group-label {
+        font-size: 0.75rem;
+        color: #6b7280;
+        margin-left: auto;
+    }
+    .cmd-list li[aria-selected="true"] .group-label { color: rgba(255,255,255,0.8); }
+    .cmd-empty {
+        padding: 1rem;
+        text-align: center;
+        color: #9ca3af;
+        font-size: 0.875rem;
+    }
+    .cmd-empty[hidden] { display: none; }
+    .backdrop {
+        position: fixed; inset: 0;
+        background: rgba(0,0,0,0.25);
+        z-index: 999;
+    }
+    .backdrop[hidden] { display: none; }
+    .log {
+        margin-top: 1rem;
+        padding: 0.75rem;
+        background: #f3f4f6;
+        border-radius: 4px;
+        font-family: 'SF Mono', Monaco, monospace;
+        font-size: 12px;
+        white-space: pre-wrap;
+    }
+</style>
+
+<script type="importmap">
+{ "imports": {
+    "@zakkster/lite-signal":  "/node_modules/@zakkster/lite-signal/Signal.js",
+    "@zakkster/lite-element": "/node_modules/@zakkster/lite-element/Element.js"
+} }
+</script>
+</head>
+<body>
+
+<h2>command palette · press Cmd+K (or click below)</h2>
+<button id="b-open">Open palette</button>
+<button id="b-close">Close palette</button>
+<div id="log" class="log">Last action: (none)</div>
+
+<div id="backdrop" class="backdrop" hidden></div>
+
+<lite-command-palette id="palette" trigger-key="Cmd+K">
+    <div id="modal" class="cmd-modal" hidden>
+        <input data-cmd-input class="cmd-input" placeholder="Type a command...">
+        <ul data-cmd-list class="cmd-list"></ul>
+        <div data-cmd-empty class="cmd-empty">No commands found</div>
+    </div>
+</lite-command-palette>
+
+<script type="module">
+    import "/src/command-palette/element.js";
+
+    const palette  = document.getElementById("palette");
+    const modal    = document.getElementById("modal");
+    const backdrop = document.getElementById("backdrop");
+    const log      = document.getElementById("log");
+    const list     = palette.querySelector("[data-cmd-list]");
+
+    function setLog(msg) { log.textContent = "Last action: " + msg; }
+
+    // Register some commands
+    palette.register([
+        { id: "save",        label: "Save",               group: "File", keywords: ["write", "persist"], onSelect: () => setLog("Saved") },
+        { id: "open",        label: "Open",               group: "File", keywords: ["load"],             onSelect: () => setLog("Opened") },
+        { id: "save-as",     label: "Save As...",         group: "File",                                 onSelect: () => setLog("Saved As") },
+        { id: "close",       label: "Close",              group: "File",                                 onSelect: () => setLog("Closed") },
+        { id: "find",        label: "Find",               group: "Edit", keywords: ["search"],           onSelect: () => setLog("Find") },
+        { id: "replace",     label: "Replace",            group: "Edit", keywords: ["substitute"],       onSelect: () => setLog("Replace") },
+        { id: "undo",        label: "Undo",               group: "Edit",                                 onSelect: () => setLog("Undone") },
+        { id: "redo",        label: "Redo",               group: "Edit",                                 onSelect: () => setLog("Redone") },
+        { id: "toggle-side", label: "Toggle Sidebar",     group: "View",                                 onSelect: () => setLog("Toggled sidebar") },
+        { id: "zoom-in",     label: "Zoom In",            group: "View",                                 onSelect: () => setLog("Zoom in") },
+        { id: "command-line",label: "Open Command Line",  group: "Terminal", keywords: ["cli", "shell"], onSelect: () => setLog("Opened CL") },
+        { id: "format",      label: "Format Document",    group: "Edit", keywords: ["pretty"],           onSelect: () => setLog("Formatted") },
+    ]);
+
+    // Wire open/close to dialog-like visibility
+    palette.addEventListener("openchange", (e) => {
+        modal.hidden    = !e.detail.open;
+        backdrop.hidden = !e.detail.open;
+    });
+
+    // Render results into the list when they change
+    palette.addEventListener("resultschange", (e) => {
+        list.innerHTML = "";
+        const results = e.detail.results;
+        list.hidden = results.length === 0;
+        for (let i = 0; i < results.length; i++) {
+            const r = results[i];
+            const li = document.createElement("li");
+            li.textContent = r.cmd.label;
+            if (r.cmd.group) {
+                const grp = document.createElement("span");
+                grp.className = "group-label";
+                grp.textContent = r.cmd.group;
+                li.appendChild(grp);
+            }
+            list.appendChild(li);
+            palette.markItem(li, r.id, i);
+        }
+    });
+
+    // Close on backdrop click
+    backdrop.addEventListener("click", () => palette.close("backdrop"));
+
+    // Manual triggers
+    document.getElementById("b-open").addEventListener("click", () => palette.open("button"));
+    document.getElementById("b-close").addEventListener("click", () => palette.close("button"));
+
+    // Initial render
+    palette.dispatchEvent(new CustomEvent("resultschange", { detail: { results: palette.results } }));
+
+    window.__paletteReady = true;
+</script>
+</body>
+</html>

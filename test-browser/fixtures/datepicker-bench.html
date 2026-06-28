@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>lite-headless · datepicker cell-paint bench</title>
+<script type="importmap">
+{ "imports": {
+    "@zakkster/lite-signal":  "/node_modules/@zakkster/lite-signal/Signal.js",
+    "@zakkster/lite-element": "/node_modules/@zakkster/lite-element/Element.js"
+} }
+</script>
+</head>
+<body>
+
+<div id="grid"></div>
+<pre id="out" style="font-family: monospace; padding: 1rem; background: #111; color: #eee; white-space: pre-wrap;"></pre>
+
+<script type="module">
+    import { createDatePicker } from "/src/datepicker/index.js";
+
+    const out = document.getElementById("out");
+    const log = (s) => { out.textContent += s + "\n"; };
+
+    const picker = createDatePicker({
+        mode: "range",
+        defaultValue: [new Date(2026, 5, 10), null],
+        defaultView: new Date(2026, 5, 1),
+    });
+
+    // Build a 42-cell month grid and attach via the primitive.
+    const grid = document.getElementById("grid");
+    const startOfMonth = new Date(2026, 5, 1);
+    const startWeekday = startOfMonth.getDay();
+    const cells = [];
+    for (let i = 0; i < 42; i++) {
+        const d = new Date(2026, 5, 1 - startWeekday + i);
+        const cell = document.createElement("button");
+        cell.type = "button";
+        grid.appendChild(cell);
+        picker.attachDay(cell, d);
+        cells.push({ el: cell, date: d });
+    }
+    await new Promise(r => requestAnimationFrame(r));
+
+    // Hook DOM writes only on attached day cells.
+    const origSet = Element.prototype.setAttribute;
+    const origRemove = Element.prototype.removeAttribute;
+    let setN = 0, removeN = 0;
+    Element.prototype.setAttribute = function(n, v) {
+        if (this.matches && this.matches("[data-date]")) setN++;
+        return origSet.call(this, n, v);
+    };
+    Element.prototype.removeAttribute = function(n) {
+        if (this.matches && this.matches("[data-date]")) removeN++;
+        return origRemove.call(this, n);
+    };
+
+    // 10 hover steps extending the range preview right one day at a time.
+    const t0 = performance.now();
+    for (let day = 11; day <= 20; day++) {
+        picker.hoverDate.set(new Date(2026, 5, day));
+    }
+    await new Promise(r => requestAnimationFrame(r));
+    const t1 = performance.now();
+
+    Element.prototype.setAttribute = origSet;
+    Element.prototype.removeAttribute = origRemove;
+
+    log("[datepicker] 42-cell grid + 10 range-hover steps:");
+    log("  setAttribute on cells:    " + setN);
+    log("  removeAttribute on cells: " + removeN);
+    log("  total DOM writes:         " + (setN + removeN));
+    log("  wall time:                " + (t1 - t0).toFixed(2) + " ms");
+    log("");
+    log("  Pre-fix (raw, every frame): every cell wrote 10+ attrs.");
+    log("  Post-fix (toggleAttr dirty-check): only changed cells write.");
+
+    window.__benchReady = true;
+    window.__benchOutput = out.textContent;
+</script>
+</body>
+</html>

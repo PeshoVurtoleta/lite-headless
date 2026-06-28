@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>lite-headless · backtop fixture</title>
+<style>
+    body { font: 14px system-ui, sans-serif; margin: 0; padding: 16px; }
+    h2 { font-size: 1rem; margin: 0 0 0.5rem; }
+    #scroller {
+        height: 400px;
+        overflow-y: auto;
+        background: #f6f8fa;
+        border: 1px solid #d1d5db;
+        padding: 16px;
+        position: relative;
+    }
+    .filler { height: 600px; background: linear-gradient(180deg, #fff, #eef); }
+    lite-backtop { display: block; position: sticky; bottom: 8px; margin-left: auto; width: max-content; pointer-events: none; }
+    .fab {
+        pointer-events: auto;
+        width: 36px; height: 36px;
+        border-radius: 50%;
+        background: #2563eb; color: #fff;
+        border: 0; cursor: pointer;
+        opacity: 0; transform: translateY(8px);
+        transition: opacity 80ms, transform 80ms;
+    }
+    .fab[data-visible] { opacity: 1; transform: translateY(0); }
+    .fab[hidden] { display: none; }
+</style>
+<script type="importmap">
+{ "imports": {
+    "@zakkster/lite-signal":  "/node_modules/@zakkster/lite-signal/Signal.js",
+    "@zakkster/lite-element": "/node_modules/@zakkster/lite-element/Element.js"
+} }
+</script>
+</head>
+<body>
+
+<h2>backtop · element scroll container, threshold=100</h2>
+<div id="scroller">
+    <div class="filler"></div>
+    <p id="bottom-marker">end</p>
+    <lite-backtop id="bt" target="#scroller" threshold="100">
+        <button data-backtop-button class="fab" type="button" aria-label="Back to top">↑</button>
+    </lite-backtop>
+</div>
+
+<script type="module">
+    import "/src/backtop/element.js";
+    await customElements.whenDefined("lite-backtop");
+    window.__backtopReady = true;
+</script>
+</body>
+</html>

@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>lite-headless · pagination fixture</title>
+<style>
+    body { font: 14px system-ui, sans-serif; margin: 32px; max-width: 700px; }
+    h2 { font-size: 1rem; margin: 1.5rem 0 0.5rem; }
+    lite-pagination { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+
+    lite-pagination button {
+        min-width: 32px;
+        height: 32px;
+        padding: 0 8px;
+        background: #fff;
+        border: 1px solid #d1d5db;
+        border-radius: 4px;
+        cursor: pointer;
+        font: inherit;
+    }
+    lite-pagination button:hover:not([data-disabled]):not([data-current]) {
+        background: #f3f4f6;
+    }
+    lite-pagination button[data-current="true"] {
+        background: #2563eb;
+        color: #fff;
+        border-color: #2563eb;
+    }
+    lite-pagination button[data-disabled] {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+    lite-pagination [data-pgn-list] {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        gap: 4px;
+    }
+    lite-pagination [data-pgn-list] li {
+        display: inline-block;
+    }
+    lite-pagination [data-pgn-ellipsis] span {
+        display: inline-block;
+        width: 32px;
+        text-align: center;
+        color: #9ca3af;
+    }
+
+    .log {
+        margin-top: 1rem;
+        padding: 0.5rem;
+        background: #f3f4f6;
+        font: 11px monospace;
+        white-space: pre-wrap;
+    }
+</style>
+<script type="importmap">
+{ "imports": {
+    "@zakkster/lite-signal":  "/node_modules/@zakkster/lite-signal/Signal.js",
+    "@zakkster/lite-element": "/node_modules/@zakkster/lite-element/Element.js"
+} }
+</script>
+</head>
+<body>
+
+<h2>basic · 20 pages · siblings=1 · boundary=1</h2>
+<lite-pagination id="basic" page-count="20" page="1">
+    <button data-pgn-first>«</button>
+    <button data-pgn-prev>‹</button>
+    <ol data-pgn-list></ol>
+    <button data-pgn-next>›</button>
+    <button data-pgn-last>»</button>
+</lite-pagination>
+
+<h2>small · 5 pages (fits without ellipsis)</h2>
+<lite-pagination id="small" page-count="5" page="1">
+    <button data-pgn-prev>Prev</button>
+    <ol data-pgn-list></ol>
+    <button data-pgn-next>Next</button>
+</lite-pagination>
+
+<h2>wide siblings · 50 pages · siblings=3 · boundary=2</h2>
+<lite-pagination id="wide" page-count="50" page="25" sibling-count="3" boundary-count="2">
+    <button data-pgn-first>First</button>
+    <button data-pgn-prev>Prev</button>
+    <ol data-pgn-list></ol>
+    <button data-pgn-next>Next</button>
+    <button data-pgn-last>Last</button>
+</lite-pagination>
+
+<h2>imperative controls</h2>
+<button id="b-page-5">basic.setPage(5)</button>
+<button id="b-page-20">basic.setPage(20)</button>
+<button id="b-set-count-100">basic.setPageCount(100)</button>
+<button id="b-set-count-3">basic.setPageCount(3)</button>
+
+<div class="log" id="log">no events yet</div>
+
+<script type="module">
+    import "/src/pagination/element.js";
+
+    const log = document.getElementById("log");
+    function setLog(msg) { log.textContent = msg; }
+
+    const basic = document.getElementById("basic");
+    basic.addEventListener("change", e => setLog(`basic: page=${e.detail.page} reason=${e.detail.reason}`));
+
+    document.getElementById("small").addEventListener("change", e => setLog(`small: page=${e.detail.page} reason=${e.detail.reason}`));
+    document.getElementById("wide").addEventListener("change", e => setLog(`wide: page=${e.detail.page} reason=${e.detail.reason}`));
+
+    document.getElementById("b-page-5").addEventListener("click", () => basic.setPage(5));
+    document.getElementById("b-page-20").addEventListener("click", () => basic.setPage(20));
+    document.getElementById("b-set-count-100").addEventListener("click", () => basic.setPageCount(100));
+    document.getElementById("b-set-count-3").addEventListener("click", () => basic.setPageCount(3));
+
+    window.__paginationReady = true;
+</script>
+</body>
+</html>

@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>lite-headless · skeleton fixture</title>
+<style>
+    body {
+        font-family: system-ui, sans-serif;
+        font-size: 14px;
+        margin: 2rem;
+        max-width: 50rem;
+        background: #0e0f12;
+        color: #d8d6d2;
+    }
+    h2 {
+        font-size: 0.875rem;
+        margin-block: 1.5rem 0.5rem;
+        color: #8a8a8a;
+        font-family: monospace;
+    }
+    /* Skeleton placeholder shimmer */
+    [data-skeleton] {
+        background: linear-gradient(90deg, #1a1c20 0%, #2a2d33 50%, #1a1c20 100%);
+        background-size: 200% 100%;
+        animation: skel-shimmer 1.4s ease-in-out infinite;
+        border-radius: 4px;
+    }
+    @keyframes skel-shimmer {
+        0%   { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+    }
+    /* Visibility: placeholder visible while loading, content visible while ready */
+    [data-skeleton-root]:not([data-loading]) [data-skeleton] {
+        display: none;
+    }
+    [data-skeleton-content] {
+        opacity: 0;
+        transition: opacity 200ms;
+    }
+    [data-skeleton-root]:not([data-loading]) [data-skeleton-content] {
+        opacity: 1;
+    }
+
+    /* Card layouts */
+    .card {
+        background: #16181c;
+        border: 1px solid #2a2d33;
+        border-radius: 8px;
+        padding: 1rem 1.25rem;
+        margin-block-end: 1rem;
+        min-block-size: 6rem;
+    }
+    .ph-line {
+        height: 0.875rem;
+        margin-block: 0.5rem;
+    }
+    .ph-line.long { width: 80%; }
+    .ph-line.medium { width: 60%; }
+    .ph-line.short { width: 30%; }
+    .ph-circle {
+        width: 3rem; height: 3rem; border-radius: 50%;
+        margin-block-end: 0.5rem;
+    }
+
+    button {
+        font: inherit;
+        font-size: 12px;
+        padding: 0.25rem 0.75rem;
+        background: #1d2026;
+        color: #d8d6d2;
+        border: 1px solid #2a2d33;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-inline-end: 0.5rem;
+    }
+    button:hover { border-color: #4dd0e1; color: #4dd0e1; }
+    .row { display: flex; align-items: center; gap: 0.75rem; margin-block: 0.5rem; }
+</style>
+<script type="importmap">
+{ "imports": {
+    "@zakkster/lite-signal":  "/node_modules/@zakkster/lite-signal/Signal.js",
+    "@zakkster/lite-element": "/node_modules/@zakkster/lite-element/Element.js"
+} }
+</script>
+</head>
+<body>
+
+<h2>single skeleton (no minVisibleMs)</h2>
+<lite-skeleton id="sk-single" class="card">
+    <div data-skeleton>
+        <div class="ph-circle" data-skeleton></div>
+        <div class="ph-line long" data-skeleton></div>
+        <div class="ph-line medium" data-skeleton></div>
+        <div class="ph-line short" data-skeleton></div>
+    </div>
+    <div data-skeleton-content>
+        <strong>Alice Smith</strong>
+        <div>alice@example.com</div>
+        <div>Senior Engineer · Platform team</div>
+    </div>
+</lite-skeleton>
+<div class="row">
+    <button id="b-single-reveal">Reveal</button>
+    <button id="b-single-conceal">Conceal</button>
+</div>
+
+<h2>multi-source coordination</h2>
+<lite-skeleton id="sk-multi" class="card" sources="user posts followers">
+    <div data-skeleton>
+        <div class="ph-line long" data-skeleton></div>
+        <div class="ph-line medium" data-skeleton></div>
+        <div class="ph-line medium" data-skeleton></div>
+    </div>
+    <div data-skeleton-content>
+        <div>User: Alice</div>
+        <div>Posts: 42</div>
+        <div>Followers: 1.2k</div>
+    </div>
+</lite-skeleton>
+<div class="row">
+    <button id="b-multi-user">Resolve user</button>
+    <button id="b-multi-posts">Resolve posts</button>
+    <button id="b-multi-followers">Resolve followers</button>
+    <button id="b-multi-reset">Reset</button>
+</div>
+<div id="multi-pending" style="font: 11px monospace; color: #6f8c7f;">pending: user, posts, followers</div>
+
+<h2>minVisibleMs guard (200ms)</h2>
+<lite-skeleton id="sk-flash" class="card" min-visible-ms="200">
+    <div data-skeleton>
+        <div class="ph-line long" data-skeleton></div>
+        <div class="ph-line short" data-skeleton></div>
+    </div>
+    <div data-skeleton-content>
+        Loaded instantly, but the placeholder still shows for at least 200ms.
+    </div>
+</lite-skeleton>
+<div class="row">
+    <button id="b-flash-reveal">Reveal (try immediately)</button>
+    <button id="b-flash-conceal">Conceal</button>
+</div>
+
+<div id="log" style="margin-top: 1rem; font: 11px monospace; color: #4dd0e1;">events: -</div>
+
+<script type="module">
+    import "/src/skeleton/element.js";
+
+    const log = document.getElementById("log");
+    function pushLog(msg) {
+        log.textContent = log.textContent.replace(/^events: /, "events: " + msg + " · ");
+    }
+
+    const sk1 = document.getElementById("sk-single");
+    sk1.addEventListener("reveal", () => pushLog("single reveal"));
+    sk1.addEventListener("conceal", () => pushLog("single conceal"));
+    document.getElementById("b-single-reveal").addEventListener("click", () => sk1.reveal());
+    document.getElementById("b-single-conceal").addEventListener("click", () => sk1.conceal());
+
+    const sk2 = document.getElementById("sk-multi");
+    const pendingEl = document.getElementById("multi-pending");
+    function refreshPending() {
+        const p = sk2.pendingSources;
+        pendingEl.textContent = p.length === 0 ? "pending: (all resolved)" : "pending: " + p.join(", ");
+    }
+    sk2.addEventListener("reveal", () => { pushLog("multi reveal"); refreshPending(); });
+    sk2.addEventListener("conceal", () => { pushLog("multi conceal"); refreshPending(); });
+    document.getElementById("b-multi-user").addEventListener("click", () => { sk2.resolve("user"); refreshPending(); });
+    document.getElementById("b-multi-posts").addEventListener("click", () => { sk2.resolve("posts"); refreshPending(); });
+    document.getElementById("b-multi-followers").addEventListener("click", () => { sk2.resolve("followers"); refreshPending(); });
+    document.getElementById("b-multi-reset").addEventListener("click", () => { sk2.reset(); refreshPending(); });
+
+    const sk3 = document.getElementById("sk-flash");
+    sk3.addEventListener("reveal", () => pushLog("flash reveal"));
+    sk3.addEventListener("conceal", () => pushLog("flash conceal"));
+    document.getElementById("b-flash-reveal").addEventListener("click", () => sk3.reveal());
+    document.getElementById("b-flash-conceal").addEventListener("click", () => sk3.conceal());
+
+    window.__skeletonReady = true;
+</script>
+</body>
+</html>

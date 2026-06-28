@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>lite-headless · carousel fixture</title>
+<style>
+    body { font: 14px system-ui, sans-serif; margin: 32px; max-width: 800px; }
+    h2 { font-size: 1rem; margin: 1.5rem 0 0.5rem; }
+    lite-carousel {
+        display: block;
+        position: relative;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        padding: 12px;
+    }
+    [data-carousel-viewport] {
+        display: flex;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scroll-snap-type: x mandatory;
+        scrollbar-width: none;        /* Firefox */
+        -ms-overflow-style: none;     /* IE */
+        outline: 1px solid #ddd;
+    }
+    [data-carousel-viewport]::-webkit-scrollbar { display: none; }
+    [data-carousel-slide] {
+        flex: 0 0 100%;
+        scroll-snap-align: start;
+        height: 140px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: #fff;
+        font-weight: 600;
+    }
+    /* distinct background per slide so tests can verify the right one is visible */
+    [data-carousel-slide]:nth-child(1) { background: #3b82f6; }
+    [data-carousel-slide]:nth-child(2) { background: #ef4444; }
+    [data-carousel-slide]:nth-child(3) { background: #10b981; }
+    [data-carousel-slide]:nth-child(4) { background: #f59e0b; }
+    [data-carousel-slide]:nth-child(5) { background: #8b5cf6; }
+
+    .controls {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+        align-items: center;
+    }
+    [data-carousel-prev], [data-carousel-next], [data-carousel-play-pause] {
+        padding: 4px 10px;
+        border: 1px solid #bbb;
+        border-radius: 4px;
+        background: #fff;
+        cursor: pointer;
+        font: inherit;
+    }
+    .indicators {
+        display: flex;
+        gap: 0.25rem;
+        margin-left: auto;
+    }
+    [data-carousel-indicator] {
+        width: 14px; height: 14px;
+        border-radius: 50%;
+        border: 1px solid #888;
+        background: #fff;
+        cursor: pointer;
+        padding: 0;
+        font: inherit;
+    }
+    [data-carousel-indicator][data-active] {
+        background: #3b82f6;
+        border-color: #3b82f6;
+    }
+
+    [data-carousel-prev]:focus-visible,
+    [data-carousel-next]:focus-visible,
+    [data-carousel-indicator]:focus-visible,
+    [data-carousel-play-pause]:focus-visible,
+    [data-carousel-viewport]:focus-visible {
+        outline: 2px solid #2563eb;
+        outline-offset: 2px;
+    }
+</style>
+<script type="importmap">
+{ "imports": {
+    "@zakkster/lite-signal":  "/node_modules/@zakkster/lite-signal/Signal.js",
+    "@zakkster/lite-element": "/node_modules/@zakkster/lite-element/Element.js"
+} }
+</script>
+</head>
+<body>
+
+<h2>basic — no autoplay, no loop</h2>
+<lite-carousel id="basic" label="Demo carousel">
+    <div data-carousel-viewport tabindex="0">
+        <div data-carousel-slide>Slide 1</div>
+        <div data-carousel-slide>Slide 2</div>
+        <div data-carousel-slide>Slide 3</div>
+        <div data-carousel-slide>Slide 4</div>
+    </div>
+    <div class="controls">
+        <button data-carousel-prev>← Prev</button>
+        <button data-carousel-next>Next →</button>
+        <div class="indicators" role="tablist">
+            <button data-carousel-indicator></button>
+            <button data-carousel-indicator></button>
+            <button data-carousel-indicator></button>
+            <button data-carousel-indicator></button>
+        </div>
+    </div>
+</lite-carousel>
+
+<h2>autoplay — 200ms interval, looping</h2>
+<lite-carousel id="auto" label="Autoplay carousel" autoplay="200" loop>
+    <div data-carousel-viewport tabindex="0">
+        <div data-carousel-slide>A</div>
+        <div data-carousel-slide>B</div>
+        <div data-carousel-slide>C</div>
+    </div>
+    <div class="controls">
+        <button data-carousel-play-pause>⏯</button>
+        <div class="indicators" role="tablist">
+            <button data-carousel-indicator></button>
+            <button data-carousel-indicator></button>
+            <button data-carousel-indicator></button>
+        </div>
+    </div>
+</lite-carousel>
+
+<h2>uniform-width fast path</h2>
+<lite-carousel id="fast" label="Fast-path carousel" uniform-slide-width>
+    <div data-carousel-viewport tabindex="0">
+        <div data-carousel-slide>1</div>
+        <div data-carousel-slide>2</div>
+        <div data-carousel-slide>3</div>
+    </div>
+    <div class="controls">
+        <button data-carousel-prev>←</button>
+        <button data-carousel-next>→</button>
+    </div>
+</lite-carousel>
+
+<script type="module">
+    import "/src/carousel/element.js";
+    window.__carouselReady = true;
+</script>
+</body>
+</html>

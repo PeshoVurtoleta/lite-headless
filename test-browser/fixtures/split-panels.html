@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>lite-headless · split-panels fixture</title>
+<style>
+    html, body { margin: 0; padding: 0; height: 100%; font: 14px system-ui, sans-serif; }
+    #split-h {
+        display: grid;
+        grid-template-columns:
+            calc(var(--lh-panel-0-pct, 25) * 1%)
+            6px
+            calc(var(--lh-panel-1-pct, 50) * 1%)
+            6px
+            calc(var(--lh-panel-2-pct, 25) * 1%);
+        height: 300px; width: 800px;
+        border: 1px solid #ccc;
+    }
+    #split-v {
+        display: grid;
+        grid-template-rows:
+            calc(var(--lh-panel-0-pct, 50) * 1%)
+            6px
+            calc(var(--lh-panel-1-pct, 50) * 1%);
+        height: 400px; width: 400px;
+        border: 1px solid #ccc;
+        margin-top: 20px;
+    }
+    .panel { background: #f5f5f5; padding: 8px; overflow: auto; }
+    .panel:nth-child(odd) { background: #fff; }
+    .handle {
+        background: #333;
+        cursor: col-resize;
+    }
+    [data-orientation="vertical"] .handle { cursor: row-resize; }
+</style>
+<script type="importmap">
+{ "imports": {
+    "@zakkster/lite-signal":  "/node_modules/@zakkster/lite-signal/Signal.js",
+    "@zakkster/lite-element": "/node_modules/@zakkster/lite-element/Element.js"
+} }
+</script>
+</head>
+<body>
+
+<lite-split-panels id="split-h" orientation="horizontal">
+    <div class="panel" data-panel data-min-size="10" data-default-size="25" data-collapsible>Side</div>
+    <div class="handle" data-handle></div>
+    <div class="panel" data-panel data-min-size="20">Main</div>
+    <div class="handle" data-handle></div>
+    <div class="panel" data-panel data-min-size="10" data-default-size="25">Inspector</div>
+</lite-split-panels>
+
+<lite-split-panels id="split-v" orientation="vertical">
+    <div class="panel" data-panel data-min-size="20" data-default-size="60">Top</div>
+    <div class="handle" data-handle></div>
+    <div class="panel" data-panel data-min-size="20" data-default-size="40">Bottom</div>
+</lite-split-panels>
+
+<script type="module">
+    import "../../src/split-panels/element.js";
+    window.__splitReady = true;
+</script>
+</body>
+</html>

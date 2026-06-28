@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>lite-headless · toggle-group fixture</title>
+<style>
+    body { font: 14px system-ui, sans-serif; margin: 32px; max-width: 700px; }
+    h2 { font-size: 1rem; margin: 1.5rem 0 0.5rem; }
+    lite-toggle-group {
+        display: inline-flex;
+        gap: 0;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        padding: 2px;
+        background: #f9fafb;
+    }
+    lite-toggle-group[data-orientation="vertical"] {
+        flex-direction: column;
+    }
+    lite-toggle-group button {
+        padding: 6px 12px;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        font: inherit;
+        font-size: 13px;
+        color: #4b5563;
+        border-radius: 4px;
+        min-width: 60px;
+    }
+    lite-toggle-group button:hover:not([aria-pressed="true"]):not([data-disabled]) {
+        background: #e5e7eb;
+    }
+    lite-toggle-group button[aria-pressed="true"] {
+        background: #2563eb;
+        color: #fff;
+    }
+    lite-toggle-group button[data-disabled] {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+    lite-toggle-group button:focus-visible {
+        outline: 2px solid #93c5fd;
+        outline-offset: -2px;
+    }
+    .log {
+        margin-top: 1rem;
+        padding: 0.5rem;
+        background: #f3f4f6;
+        font: 11px monospace;
+        white-space: pre-wrap;
+    }
+</style>
+<script type="importmap">
+{ "imports": {
+    "@zakkster/lite-signal":  "/node_modules/@zakkster/lite-signal/Signal.js",
+    "@zakkster/lite-element": "/node_modules/@zakkster/lite-element/Element.js"
+} }
+</script>
+</head>
+<body>
+
+<h2>single · view mode selector</h2>
+<lite-toggle-group id="view-mode" aria-label="View mode" value="list">
+    <button data-tg-item="list">List</button>
+    <button data-tg-item="grid">Grid</button>
+    <button data-tg-item="card">Card</button>
+</lite-toggle-group>
+
+<h2>single · allow-deselect (click current to clear)</h2>
+<lite-toggle-group id="deselectable" aria-label="Sort" allow-deselect>
+    <button data-tg-item="name">Name</button>
+    <button data-tg-item="date">Date</button>
+    <button data-tg-item="size">Size</button>
+</lite-toggle-group>
+
+<h2>multi · text style</h2>
+<lite-toggle-group id="text-style" type="multi" aria-label="Text formatting" value="bold">
+    <button data-tg-item="bold"><b>B</b></button>
+    <button data-tg-item="italic"><i>I</i></button>
+    <button data-tg-item="underline"><u>U</u></button>
+    <button data-tg-item="strike"><s>S</s></button>
+</lite-toggle-group>
+
+<h2>single · with disabled item</h2>
+<lite-toggle-group id="with-disabled" aria-label="Layout">
+    <button data-tg-item="cols-1">1 col</button>
+    <button data-tg-item="cols-2">2 cols</button>
+    <button data-tg-item="cols-3" data-disabled>3 cols</button>
+    <button data-tg-item="cols-4">4 cols</button>
+</lite-toggle-group>
+
+<h2>vertical orientation</h2>
+<lite-toggle-group id="vertical" orientation="vertical" aria-label="Pane position" value="top">
+    <button data-tg-item="top">Top</button>
+    <button data-tg-item="middle">Middle</button>
+    <button data-tg-item="bottom">Bottom</button>
+</lite-toggle-group>
+
+<h2>imperative controls</h2>
+<button id="b-set-grid">view-mode.setValue('grid')</button>
+<button id="b-set-bold-italic">text-style.setValue(['bold','italic'])</button>
+<button id="b-disable-view">disable view-mode</button>
+<button id="b-enable-view">enable view-mode</button>
+
+<div class="log" id="log">no events yet</div>
+
+<script type="module">
+    import "/src/toggle-group/element.js";
+
+    const log = document.getElementById("log");
+    function setLog(msg) { log.textContent = msg; }
+
+    function fmt(v) { return Array.isArray(v) ? `[${v.join(",")}]` : (v == null ? "null" : `"${v}"`); }
+
+    document.getElementById("view-mode").addEventListener("change",
+        e => setLog(`view-mode: value=${fmt(e.detail.value)} reason=${e.detail.reason}`));
+    document.getElementById("deselectable").addEventListener("change",
+        e => setLog(`deselectable: value=${fmt(e.detail.value)} reason=${e.detail.reason}`));
+    document.getElementById("text-style").addEventListener("change",
+        e => setLog(`text-style: value=${fmt(e.detail.value)} reason=${e.detail.reason}`));
+    document.getElementById("with-disabled").addEventListener("change",
+        e => setLog(`with-disabled: value=${fmt(e.detail.value)} reason=${e.detail.reason}`));
+    document.getElementById("vertical").addEventListener("change",
+        e => setLog(`vertical: value=${fmt(e.detail.value)} reason=${e.detail.reason}`));
+
+    document.getElementById("b-set-grid").addEventListener("click",
+        () => document.getElementById("view-mode").setValue("grid"));
+    document.getElementById("b-set-bold-italic").addEventListener("click",
+        () => document.getElementById("text-style").setValue(["bold", "italic"]));
+    document.getElementById("b-disable-view").addEventListener("click",
+        () => document.getElementById("view-mode").setDisabled(true));
+    document.getElementById("b-enable-view").addEventListener("click",
+        () => document.getElementById("view-mode").setDisabled(false));
+
+    window.__toggleGroupReady = true;
+</script>
+</body>
+</html>

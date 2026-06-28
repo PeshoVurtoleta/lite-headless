@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>lite-headless · switch fixture</title>
+<style>
+    body { font: 14px system-ui, sans-serif; margin: 32px; max-width: 600px; }
+    h2 { font-size: 1rem; margin: 1.5rem 0 0.5rem; }
+    lite-switch {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin: 0.5rem 0;
+    }
+    [data-switch-root] {
+        position: relative;
+        width: 40px;
+        height: 22px;
+        border-radius: 11px;
+        background: #d1d5db;
+        border: none;
+        padding: 0;
+        cursor: pointer;
+        transition: background 120ms;
+    }
+    [data-switch-root][data-checked="true"] { background: #2563eb; }
+    [data-switch-root][data-disabled] {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    [data-switch-root]:focus-visible {
+        outline: 2px solid #93c5fd;
+        outline-offset: 2px;
+    }
+    [data-switch-thumb] {
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: #fff;
+        transition: left 120ms;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    }
+    [data-switch-thumb][data-checked="true"] { left: 20px; }
+    [data-switch-label] { cursor: pointer; }
+    .log {
+        margin-top: 1rem;
+        padding: 0.5rem;
+        background: #f3f4f6;
+        font: 11px monospace;
+        white-space: pre-wrap;
+    }
+    form { margin-top: 1rem; padding: 0.5rem; background: #fafafa; }
+    form button { margin-top: 0.5rem; }
+</style>
+
+<script type="importmap">
+{ "imports": {
+    "@zakkster/lite-signal":  "/node_modules/@zakkster/lite-signal/Signal.js",
+    "@zakkster/lite-element": "/node_modules/@zakkster/lite-element/Element.js"
+} }
+</script>
+</head>
+<body>
+
+<h2>basic uncontrolled</h2>
+<lite-switch id="basic">
+    <span data-switch-label>Notifications</span>
+    <button data-switch-root type="button" aria-label="Notifications"><span data-switch-thumb></span></button>
+</lite-switch>
+
+<h2>default-checked</h2>
+<lite-switch id="prechecked" default-checked>
+    <span data-switch-label>Sync to cloud</span>
+    <button data-switch-root type="button" aria-label="Sync"><span data-switch-thumb></span></button>
+</lite-switch>
+
+<h2>disabled</h2>
+<lite-switch id="disabledOne" disabled>
+    <span data-switch-label>Disabled (off)</span>
+    <button data-switch-root type="button" aria-label="Disabled off"><span data-switch-thumb></span></button>
+</lite-switch>
+<lite-switch id="disabledTwo" disabled default-checked>
+    <span data-switch-label>Disabled (on)</span>
+    <button data-switch-root type="button" aria-label="Disabled on"><span data-switch-thumb></span></button>
+</lite-switch>
+
+<h2>in a form (hidden checkbox for submission)</h2>
+<form id="theform">
+    <lite-switch id="formSwitch" name="darkmode" default-checked>
+        <span data-switch-label>Dark mode</span>
+        <button data-switch-root type="button" aria-label="Dark mode"><span data-switch-thumb></span></button>
+    </lite-switch>
+    <br>
+    <button type="submit">Submit</button>
+</form>
+
+<h2>imperative controls</h2>
+<button id="b-toggle">toggle basic</button>
+<button id="b-set-on">set basic ON</button>
+<button id="b-set-off">set basic OFF</button>
+<button id="b-disable">disable basic</button>
+<button id="b-enable">enable basic</button>
+
+<div class="log" id="log">no events yet</div>
+
+<script type="module">
+    import "/src/switch/element.js";
+
+    const basic = document.getElementById("basic");
+    const log = document.getElementById("log");
+    function setLog(msg) { log.textContent = msg; }
+
+    basic.addEventListener("change", (e) => {
+        setLog(`basic changed: checked=${e.detail.checked} reason=${e.detail.reason}`);
+    });
+    document.getElementById("formSwitch").addEventListener("change", (e) => {
+        setLog(`form switch changed: checked=${e.detail.checked} reason=${e.detail.reason}`);
+    });
+
+    document.getElementById("b-toggle").addEventListener("click", () => basic.toggle());
+    document.getElementById("b-set-on").addEventListener("click", () => basic.setChecked(true));
+    document.getElementById("b-set-off").addEventListener("click", () => basic.setChecked(false));
+    document.getElementById("b-disable").addEventListener("click", () => basic.setDisabled(true));
+    document.getElementById("b-enable").addEventListener("click", () => basic.setDisabled(false));
+
+    document.getElementById("theform").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const data = new FormData(e.target);
+        setLog(`form submitted: darkmode=${data.get("darkmode") || "(not present)"}`);
+    });
+
+    window.__switchReady = true;
+</script>
+</body>
+</html>

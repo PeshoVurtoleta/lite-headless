@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>lite-headless · menu fixture</title>
+<style>
+    /* fixed sizes so getBoundingClientRect returns predictable rects */
+    body { font: 14px/1.4 system-ui, sans-serif; margin: 40px; }
+    button { font: inherit; padding: 0; margin: 0; border: 0; background: transparent; cursor: pointer; }
+
+    #trigger {
+        padding: 8px 16px;
+        background: #1d4ed8;
+        color: white;
+        border-radius: 4px;
+    }
+    #root-menu,
+    #sub-menu {
+        background: #1f2937;
+        color: white;
+        border-radius: 6px;
+        padding: 4px;
+        min-width: 180px;
+        list-style: none;
+        margin: 0;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    }
+    #root-menu li,
+    #sub-menu li {
+        padding: 8px 12px;
+        border-radius: 3px;
+        list-style: none;
+        cursor: pointer;
+    }
+    #root-menu li[data-focused],
+    #sub-menu li[data-focused] {
+        background: #4f46e5;
+    }
+    #root-menu li[aria-haspopup="menu"]::after {
+        content: " ›";
+        float: right;
+    }
+    /* hide menus while closed */
+    #root-menu:not([data-open]),
+    #sub-menu:not([data-open]) { display: none; }
+</style>
+</head>
+<body>
+
+<button id="trigger">Open menu</button>
+
+<ul id="root-menu">
+    <li id="item-new">New</li>
+    <li id="item-open">Open</li>
+    <li id="item-recent">Recent</li>
+    <li id="item-quit">Quit</li>
+</ul>
+
+<ul id="sub-menu">
+    <li id="sub-item-a">file_a.md</li>
+    <li id="sub-item-b">file_b.md</li>
+    <li id="sub-item-c">file_c.md</li>
+</ul>
+
+<script type="importmap">
+{
+  "imports": {
+    "@zakkster/lite-signal":  "/node_modules/@zakkster/lite-signal/Signal.js",
+    "@zakkster/lite-element": "/node_modules/@zakkster/lite-element/Element.js"
+  }
+}
+</script>
+<script type="module">
+    import { createMenu } from "../../src/menu/index.js";
+
+    // Construct in a known config: short safe-triangle close so the tests
+    // don't wait long, but enough for pointer motion to register.
+    const root = createMenu({
+        container: document.body,
+        submenuOpenDelay: 50,
+        submenuCloseDelay: 200,
+        safeTriangle: true,
+    });
+    root.attachTrigger(document.getElementById("trigger"));
+    root.attachMenu(document.getElementById("root-menu"));
+    root.attachItem(document.getElementById("item-new"),    { label: "New",  onSelect: () => {} });
+    root.attachItem(document.getElementById("item-open"),   { label: "Open", onSelect: () => {} });
+    root.attachItem(document.getElementById("item-recent"), { label: "Recent" });
+    root.attachItem(document.getElementById("item-quit"),   { label: "Quit", onSelect: () => {} });
+
+    const sub = createMenu({
+        container: document.body,
+        isSubmenu: true,
+        placement: "right-start",
+    });
+    sub.attachMenu(document.getElementById("sub-menu"));
+    sub.attachItem(document.getElementById("sub-item-a"), { label: "file_a", onSelect: () => {} });
+    sub.attachItem(document.getElementById("sub-item-b"), { label: "file_b", onSelect: () => {} });
+    sub.attachItem(document.getElementById("sub-item-c"), { label: "file_c", onSelect: () => {} });
+
+    root.attachSubmenu(document.getElementById("item-recent"), sub);
+
+    // Expose for tests
+    window.__menu = { root, sub };
+</script>
+</body>
+</html>

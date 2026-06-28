@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>lite-headless · tree fixture</title>
+<style>
+    body { font: 14px system-ui, sans-serif; margin: 32px; max-width: 600px; }
+    ul { list-style: none; padding-left: 1.25rem; margin: 0; }
+    [data-tree-node] { padding: 4px 8px; cursor: pointer; outline: none; }
+    [data-tree-node]:hover { background: #f3f4f6; }
+    [data-tree-node][aria-selected="true"] { background: #dbeafe; font-weight: 600; }
+    [data-tree-node][data-focused] { outline: 2px solid #3b82f6; outline-offset: -2px; }
+    [data-tree-node][aria-disabled="true"] { opacity: 0.4; cursor: not-allowed; }
+    .tog {
+        display: inline-block; width: 1em; text-align: center; cursor: pointer;
+        margin-right: 4px;
+    }
+    .tog::before { content: "▸"; }
+    [data-tree-node][data-open] > .tog::before { content: "▾"; }
+    /* collapsed children hidden -- no animation in tests.
+       Selector: the closed treeitem's DIRECT-CHILD <ul> (the children
+       container) is hidden. The combinator + would target a sibling
+       ul, which doesn't exist in our nesting. */
+    [data-tree-node]:not([data-open]) > ul { display: none; }
+</style>
+<script type="importmap">
+{ "imports": {
+    "@zakkster/lite-signal":  "/node_modules/@zakkster/lite-signal/Signal.js",
+    "@zakkster/lite-element": "/node_modules/@zakkster/lite-element/Element.js"
+} }
+</script>
+</head>
+<body>
+
+<lite-tree id="single" selection-mode="single" expanded="src,src/components" selected="src/components/Button.tsx">
+    <ul>
+        <li data-tree-node="src">
+            <span data-tree-toggle class="tog"></span>src
+            <ul>
+                <li data-tree-node="src/components">
+                    <span data-tree-toggle class="tog"></span>components
+                    <ul>
+                        <li data-tree-node="src/components/Button.tsx">Button.tsx</li>
+                        <li data-tree-node="src/components/Card.tsx">Card.tsx</li>
+                        <li data-tree-node="src/components/Disabled.tsx" data-disabled>Disabled.tsx</li>
+                    </ul>
+                </li>
+                <li data-tree-node="src/utils">
+                    <span data-tree-toggle class="tog"></span>utils
+                    <ul>
+                        <li data-tree-node="src/utils/clsx.ts">clsx.ts</li>
+                        <li data-tree-node="src/utils/format.ts">format.ts</li>
+                    </ul>
+                </li>
+                <li data-tree-node="src/index.ts">index.ts</li>
+            </ul>
+        </li>
+        <li data-tree-node="docs">
+            <span data-tree-toggle class="tog"></span>docs
+            <ul>
+                <li data-tree-node="docs/README.md">README.md</li>
+            </ul>
+        </li>
+        <li data-tree-node="package.json">package.json</li>
+    </ul>
+</lite-tree>
+
+<hr>
+
+<lite-tree id="multi" selection-mode="multiple" expanded="root" selected="a,c">
+    <ul>
+        <li data-tree-node="root">
+            root
+            <ul>
+                <li data-tree-node="a">A</li>
+                <li data-tree-node="b">B</li>
+                <li data-tree-node="c">C</li>
+            </ul>
+        </li>
+    </ul>
+</lite-tree>
+
+<script type="module">
+    import "../../src/tree/element.js";
+    window.__treeReady = true;
+</script>
+</body>
+</html>

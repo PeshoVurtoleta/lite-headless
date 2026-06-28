@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>lite-headless · anchor fixture</title>
+<style>
+    body { font: 14px system-ui, sans-serif; margin: 0; padding: 16px; display: grid; grid-template-columns: 180px 1fr; gap: 16px; height: 100vh; }
+    h2 { font-size: 1rem; margin: 0 0 0.5rem; }
+    #side {
+        display: flex; flex-direction: column; gap: 2px;
+        background: #f6f8fa;
+        border: 1px solid #d1d5db;
+        padding: 8px;
+        align-self: start;
+    }
+    #side a {
+        display: block;
+        padding: 6px 10px;
+        color: #555;
+        text-decoration: none;
+        font-size: 12px;
+        border-left: 2px solid transparent;
+        border-radius: 2px;
+    }
+    #side a[data-active] {
+        color: #2563eb;
+        background: #eff6ff;
+        border-left-color: #2563eb;
+    }
+    #scroller {
+        overflow-y: auto;
+        background: #f6f8fa;
+        border: 1px solid #d1d5db;
+        padding: 16px 24px;
+        height: 100%;
+    }
+    .sec { padding: 24px 0; min-height: 500px; border-bottom: 1px solid #e5e7eb; }
+    .sec h3 { margin: 0 0 8px; font-size: 14px; }
+</style>
+<script type="importmap">
+{ "imports": {
+    "@zakkster/lite-signal":  "/node_modules/@zakkster/lite-signal/Signal.js",
+    "@zakkster/lite-element": "/node_modules/@zakkster/lite-element/Element.js"
+} }
+</script>
+</head>
+<body>
+
+<lite-anchor id="side" root="#scroller" offset-top="0">
+    <a href="#sec-alpha"   data-anchor-target="#sec-alpha">Alpha</a>
+    <a href="#sec-beta"    data-anchor-target="#sec-beta">Beta</a>
+    <a href="#sec-gamma"   data-anchor-target="#sec-gamma">Gamma</a>
+    <a href="#sec-delta"   data-anchor-target="#sec-delta">Delta</a>
+</lite-anchor>
+
+<div id="scroller">
+    <section id="sec-alpha" class="sec"><h3>Alpha</h3><p>First section.</p></section>
+    <section id="sec-beta"  class="sec"><h3>Beta</h3><p>Second section.</p></section>
+    <section id="sec-gamma" class="sec"><h3>Gamma</h3><p>Third section.</p></section>
+    <section id="sec-delta" class="sec"><h3>Delta</h3><p>Fourth section.</p></section>
+</div>
+
+<script type="module">
+    import "/src/anchor/element.js";
+    await customElements.whenDefined("lite-anchor");
+    // Give the IntersectionObserver one frame to deliver initial entries
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+    window.__anchorReady = true;
+</script>
+</body>
+</html>

@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>lite-headless · slider fixture</title>
+<style>
+    body { font: 14px/1.4 system-ui, sans-serif; margin: 40px; }
+    .row { margin-bottom: 32px; }
+    .lh-track {
+        position: relative;
+        height: 6px;
+        background: #e5e7eb;
+        border-radius: 999px;
+        width: 400px;
+        touch-action: none;
+    }
+    .lh-range {
+        position: absolute;
+        top: 0; bottom: 0;
+        left:  calc(var(--lh-range-start, 0) * 1%);
+        right: calc((100 - var(--lh-range-end, 0)) * 1%);
+        background: #1d4ed8;
+        border-radius: 999px;
+        pointer-events: none;
+    }
+    .lh-thumb {
+        position: absolute;
+        top: 50%;
+        left: calc(var(--lh-thumb-pct, 0) * 1%);
+        transform: translate(-50%, -50%);
+        width: 18px; height: 18px;
+        background: white;
+        border: 2px solid #1d4ed8;
+        border-radius: 50%;
+        cursor: grab;
+        touch-action: none;
+    }
+    .lh-thumb[data-dragging] { cursor: grabbing; background: #1d4ed8; }
+    #single-readout, #range-readout { font-family: monospace; margin-top: 8px; }
+</style>
+</head>
+<body>
+
+<div class="row">
+    <div>Single</div>
+    <div class="lh-track" id="single-track">
+        <div class="lh-range" id="single-range"></div>
+        <div class="lh-thumb" id="single-thumb"></div>
+    </div>
+    <div id="single-readout">50</div>
+</div>
+
+<div class="row">
+    <div>Range</div>
+    <div class="lh-track" id="range-track">
+        <div class="lh-range" id="range-range"></div>
+        <div class="lh-thumb" id="range-thumb-0"></div>
+        <div class="lh-thumb" id="range-thumb-1"></div>
+    </div>
+    <div id="range-readout">20, 80</div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "@zakkster/lite-signal":  "/node_modules/@zakkster/lite-signal/Signal.js",
+    "@zakkster/lite-element": "/node_modules/@zakkster/lite-element/Element.js"
+  }
+}
+</script>
+<script type="module">
+    import { createSlider } from "../../src/slider/index.js";
+
+    const single = createSlider({
+        defaultValue: [50],
+        min: 0, max: 100, step: 1,
+        onValueChange: (v) => { document.getElementById("single-readout").textContent = v[0]; },
+    });
+    single.attachTrack(document.getElementById("single-track"));
+    single.attachRange(document.getElementById("single-range"));
+    single.attachThumb(document.getElementById("single-thumb"), 0);
+
+    const range = createSlider({
+        defaultValue: [20, 80],
+        min: 0, max: 100, step: 1,
+        minStepsBetweenThumbs: 5,
+        onValueChange: (v) => { document.getElementById("range-readout").textContent = v.join(", "); },
+    });
+    range.attachTrack(document.getElementById("range-track"));
+    range.attachRange(document.getElementById("range-range"));
+    range.attachThumb(document.getElementById("range-thumb-0"), 0);
+    range.attachThumb(document.getElementById("range-thumb-1"), 1);
+
+    window.__slider = { single, range };
+</script>
+</body>
+</html>

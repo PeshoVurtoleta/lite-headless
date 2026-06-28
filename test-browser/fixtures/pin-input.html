@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>lite-headless · pin-input fixture</title>
+<style>
+    body {
+        font-family: system-ui, sans-serif;
+        font-size: 14px;
+        margin: 2rem;
+        background: #0e0f12;
+        color: #d8d6d2;
+    }
+    h2 {
+        font-size: 0.875rem;
+        margin-block: 1.5rem 0.5rem;
+        color: #8a8a8a;
+        font-family: monospace;
+    }
+    .pin-group {
+        display: flex;
+        gap: 0.5rem;
+        margin-block: 0.5rem;
+    }
+    .pin-box {
+        width: 2.5rem; height: 2.75rem;
+        text-align: center;
+        font-size: 1.5rem;
+        font-family: 'Space Mono', monospace;
+        background: #16181c;
+        color: #d8d6d2;
+        border: 1px solid #2a2d33;
+        border-radius: 4px;
+        caret-color: #4dd0e1;
+        outline: none;
+    }
+    .pin-box:focus {
+        border-color: #4dd0e1;
+        box-shadow: 0 0 0 2px rgba(77, 208, 225, 0.2);
+    }
+    [data-pin-root][data-pin-state="complete"] .pin-box {
+        border-color: oklch(58% 0.16 145);
+        color: oklch(78% 0.18 145);
+    }
+    .readout {
+        margin-top: 0.5rem;
+        font-family: 'Space Mono', monospace;
+        font-size: 11px;
+        color: #4dd0e1;
+        min-height: 1.5em;
+    }
+    button {
+        font: inherit;
+        font-size: 12px;
+        padding: 0.25rem 0.625rem;
+        background: #1d2026;
+        color: #d8d6d2;
+        border: 1px solid #2a2d33;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-inline-end: 0.5rem;
+    }
+    .row { display: flex; gap: 0.5rem; align-items: center; margin-top: 0.5rem; }
+</style>
+<script type="importmap">
+{ "imports": {
+    "@zakkster/lite-signal":  "/node_modules/@zakkster/lite-signal/Signal.js",
+    "@zakkster/lite-element": "/node_modules/@zakkster/lite-element/Element.js"
+} }
+</script>
+</head>
+<body>
+
+<h2>numeric, length=6 (SMS OTP)</h2>
+<lite-pin-input id="pin-numeric" length="6" aria-label="SMS OTP">
+    <input class="pin-box" data-pin-slot>
+    <input class="pin-box" data-pin-slot>
+    <input class="pin-box" data-pin-slot>
+    <input class="pin-box" data-pin-slot>
+    <input class="pin-box" data-pin-slot>
+    <input class="pin-box" data-pin-slot>
+</lite-pin-input>
+<div class="readout" id="readout-numeric">value: (empty) · pos: 0 · complete: false</div>
+<div class="row">
+    <button id="b-numeric-fill">Programmatic set "123456"</button>
+    <button id="b-numeric-clear">Clear</button>
+</div>
+
+<h2>alphanumeric, length=4 (license key)</h2>
+<lite-pin-input id="pin-alpha" length="4" type="alphanumeric" aria-label="License segment">
+    <input class="pin-box" data-pin-slot>
+    <input class="pin-box" data-pin-slot>
+    <input class="pin-box" data-pin-slot>
+    <input class="pin-box" data-pin-slot>
+</lite-pin-input>
+<div class="readout" id="readout-alpha">value: (empty)</div>
+
+<div class="readout" id="event-log" style="margin-top: 2rem;">events: -</div>
+
+<script type="module">
+    import "/src/pin-input/element.js";
+
+    const log = document.getElementById("event-log");
+    function pushLog(msg) {
+        log.textContent = "events: " + msg + " | " + log.textContent.replace(/^events: /, "");
+    }
+
+    // -- numeric --
+    const pinN = document.getElementById("pin-numeric");
+    const roN = document.getElementById("readout-numeric");
+    function paintN() {
+        roN.textContent = "value: " + (pinN.value || "(empty)") + " · pos: " + pinN.position + " · complete: " + pinN.isComplete;
+    }
+    pinN.addEventListener("change",   (e) => { pushLog("change: " + e.detail.value); paintN(); });
+    pinN.addEventListener("complete", (e) => { pushLog("COMPLETE: " + e.detail.value); paintN(); });
+    paintN();
+    document.getElementById("b-numeric-fill").addEventListener("click", () => pinN.setValue("123456"));
+    document.getElementById("b-numeric-clear").addEventListener("click", () => pinN.clear());
+
+    // -- alphanumeric --
+    const pinA = document.getElementById("pin-alpha");
+    const roA = document.getElementById("readout-alpha");
+    function paintA() {
+        roA.textContent = "value: " + (pinA.value || "(empty)");
+    }
+    pinA.addEventListener("change", paintA);
+    pinA.addEventListener("complete", (e) => { pushLog("alpha COMPLETE: " + e.detail.value); paintA(); });
+    paintA();
+
+    window.__pinReady = true;
+</script>
+</body>
+</html>

@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>lite-headless · sortable fixture</title>
+<style>
+    body { font: 14px system-ui, sans-serif; margin: 32px; max-width: 600px; }
+    h2 { font-size: 1rem; margin: 1.5rem 0 0.5rem; }
+
+    lite-sortable ul { list-style: none; padding: 0; margin: 0; }
+    [data-sortable-item] {
+        padding: 0.5rem 0.75rem;
+        margin: 0.25rem 0;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        background: #fff;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        position: relative;
+        user-select: none;
+        -webkit-user-select: none;
+        touch-action: none;
+    }
+    [data-sortable-item]:focus-visible {
+        outline: 2px solid #3b82f6;
+        outline-offset: -2px;
+    }
+    [data-sortable-item][data-dragging="true"] {
+        opacity: 0.5;
+        background: #dbeafe;
+    }
+    [data-sortable-item][aria-grabbed="true"] {
+        outline: 2px solid #f59e0b;
+    }
+    [data-sortable-item][aria-disabled="true"] {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+    [data-sortable-item][data-insert-before]::before {
+        content: "";
+        position: absolute;
+        left: 0; right: 0; top: -3px;
+        height: 3px;
+        background: #3b82f6;
+    }
+    [data-sortable-item][data-insert-after]::after {
+        content: "";
+        position: absolute;
+        left: 0; right: 0; bottom: -3px;
+        height: 3px;
+        background: #3b82f6;
+    }
+    [data-sortable-handle] {
+        font-family: monospace;
+        color: #888;
+        user-select: none;
+        padding: 0 4px;
+    }
+
+    /* horizontal variant */
+    #horizontal ul {
+        display: flex;
+        gap: 0.5rem;
+    }
+    #horizontal [data-sortable-item] {
+        margin: 0;
+        flex: 0 0 100px;
+    }
+    #horizontal [data-sortable-item][data-insert-before]::before {
+        top: 0; bottom: 0; left: -3px; right: auto;
+        width: 3px; height: auto;
+    }
+    #horizontal [data-sortable-item][data-insert-after]::after {
+        top: 0; bottom: 0; right: -3px; left: auto;
+        width: 3px; height: auto;
+    }
+</style>
+<script type="importmap">
+{ "imports": {
+    "@zakkster/lite-signal":  "/node_modules/@zakkster/lite-signal/Signal.js",
+    "@zakkster/lite-element": "/node_modules/@zakkster/lite-element/Element.js"
+} }
+</script>
+</head>
+<body>
+
+<h2>basic vertical — framework mode (no DOM reorder)</h2>
+<lite-sortable id="basic" label="Reorder tasks">
+    <ul>
+        <li data-sortable-item="a">
+            <span data-sortable-handle>⋮⋮</span>
+            Task A
+        </li>
+        <li data-sortable-item="b">
+            <span data-sortable-handle>⋮⋮</span>
+            Task B
+        </li>
+        <li data-sortable-item="c">
+            <span data-sortable-handle>⋮⋮</span>
+            Task C
+        </li>
+        <li data-sortable-item="d" data-disabled>
+            <span data-sortable-handle>⋮⋮</span>
+            Task D (disabled)
+        </li>
+    </ul>
+</lite-sortable>
+
+<h2>vanilla mode — apply-dom-reorder</h2>
+<lite-sortable id="vanilla" label="Drag to reorder DOM" apply-dom-reorder>
+    <ul>
+        <li data-sortable-item="x" id="li-x">Item X</li>
+        <li data-sortable-item="y" id="li-y">Item Y</li>
+        <li data-sortable-item="z" id="li-z">Item Z</li>
+    </ul>
+</lite-sortable>
+
+<h2>horizontal</h2>
+<lite-sortable id="horizontal" orientation="horizontal" label="Horizontal cards">
+    <ul>
+        <li data-sortable-item="p">Card P</li>
+        <li data-sortable-item="q">Card Q</li>
+        <li data-sortable-item="r">Card R</li>
+    </ul>
+</lite-sortable>
+
+<script type="module">
+    import "/src/sortable/element.js";
+    window.__sortableReady = true;
+</script>
+</body>
+</html>

@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>lite-headless · accordion fixture</title>
+<style>
+    body { font: 14px system-ui, sans-serif; margin: 40px; max-width: 700px; }
+    section { margin-bottom: 24px; padding: 12px; border: 1px solid #ccc; border-radius: 6px; }
+    section h2 { margin: 0 0 8px; font-size: 13px; color: #666; }
+
+    [data-accordion-trigger] {
+        display: block; width: 100%; text-align: left;
+        background: none; border: 0; padding: 12px 16px;
+        font: inherit; cursor: pointer;
+    }
+    [data-accordion-trigger][aria-expanded="true"] { font-weight: 700; background: #eef; }
+    [data-accordion-trigger][disabled] { opacity: 0.4; cursor: not-allowed; }
+
+    /* CSS-driven animation using grid-template-rows (universal) */
+    [data-accordion-panel] {
+        display: grid; grid-template-rows: 0fr;
+        transition: grid-template-rows 0ms;   /* instant for tests; consumer would set 200ms */
+    }
+    [data-accordion-panel] > div { overflow: hidden; padding: 0 16px; }
+    [data-accordion-panel][data-open] { grid-template-rows: 1fr; }
+    [data-accordion-panel][data-open] > div { padding: 12px 16px; }
+</style>
+<script type="importmap">
+{ "imports": {
+    "@zakkster/lite-signal":  "/node_modules/@zakkster/lite-signal/Signal.js",
+    "@zakkster/lite-element": "/node_modules/@zakkster/lite-element/Element.js"
+} }
+</script>
+</head>
+<body>
+
+<section>
+    <h2>1. single + collapsible</h2>
+    <lite-accordion id="single" type="single" collapsible value="a">
+        <div data-accordion-item="a">
+            <button data-accordion-trigger="a" type="button">A</button>
+            <div data-accordion-panel="a"><div>A content</div></div>
+        </div>
+        <div data-accordion-item="b">
+            <button data-accordion-trigger="b" type="button">B</button>
+            <div data-accordion-panel="b"><div>B content</div></div>
+        </div>
+        <div data-accordion-item="c" data-disabled>
+            <button data-accordion-trigger="c" type="button">C (disabled)</button>
+            <div data-accordion-panel="c"><div>C content</div></div>
+        </div>
+    </lite-accordion>
+</section>
+
+<section>
+    <h2>2. single + non-collapsible</h2>
+    <lite-accordion id="nc" type="single" value="a">
+        <div data-accordion-item="a">
+            <button data-accordion-trigger="a" type="button">A</button>
+            <div data-accordion-panel="a"><div>A</div></div>
+        </div>
+        <div data-accordion-item="b">
+            <button data-accordion-trigger="b" type="button">B</button>
+            <div data-accordion-panel="b"><div>B</div></div>
+        </div>
+    </lite-accordion>
+</section>
+
+<section>
+    <h2>3. multiple</h2>
+    <lite-accordion id="multi" type="multiple" value="x">
+        <div data-accordion-item="x">
+            <button data-accordion-trigger="x" type="button">X</button>
+            <div data-accordion-panel="x"><div>X</div></div>
+        </div>
+        <div data-accordion-item="y">
+            <button data-accordion-trigger="y" type="button">Y</button>
+            <div data-accordion-panel="y"><div>Y</div></div>
+        </div>
+        <div data-accordion-item="z">
+            <button data-accordion-trigger="z" type="button">Z</button>
+            <div data-accordion-panel="z"><div>Z</div></div>
+        </div>
+    </lite-accordion>
+</section>
+
+<script type="module">
+    import "../../src/accordion/element.js";
+    window.__accordionReady = true;
+</script>
+</body>
+</html>

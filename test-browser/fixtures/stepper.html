@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>lite-headless · stepper fixture</title>
+<style>
+    body { font: 14px system-ui, sans-serif; margin: 40px; }
+    .row { display: flex; gap: 8px; align-items: center; margin: 16px 0; }
+    button { padding: 6px 12px; font: inherit; cursor: pointer; }
+    button[disabled] { opacity: 0.4; cursor: not-allowed; }
+    input { padding: 6px 12px; font: inherit; text-align: right; width: 120px; }
+    output { padding: 6px 12px; font: inherit; min-width: 60px; display: inline-block; text-align: center; border: 1px solid #ccc; }
+    section { margin-bottom: 24px; padding: 12px; border: 1px solid #ddd; border-radius: 6px; }
+    section h2 { margin: 0 0 8px; font-size: 13px; color: #666; }
+</style>
+<script type="importmap">
+{ "imports": {
+    "@zakkster/lite-signal":  "/node_modules/@zakkster/lite-signal/Signal.js",
+    "@zakkster/lite-element": "/node_modules/@zakkster/lite-element/Element.js"
+} }
+</script>
+</head>
+<body>
+
+<section>
+    <h2>1. integer stepper (0-10, step 1)</h2>
+    <lite-stepper id="s1" min="0" max="10" step="1" value="3" large-step="5">
+        <div class="row">
+            <button data-decrement>−</button>
+            <input data-input inputmode="numeric">
+            <button data-increment>+</button>
+        </div>
+    </lite-stepper>
+</section>
+
+<section>
+    <h2>2. precision stepper (0-100.0, step 0.1, precision 1, locale en-US)</h2>
+    <lite-stepper id="s2" min="0" max="100" step="0.1" precision="1" value="12.5" locale="en-US">
+        <div class="row">
+            <button data-decrement>−</button>
+            <input data-input inputmode="decimal">
+            <button data-increment>+</button>
+        </div>
+    </lite-stepper>
+</section>
+
+<section>
+    <h2>3. readout-only stepper (no input element)</h2>
+    <lite-stepper id="s3" min="1" max="5" step="1" value="3">
+        <div class="row">
+            <button data-decrement>−</button>
+            <output data-readout></output>
+            <button data-increment>+</button>
+        </div>
+    </lite-stepper>
+</section>
+
+<section>
+    <h2>4. disabled-at-construction stepper</h2>
+    <lite-stepper id="s4" min="0" max="10" step="1" value="0" disabled>
+        <div class="row">
+            <button data-decrement>−</button>
+            <input data-input>
+            <button data-increment>+</button>
+        </div>
+    </lite-stepper>
+</section>
+
+<script type="module">
+    import "../../src/stepper/element.js";
+    window.__stepperReady = true;
+</script>
+</body>
+</html>

@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>lite-headless · affix fixture</title>
+<style>
+    body { font: 14px system-ui, sans-serif; margin: 0; padding: 16px; }
+    h2 { font-size: 1rem; margin: 0 0 0.5rem; }
+    #scroller {
+        height: 400px;
+        overflow-y: auto;
+        background: #f6f8fa;
+        border: 1px solid #d1d5db;
+        padding: 0 16px;
+        position: relative;
+    }
+    .filler-top { height: 200px; background: #fee; }
+    .filler-bot { height: 800px; background: #eef; }
+    #pin {
+        display: block;
+        padding: 12px 16px;
+        background: #fff;
+        border: 1px solid #d1d5db;
+        margin: 8px 0;
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        transition: box-shadow 80ms;
+    }
+    #pin[data-pinned] {
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        background: #fffbeb;
+    }
+</style>
+<script type="importmap">
+{ "imports": {
+    "@zakkster/lite-signal":  "/node_modules/@zakkster/lite-signal/Signal.js",
+    "@zakkster/lite-element": "/node_modules/@zakkster/lite-element/Element.js"
+} }
+</script>
+</head>
+<body>
+
+<h2>affix · pin once scrolled past, root=#scroller</h2>
+<div id="scroller">
+    <div class="filler-top"></div>
+    <lite-affix id="pin" offset-top="0" root="#scroller">
+        <strong>Section toolbar</strong>
+    </lite-affix>
+    <div class="filler-bot"></div>
+</div>
+
+<script type="module">
+    import "/src/affix/element.js";
+    await customElements.whenDefined("lite-affix");
+    window.__affixReady = true;
+</script>
+</body>
+</html>

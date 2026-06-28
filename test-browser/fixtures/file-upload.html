@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>lite-headless · file-upload fixture</title>
+<style>
+    body {
+        font-family: system-ui, sans-serif;
+        font-size: 14px;
+        margin: 2rem;
+        background: #0e0f12;
+        color: #d8d6d2;
+    }
+    h2 {
+        font-size: 0.875rem;
+        margin-block: 1.5rem 0.5rem;
+        color: #8a8a8a;
+        font-family: monospace;
+    }
+    lite-file-upload {
+        display: block;
+    }
+    [data-drop-zone] {
+        padding: 1.5rem;
+        border: 2px dashed #2a2d33;
+        border-radius: 0.375rem;
+        text-align: center;
+        background: #16181c;
+        transition: border-color 120ms, background 120ms;
+    }
+    [data-drop-zone][data-drag-over="true"] {
+        border-color: #4dd0e1;
+        background: #1a2a30;
+    }
+    [data-file-pick] {
+        font: inherit;
+        color: #4dd0e1;
+        background: transparent;
+        border: 0;
+        text-decoration: underline;
+        cursor: pointer;
+    }
+    [data-file-list] {
+        list-style: none;
+        padding: 0;
+        margin: 0.75rem 0 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+    .lite-file-row {
+        display: grid;
+        grid-template-columns: 1fr auto auto auto auto;
+        gap: 0.5rem;
+        align-items: center;
+        padding: 0.375rem 0.625rem;
+        background: #16181c;
+        border: 1px solid #2a2d33;
+        border-radius: 0.25rem;
+        font-family: 'Space Mono', monospace;
+        font-size: 0.75rem;
+    }
+    .lite-file-row[data-status="done"]   { border-color: oklch(35% 0.10 145); }
+    .lite-file-row[data-status="error"]  { border-color: oklch(35% 0.18 30); }
+    .lite-file-row[data-status="aborted"] { border-color: #4a4a4a; opacity: 0.6; }
+    .lite-file-status {
+        font-size: 0.6875rem;
+        color: #8a8a8a;
+        padding: 0.0625rem 0.375rem;
+        border: 1px solid #2a2d33;
+        border-radius: 0.5rem;
+    }
+    .lite-file-progress-host { min-inline-size: 4rem; }
+    .lite-file-retry, .lite-file-remove {
+        background: transparent;
+        color: inherit;
+        border: 1px solid #2a2d33;
+        border-radius: 0.25rem;
+        cursor: pointer;
+        font: inherit;
+        font-size: 0.6875rem;
+        padding: 0.0625rem 0.375rem;
+    }
+    .lite-file-remove { padding: 0.0625rem 0.5rem; font-size: 1rem; line-height: 1; }
+    .readout {
+        margin-top: 0.5rem;
+        font-family: 'Space Mono', monospace;
+        font-size: 11px;
+        color: #4dd0e1;
+        min-height: 1.5em;
+    }
+</style>
+<script type="importmap">
+{ "imports": {
+    "@zakkster/lite-signal":  "/node_modules/@zakkster/lite-signal/Signal.js",
+    "@zakkster/lite-element": "/node_modules/@zakkster/lite-element/Element.js"
+} }
+</script>
+</head>
+<body>
+
+<h2>basic · auto-upload with demo driver</h2>
+<lite-file-upload id="fu-basic">
+    <div data-drop-zone>
+        Drop files here, or
+        <button data-file-pick>browse</button>
+    </div>
+    <ul data-file-list></ul>
+    <input data-file-input type="file" hidden>
+</lite-file-upload>
+<div class="readout" id="ro-basic">entries: 0</div>
+
+<h2>constrained · accept="image/*" · maxFiles=3 · maxSize=200</h2>
+<lite-file-upload id="fu-constrained" accept="image/*" max-files="3" max-size="200">
+    <div data-drop-zone>
+        <button data-file-pick>browse</button>
+    </div>
+    <ul data-file-list></ul>
+    <input data-file-input type="file" hidden>
+</lite-file-upload>
+<div class="readout" id="ro-constrained">entries: 0</div>
+
+<div class="readout" id="event-log" style="margin-top: 2rem;">events: -</div>
+
+<script type="module">
+    import "/src/file-upload/element.js";
+
+    const log = document.getElementById("event-log");
+    function pushLog(msg) {
+        log.textContent = "events: " + msg + " | " + log.textContent.replace(/^events: /, "");
+    }
+
+    // Basic
+    const fb = document.getElementById("fu-basic");
+    const rb = document.getElementById("ro-basic");
+    fb.addEventListener("change",   () => rb.textContent = "entries: " + fb.entries.length + " · pending: " + fb.pendingCount);
+    fb.addEventListener("filesadded",  (e) => pushLog("added " + e.detail.entries.length));
+    fb.addEventListener("complete",    (e) => pushLog("complete: " + e.detail.entry.file.name));
+    fb.addEventListener("uploaderror", (e) => pushLog("error: " + e.detail.entry.file.name));
+    fb.addEventListener("alldone",     ()  => pushLog("all done"));
+
+    // Constrained
+    const fc = document.getElementById("fu-constrained");
+    const rc = document.getElementById("ro-constrained");
+    fc.addEventListener("change",  () => rc.textContent = "entries: " + fc.entries.length);
+    fc.addEventListener("invalid", (e) => pushLog("rejected '" + e.detail.file.name + "' (" + e.detail.reason + ")"));
+
+    window.__fileUploadReady = true;
+</script>
+</body>
+</html>

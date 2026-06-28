@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>lite-headless · wrappers fixture</title>
+<style>
+    body { font: 14px/1.4 system-ui, sans-serif; margin: 40px; }
+    button { font: inherit; padding: 4px 10px; margin: 0 4px 4px 0; cursor: pointer; }
+
+    /* dialog/popover/menu/etc default surfaces */
+    [data-content], [data-menu], [data-listbox] {
+        background: #1f2937; color: white;
+        padding: 8px; border-radius: 6px;
+        list-style: none; margin: 0;
+        min-width: 200px;
+    }
+    [data-content]:not([data-open]),
+    [data-menu]:not([data-open]),
+    [data-listbox]:not([data-open]) { display: none; }
+
+    /* datepicker grid layout per view */
+    [data-grid] { display: grid; gap: 2px; padding: 4px; background: #eee; max-width: 240px; }
+    [data-grid][data-view="days"]   { grid-template-columns: repeat(7, 1fr); }
+    [data-grid][data-view="months"] { grid-template-columns: repeat(3, 1fr); }
+    [data-grid][data-view="years"]  { grid-template-columns: repeat(3, 1fr); }
+    [data-day], [data-month-cell], [data-year-cell] {
+        padding: 8px 4px; border: 1px solid #ccc; background: white;
+        cursor: pointer; text-align: center;
+    }
+
+    section { margin-bottom: 32px; padding: 12px; border: 1px solid #ccc; border-radius: 6px; }
+    section h2 { margin: 0 0 8px; font-size: 13px; color: #666; }
+</style>
+</head>
+<body>
+
+<!-- The browser needs to resolve bare module specifiers from inside the
+     element.js wrappers (they import @zakkster/lite-element + signal).
+     The static server exposes node_modules, so we map them here. -->
+<script type="importmap">
+{
+  "imports": {
+    "@zakkster/lite-element": "/node_modules/@zakkster/lite-element/Element.js",
+    "@zakkster/lite-signal":  "/node_modules/@zakkster/lite-signal/Signal.js"
+  }
+}
+</script>
+
+<section>
+    <h2>1. combobox -- async item injection</h2>
+    <lite-combobox id="cb">
+        <button data-trigger>Pick</button>
+        <ul data-listbox>
+            <li data-item data-value="a">Initial A</li>
+        </ul>
+    </lite-combobox>
+</section>
+
+<section>
+    <h2>2. datepicker -- view drilldown + value attribute sync</h2>
+    <lite-date-picker id="dp" value="2026-06-15">
+        <button data-prev-month aria-label="prev">‹</button>
+        <h2 data-month-label></h2>
+        <button data-next-month aria-label="next">›</button>
+        <div data-grid></div>
+    </lite-date-picker>
+</section>
+
+<section>
+    <h2>3. dialog -- modal + portaled content + injected close</h2>
+    <lite-dialog id="dlg">
+        <button data-trigger>Open dialog</button>
+        <div data-content>
+            <h2 data-title>Test Dialog</h2>
+            <p>Content here</p>
+            <div id="injection-target"></div>
+        </div>
+    </lite-dialog>
+</section>
+
+<section>
+    <h2>4. menu -- declarative submenu pairing</h2>
+    <lite-menu id="m">
+        <button data-trigger>File</button>
+        <ul data-menu>
+            <li data-item data-on-select="new">New</li>
+            <li data-item data-submenu="recent">Open Recent</li>
+            <li data-item data-on-select="quit">Quit</li>
+        </ul>
+        <lite-menu is-submenu data-submenu-key="recent">
+            <ul data-menu>
+                <li data-item data-on-select="recent-a">file_a.md</li>
+                <li data-item data-on-select="recent-b">file_b.md</li>
+            </ul>
+        </lite-menu>
+    </lite-menu>
+</section>
+
+<script type="module">
+    // Side-effect imports: each module registers its <lite-*> custom element.
+    import "../../src/dialog/element.js";
+    import "../../src/popover/element.js";
+    import "../../src/tooltip/element.js";
+    import "../../src/menu/element.js";
+    import "../../src/combobox/element.js";
+    import "../../src/slider/element.js";
+    import "../../src/datepicker/element.js";
+
+    // Mark the page ready so the spec waits on a known signal rather than
+    // arbitrary sleeps.
+    window.__wrappersReady = true;
+</script>
+
+</body>
+</html>

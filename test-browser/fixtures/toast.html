@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>lite-headless · toast fixture</title>
+<style>
+    body { font: 14px system-ui, sans-serif; margin: 32px; max-width: 600px; }
+    h2 { font-size: 1rem; margin: 1.5rem 0 0.5rem; }
+    button { padding: 0.375rem 0.875rem; margin-right: 0.5rem; }
+
+    lite-toast {
+        position: fixed;
+        bottom: 1rem; right: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        max-width: 320px;
+        z-index: 1000;
+        pointer-events: none;
+    }
+    lite-toast > [data-toast-id] {
+        pointer-events: auto;
+        padding: 0.75rem 1rem;
+        background: #1f2937;
+        color: #f9fafb;
+        border-radius: 4px;
+        border: 1px solid #374151;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        transform: translate(var(--lh-toast-swipe-x, 0), var(--lh-toast-swipe-y, 0));
+        transition: transform 150ms;
+    }
+    lite-toast > [data-toast-id][data-swiping] {
+        transition: none;
+        opacity: 0.7;
+    }
+    lite-toast > [data-toast-id][data-paused]::after {
+        content: " (paused)";
+        font-size: 11px;
+        opacity: 0.6;
+    }
+    [data-toast-close] {
+        background: transparent;
+        border: none;
+        color: inherit;
+        font-size: 1.25em;
+        cursor: pointer;
+        padding: 0 0.25rem;
+    }
+
+    /* top-left variant for testing alternate placement */
+    lite-toast#tl {
+        bottom: auto; right: auto;
+        top: 1rem; left: 1rem;
+    }
+</style>
+
+<script type="importmap">
+{ "imports": {
+    "@zakkster/lite-signal":  "/node_modules/@zakkster/lite-signal/Signal.js",
+    "@zakkster/lite-element": "/node_modules/@zakkster/lite-element/Element.js"
+} }
+</script>
+</head>
+<body>
+
+<h2>bottom-right (default)</h2>
+<button id="b-info">show info</button>
+<button id="b-urgent">show urgent</button>
+<button id="b-quick">show short (50ms)</button>
+<button id="b-persistent">show persistent (no auto-dismiss)</button>
+<button id="b-with-close">show with × button</button>
+<button id="b-burst">burst 7 (test maxStack)</button>
+<button id="b-clear">clear all</button>
+
+<lite-toast id="br" placement="bottom-right" duration="5000" max-stack="5"></lite-toast>
+
+<h2>top-left (alternate placement)</h2>
+<button id="b-tl">show top-left</button>
+<lite-toast id="tl" placement="top-left" duration="5000"></lite-toast>
+
+<script type="module">
+    import "/src/toast/element.js";
+
+    const br = document.getElementById("br");
+    const tl = document.getElementById("tl");
+
+    document.getElementById("b-info").addEventListener("click", () => {
+        br.show("Info message");
+    });
+    document.getElementById("b-urgent").addEventListener("click", () => {
+        br.show("URGENT", { urgent: true });
+    });
+    document.getElementById("b-quick").addEventListener("click", () => {
+        br.show("Quick", { duration: 50 });
+    });
+    document.getElementById("b-persistent").addEventListener("click", () => {
+        br.show("Persistent", { duration: 0, id: "persistent" });
+    });
+    document.getElementById("b-with-close").addEventListener("click", () => {
+        const el = document.createElement("div");
+        el.innerHTML = '<span>Click × to dismiss</span><button data-toast-close>×</button>';
+        br.show(el, { duration: 0, id: "with-close" });
+    });
+    document.getElementById("b-burst").addEventListener("click", () => {
+        for (let i = 1; i <= 7; i++) {
+            br.show(`burst ${i}`, { duration: 0 });
+        }
+    });
+    document.getElementById("b-clear").addEventListener("click", () => {
+        br.clear();
+    });
+    document.getElementById("b-tl").addEventListener("click", () => {
+        tl.show("From top-left", { duration: 0 });
+    });
+
+    window.__toastReady = true;
+</script>
+</body>
+</html>
