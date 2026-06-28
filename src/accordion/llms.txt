@@ -1,0 +1,124 @@
+# @zakkster/lite-headless / accordion
+
+Headless accordion primitive. N items, each with a trigger + panel.
+State is reactive; controllable via signal or attribute.
+
+## API
+
+createAccordion({
+    type:        "single" | "multiple",   // default single
+    collapsible: boolean,                  // single-mode only; default false
+    defaultValue,                          // string | null for single, array for multiple
+    value?:      Signal,                   // controlled mode
+    onValueChange: (value, reason) => void,
+})
+
+  attachRoot(el)
+  attachItem(el, key)
+  attachTrigger(el, key, { disabled?: boolean })
+  attachPanel(el, key)
+
+  value()                       // string | null for single, string[] for multiple
+  isOpen(key)
+  setValue(v, reason?)
+  toggle(key, reason?)
+  open(key, reason?) | close(key, reason?)
+  setDisabled(key, flag)
+  focusFirst() | focusLast() | focusKey(key)
+  destroy()
+
+## Modes
+
+- "single" + collapsible:false  (default)
+    Exactly one open. Click on open trigger is a no-op.
+- "single" + collapsible:true
+    At most one open. Click on open trigger closes it (value -> null).
+- "multiple"
+    Any subset open. Each trigger click toggles its panel.
+
+## Keyboard
+
+Per WAI-ARIA APG accordion pattern (different from tabs):
+- ALL triggers in the tab sequence
+- ArrowDown / ArrowUp  -- next / previous trigger (wraps, skips disabled)
+- Home / End           -- first / last enabled trigger
+- Enter / Space        -- activates (native button behavior)
+
+## ARIA
+
+- Root:      data-orientation="vertical", data-accordion-type
+- Item:      data-accordion-item, data-accordion-key
+- Trigger:   data-accordion-trigger, aria-expanded, aria-controls=<panelId>,
+             data-open (boolean)
+- Panel:     data-accordion-panel, role="region",
+             aria-labelledby=<triggerId>, data-open (boolean)
+
+## Animation contract
+
+The primitive does NOT toggle `hidden` on panels (which would prevent
+animation). It writes `data-open` only. CSS owns the animation.
+
+Two recommended patterns:
+
+### 1. interpolate-size (Chrome 129+/Safari 18+)
+
+```css
+[data-accordion-panel] {
+    height: 0; overflow: hidden;
+    transition: height 200ms;
+    interpolate-size: allow-keywords;
+}
+[data-accordion-panel][data-open] { height: auto; }
+```
+
+### 2. grid-template-rows (universal)
+
+```css
+[data-accordion-panel] {
+    display: grid; grid-template-rows: 0fr;
+    transition: grid-template-rows 200ms;
+}
+[data-accordion-panel] > * { overflow: hidden; }
+[data-accordion-panel][data-open] { grid-template-rows: 1fr; }
+```
+
+### 3. No animation
+
+```css
+[data-accordion-panel][:not([data-open])] { display: none; }
+```
+
+## Custom element wrapper
+
+```html
+<lite-accordion type="single" collapsible value="billing">
+    <div data-accordion-item="overview">
+        <button data-accordion-trigger="overview">Overview</button>
+        <div data-accordion-panel="overview">...</div>
+    </div>
+    <div data-accordion-item="settings">
+        <button data-accordion-trigger="settings">Settings</button>
+        <div data-accordion-panel="settings">...</div>
+    </div>
+    <div data-accordion-item="billing" data-disabled>
+        <button data-accordion-trigger="billing">Billing</button>
+        <div data-accordion-panel="billing">...</div>
+    </div>
+</lite-accordion>
+```
+
+The `value` attribute:
+- single mode: a string key, or `""` for none open
+- multiple mode: comma-separated keys (`"a,b"`), or JSON array
+  (`'["a","b"]'`) when a key contains a comma
+
+Dispatches `CustomEvent('valuechange', { detail: { value, reason } })`.
+Mirrors active key(s) to the host's `value` attribute on every change.
+
+## CSS contract
+
+This primitive's painted attributes follow the canonical CSS contract
+in `docs/CSS_CONTRACT.md`. See that doc for the cross-primitive
+taxonomy (booleans like `data-open` / `data-disabled` / `data-loading`,
+enums like `data-status` / `data-side`, ARIA pairings, host accessor
+naming, and event naming).

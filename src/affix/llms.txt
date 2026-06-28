@@ -1,0 +1,105 @@
+# @zakkster/lite-headless / affix
+
+Pin an element to the viewport (or a scroll container) when its
+natural top reaches an offset. The "sticky header that latches in
+place once you scroll past it" pattern, done without `position:
+sticky`'s containment quirks.
+
+## How it works
+
+Inserts a 1px-tall sentinel div right before the target. An
+`IntersectionObserver` watches the sentinel with a negative top-
+margin equal to `offsetTop`. When the sentinel "leaves" that margin-
+shrunk viewport, the target is pinned.
+
+This avoids:
+- `position: sticky` containment issues with `overflow` ancestors
+- Scroll-listener layout reads on the main thread
+- Re-running on every scroll tick (IO is browser-native throttled)
+
+## Quick example
+
+```js
+import { createAffix } from "@zakkster/lite-headless/affix";
+
+const aff = createAffix({
+    offsetTop: 64,      // pin once 64px from viewport top
+    root: null,         // null = viewport; pass an Element for a scroll container
+    onChange: (pinned) => {},
+});
+
+aff.attachRoot(navEl);  // the element that gets pinned
+```
+
+## Options
+
+| Option | Default | Notes |
+|---|---|---|
+| `offsetTop` | `0` | px from viewport (or root) top at which to pin |
+| `root` | `null` (viewport) | Scroll container element |
+| `onChange` | - | `(pinned: boolean) => void` |
+
+## API
+
+```ts
+{
+    isPinned(): boolean
+    offsetTop(): number
+
+    attachRoot(targetEl): off
+    destroy(): void
+}
+```
+
+## Painted attributes
+
+### Target (`[data-affix-root]`)
+
+- `data-pinned` — boolean, true while pinned
+
+### Sentinel (auto-injected `[data-affix-sentinel]`)
+
+- `aria-hidden="true"` — decoration only
+- Inline styles: `position:relative; height:0; margin:0; padding:0; border:0;`
+  (1px in concept, 0px in layout so it doesn't push siblings)
+
+## Wrapper (`<lite-affix>`)
+
+```html
+<lite-affix offset-top="64">
+    <nav class="page-nav">...</nav>
+</lite-affix>
+
+<!-- Inside a scroll container -->
+<div id="scroll-area" style="overflow:auto; height: 500px;">
+    <lite-affix offset-top="0" root="#scroll-area">
+        <h2>Section header</h2>
+    </lite-affix>
+    ...long content...
+</div>
+```
+
+Attributes:
+- `offset-top` — px (default 0)
+- `root` — CSS selector for scroll container; defaults to viewport
+
+Event: `affixchange` — `{ detail: { pinned } }`
+
+## CSS contract
+
+```css
+[data-affix-root] {
+    transition: box-shadow 180ms;
+}
+[data-affix-root][data-pinned] {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--surface);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+```
+
+Note: the primitive doesn't itself apply `position: sticky`. It only
+paints the state attribute. Consumer chooses sticky / fixed / class
+swap based on layout needs.

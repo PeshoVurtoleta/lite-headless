@@ -1,0 +1,120 @@
+# @zakkster/lite-headless / anchor
+
+Sidebar scrollspy. As the user scrolls through a long document, the
+sidebar link pointing at the section currently in view is marked
+active. Common in docs sites, long-form articles, multi-section
+dashboards.
+
+## How it works
+
+One `IntersectionObserver` watches all linked sections. When a
+section's intersection ratio crosses, the "earliest visible section"
+(in DOM order) wins and its corresponding link is marked active.
+
+A negative top-margin equal to `offsetTop` shifts the activation
+trigger down, so a fixed header doesn't fight with the active-link
+calculation.
+
+Click handlers smoothly scroll to the target and optimistically
+mark the link active without waiting for IO to catch up.
+
+## Quick example
+
+```js
+import { createAnchor } from "@zakkster/lite-headless/anchor";
+
+const a = createAnchor({
+    offsetTop: 64,        // shift activation down by header height
+    smooth: true,         // smooth-scroll on link click
+    onChange: (key) => {},
+});
+
+a.attachRoot(sidebarEl);
+a.attachLink(introLink, introSection, "intro");
+a.attachLink(installLink, installSection, "install");
+a.attachLink(apiLink, apiSection, "api");
+```
+
+## Options
+
+| Option | Default | Notes |
+|---|---|---|
+| `root` | `null` (viewport) | Scroll container; passed to IntersectionObserver |
+| `offsetTop` | `0` | px; shifts activation trigger down (account for fixed header) |
+| `smooth` | `true` | Smooth-scroll on link click |
+| `onChange` | - | `(key: string \| null) => void` |
+
+## API
+
+```ts
+{
+    activeKey(): string | null
+    linkCount: number   // readonly
+
+    attachRoot(linkContainerEl): off
+    attachLink(linkEl, sectionEl, key?: string): off
+
+    destroy(): void
+}
+```
+
+If `key` is omitted, the section's `id` is used. If both are absent,
+a synthetic key is generated.
+
+## Painted attributes
+
+### Root (`[data-anchor-root]`)
+
+(slot marker only)
+
+### Links (`[data-anchor-link]`)
+
+- `data-active` — boolean, true for the currently-active link
+- `aria-current="location"` — set on the active link, removed otherwise
+
+### Sections (`[data-anchor-section]`)
+
+- `data-anchor-section-key="<key>"` — the identifier used for matching
+
+## Wrapper (`<lite-anchor>`)
+
+```html
+<lite-anchor offset-top="64">
+    <a href="#intro">Intro</a>
+    <a href="#install">Install</a>
+    <a href="#api">API</a>
+</lite-anchor>
+
+<!-- ...elsewhere on the page... -->
+<section id="intro">...</section>
+<section id="install">...</section>
+<section id="api">...</section>
+```
+
+Auto-discovery: any `<a href="#...">` or any element with
+`data-anchor-target="#..."` inside `<lite-anchor>` is wired. The
+matching section is found by `document.querySelector` on the hash.
+
+Attributes:
+- `offset-top` — px (default 0)
+- `smooth` — set `"false"` for instant jump
+- `root` — CSS selector for scroll container
+
+Event: `activechange` — `{ detail: { key } }`
+
+## CSS contract
+
+```css
+[data-anchor-link] {
+    display: block;
+    padding: 6px 12px;
+    color: var(--fg-dim);
+    text-decoration: none;
+    border-left: 2px solid transparent;
+}
+[data-anchor-link][data-active] {
+    color: var(--accent);
+    border-left-color: var(--accent);
+    background: rgba(125,211,252,0.06);
+}
+```

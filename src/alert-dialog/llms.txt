@@ -1,0 +1,87 @@
+# @zakkster/lite-headless / alert-dialog
+
+An interruptive confirm / destroy dialog. This is `createDialog` with the
+alert-dialog contract locked in: `role="alertdialog"`, always modal, and a
+backdrop click does **not** dismiss (the user must choose an action).
+
+Same surface and same painted contract as dialog -- an alert dialog *is* a
+dialog with a stricter dismiss policy and a more assertive role.
+
+## Quick example
+
+```js
+import { createAlertDialog } from "@zakkster/lite-headless/alert-dialog";
+
+const d = createAlertDialog({
+    // closeOnOutsideClick defaults to false; opt back in with `true`
+    closeOnEscape: true,   // Escape acts as cancel (default)
+    onOpenChange: (open) => console.log(open),
+});
+
+d.attachTrigger(deleteBtn);
+d.attachContent(panel);     // role="alertdialog", aria-modal
+d.attachTitle(h2);          // wires aria-labelledby
+d.attachDescription(p);     // wires aria-describedby
+d.attachClose(cancelBtn);
+
+d.setOpen(true);
+```
+
+## Options
+
+Identical to dialog, with these forced/changed defaults:
+
+| Option | Value | Notes |
+|---|---|---|
+| `role` | `"alertdialog"` | forced |
+| `modal` | `true` | forced (an alert must trap) |
+| `closeOnOutsideClick` | `false` | default; pass `true` to allow backdrop dismiss |
+| `closeOnEscape` | `true` | inherited; pass `false` for a hard confirm |
+
+All other dialog options (`placement`, `container`, `initialFocus`,
+`finalFocus`, `transition`, `open`, `defaultOpen`) pass straight through.
+
+## API
+
+Same as `DialogInstance`:
+
+```ts
+{
+    open(): boolean
+    status(): "closed" | "opening" | "open" | "closing"
+    setOpen(open: boolean, reason?: string): void
+    toggle(): void
+    attachTrigger(el): off
+    attachContent(el): off
+    attachOverlay(el): off
+    attachTitle(el): off
+    attachDescription(el): off
+    attachClose(el): off
+    destroy(): void
+}
+```
+
+## Painted attributes
+
+Same as dialog: `data-open` / `data-status` / `data-placement` on content +
+overlay, `aria-modal`, and `role="alertdialog"` (instead of `"dialog"`).
+
+## Wrapper (`<lite-alert-dialog>`)
+
+```html
+<lite-alert-dialog>
+  <button data-trigger>Delete account</button>
+  <div data-overlay></div>
+  <div data-content>
+    <h2 data-title>Delete account?</h2>
+    <p data-description>This cannot be undone.</p>
+    <button data-close>Cancel</button>
+    <button data-confirm>Delete</button>
+  </div>
+</lite-alert-dialog>
+```
+
+Attributes: `no-escape` (hard confirm), `dismissable` (allow backdrop close),
+`placement`, `container`, `transition`. `[data-confirm]` is wired as a
+convenience close-button -- attach your destructive handler in your own click
+listener.
