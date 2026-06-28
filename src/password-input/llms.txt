@@ -1,0 +1,66 @@
+# @zakkster/lite-headless / password-input
+
+A password field with a show/hide toggle. Flips the input's `type` between
+"password" and "text", keeps the toggle's aria-pressed / aria-label in sync,
+and links the two with aria-controls.
+
+## Quick example
+
+```js
+import { createPasswordInput } from "@zakkster/lite-headless/password-input";
+
+const p = createPasswordInput({ visible: false });
+p.attachInput(inputEl);    // controls input.type
+p.attachToggle(buttonEl);  // click toggles; aria-pressed reflects state
+
+p.show();   // type="text"
+p.hide();   // type="password"
+p.toggle();
+p.isVisible(); // boolean
+```
+
+## Options
+
+| Option | Default | Notes |
+|---|---|---|
+| `visible` | `false` | Start with the value revealed |
+| `onVisibilityChange` | -- | `(visible: boolean) => void` |
+
+## API
+
+```ts
+{
+    isVisible(): boolean
+    setVisible(v: boolean): void
+    toggle(): void
+    show(): void
+    hide(): void
+
+    attachInput(el): off
+    attachToggle(el): off
+    attachRoot(el): off
+
+    destroy(): void
+}
+```
+
+## Painted attributes
+
+- input: `data-password-input`, `type="password|text"`, `data-visible`
+- toggle: `data-password-toggle`, `aria-pressed`, `aria-controls="<input id>"`, `aria-label` ("Show password"/"Hide password", if not pre-set), `data-visible`, `type="button"` (if a `<button>`)
+- root: `data-password-input-root`, `data-visible`
+
+The input's original `type` is restored on detach. The input id is
+auto-generated only if the toggle is attached and the input has no id.
+
+## Wrapper (`<lite-password-input>`)
+
+```html
+<lite-password-input>
+  <input data-input type="password" autocomplete="current-password" />
+  <button data-toggle>show</button>
+</lite-password-input>
+```
+
+Reactive: the `visible` attribute flows through bidirectionally.
+Host: `toggle()`, `show()`, `hide()`, `setVisible(v)`, `visible`.

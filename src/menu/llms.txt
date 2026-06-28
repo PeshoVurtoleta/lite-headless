@@ -1,0 +1,144 @@
+# @zakkster/lite-headless/menu
+
+createMenu(options) -> MenuHandle
+
+WAI-ARIA menu primitive. Real DOM focus on items with roving tabindex.
+Designed for menubars, action menus, dropdown menus, and nested submenus.
+
+## Why real focus (vs combobox's aria-activedescendant)
+
+Menu items are actions, not selections. Screen readers should announce
+"focused on Save" when keyboard nav lands on an item. Real DOM focus does
+this naturally. The aria-activedescendant pattern is for input elements
+that need to retain focus while a separate "active" cursor moves.
+
+## Options
+
+- open: WriteSignal<boolean>           -- external controlled mode
+- defaultOpen: boolean = false
+- onOpenChange(next, reason)           -- 'trigger'|'api'|'escape'|'outside'|'select'|'tab'|'back'
+
+- placement: string = 'bottom-start'
+- offset: number = 4
+- flip: boolean = true
+- shift: boolean = true
+- boundary: 'clipping'|'viewport'|HTMLElement = 'clipping'
+
+- typeahead: boolean = true
+- typeaheadTimeout: number = 500       -- ms before buffer resets
+- loop: boolean = true                  -- ArrowDown at end wraps to start
+- closeOnSelect: boolean = true        -- close after item activation
+- closeOnEscape: boolean = true
+- closeOnOutsideClick: boolean = true
+
+- isSubmenu: boolean = false           -- when true: ArrowLeft/Escape closes
+                                          THIS menu only, not the chain
+- submenuOpenDelay: number = 100       -- ms before hover opens a submenu
+- submenuCloseDelay: number = 300      -- ms grace before closing on leave;
+                                          also covers pointer crossing the gap
+
+- container: HTMLElement|null = document.body
+- transition: boolean = false
+
+## Returned
+
+{
+    open: ReadSignal<boolean>,
+    status: ReadSignal<'closed'|'opening'|'open'|'closing'>,
+    setOpen(value, reason),
+    toggle(),
+    attachTrigger(buttonEl),
+    attachAnchor(el),                  -- separate positioning anchor from trigger
+    attachContextTarget(el),           -- v0.4: right-click on el opens at pointer
+    attachMenu(ulEl),                  -- gets role="menu"
+    attachItem(liEl, { onSelect, disabled, label }),
+    attachCheckboxItem(liEl, { checked, onCheckedChange, label, disabled }),  -- v0.4
+    attachRadioItem(liEl, { value, group, onValueChange, label, disabled }),   -- v0.4
+    attachSeparator(el),               -- gets role="separator"
+    attachSubmenu(parentItemEl, submenuInstance),
+    attachInside(el),                  -- mark external el as inside for outside-click
+    destroy(),
+    destroyed
+}
+
+## Keyboard model
+
+When CLOSED, on trigger:
+  ArrowDown / Enter / Space            open + focus first item
+  ArrowUp                              open + focus last item
+  <printable char>                     open + typeahead
+
+When OPEN, on menu (focus is on an item):
+  ArrowDown / ArrowUp                  move focus (loops by default, skips disabled)
+  Home / End                           first / last focusable
+  Enter / Space                        activate (calls onSelect, closes if closeOnSelect)
+  ArrowRight                           open submenu on focused parent (if any)
+  ArrowLeft                            close THIS menu (only when isSubmenu:true)
+  Escape                               close menu
+  Tab                                  close menu (Tab default action moves focus on)
+  <printable char>                     typeahead (same-char cycles; mixed accumulates)
+
+## Submenu pattern
+
+```js
+const file = createMenu({ placement: "bottom-start" });
+file.attachTrigger(fileBtn);
+file.attachMenu(fileMenuEl);
+file.attachItem(newItem,    { onSelect: () => doNew() });
+file.attachItem(recentItem, { label: "Recent…" });
+
+const recent = createMenu({ placement: "right-start", isSubmenu: true });
+recent.attachMenu(recentMenuEl);
+recent.attachItem(...);
+
+file.attachSubmenu(recentItem, recent);
+// internally:
+//   recent.attachAnchor(recentItem)         positioning
+//   parent.aria-haspopup="menu" on recentItem
+//   parent.aria-expanded synced to recent.open
+//   hover open/close with delays
+//   ArrowRight on recentItem when focused opens recent + focuses its first item
+```
+
+Each submenu is its own createMenu instance, so arbitrary nesting works. Only
+one submenu per level is open at a time (entering a sibling closes the previous).
+
+## Slot conventions (for <lite-menu>)
+
+- [data-trigger]               -- the button (gets aria-haspopup="menu")
+- [data-menu]                  -- the ul/ol (gets role="menu")
+- [data-item][data-on-select=key] -- menu item; emits CustomEvent('select')
+                                     with detail={key, el} on the host
+- [data-disabled] on item       -- aria-disabled, skipped in nav
+- [data-separator]              -- separator element (gets role="separator")
+
+## States exposed on items
+
+- role="menuitem" | "menuitemcheckbox" | "menuitemradio"
+- tabindex: "0" on the currently-focused item, "-1" on others (roving)
+- data-focused: present on the focused item (CSS hook)
+- aria-disabled: "true" on disabled items
+- data-disabled: present on disabled items (CSS hook)
+- aria-haspopup="menu" + aria-expanded on parent items with submenus
+- aria-checked + data-checked: on checkbox/radio items
+
+## v0.4 additions
+
+- **Context menu mode** (`attachContextTarget`): right-clicking the target
+  preventDefaults the native menu and opens this menu positioned against a
+  0×0 virtual anchor at the pointer location.
+- **`attachCheckboxItem`**: sticky toggle, doesn't close on activation.
+- **`attachRadioItem`**: group-scoped single selection, closes on activation.
+- **Safe-triangle** (`safeTriangle: true` option, default on): pointer
+  crossing from parent item toward submenu doesn't trigger close as long
+  as the pointer stays inside the convex region between leave-point and
+  submenu's near edge. Falls back to `submenuCloseDelay` timer at the
+  hard cap (`2 × submenuCloseDelay`).
+
+## CSS contract
+
+This primitive's painted attributes follow the canonical CSS contract
+in `docs/CSS_CONTRACT.md`. See that doc for the cross-primitive
+taxonomy (booleans like `data-open` / `data-disabled` / `data-loading`,
+enums like `data-status` / `data-side`, ARIA pairings, host accessor
+naming, and event naming).

@@ -1,0 +1,185 @@
+# @zakkster/lite-headless/picture
+
+Headless wrapper around `<picture>` / `<img>` that adds reactive
+load-state tracking, IntersectionObserver-based lazy load,
+container-query-driven source selection, and error retry.
+
+The HTML stays declarative -- `<picture>` + `<source>` + `<img>`.
+Native `loading="lazy"` is set as a safety net; the primitive's
+IntersectionObserver controls actual src assignment so consumers
+get a clean `idle` → `loading` → `loaded` sequence for CSS
+transitions (placeholder/skeleton swap, blur-up crossfade).
+
+## Quick example
+
+```js
+import { createPicture } from "@zakkster/lite-headless/picture";
+
+const pic = createPicture({
+    src: "hero.jpg",
+    placeholder: "hero-lqip.jpg",     // low-quality image placeholder
+    lazy: true,
+    aspectRatio: "16/9",
+    onStateChange: (state) => console.log(state),
+});
+
+pic.attachRoot(pictureEl);     // data-img-state painted here
+pic.attachImg(imgEl);          // primitive controls src
+```
+
+```html
+<picture>
+    <source type="image/avif" srcset="hero.avif">
+    <source type="image/webp" srcset="hero.webp">
+    <img alt="">       <!-- src set by primitive -->
+</picture>
+```
+
+## Options
+
+| Option              | Default     | Notes                                          |
+| ------------------- | ----------- | ---------------------------------------------- |
+| `src`               | (required)  | Main image src                                 |
+| `sources`           | `[]`        | Reserved for future use                        |
+| `placeholder`       | -           | LQIP src shown until main loads                |
+| `lazy`              | `true`      | Defer load via IntersectionObserver            |
+| `eager`             | `false`     | Override lazy; load immediately                |
+| `aspectRatio`       | -           | Sets data-aspect-ratio (CSS can use this)      |
+| `containerSources`  | -           | `[{minWidth, maxWidth, src}, ...]` for ResizeObserver-driven selection |
+| `maxRetries`        | `2`         | Exponential backoff between retries            |
+| `rootMargin`        | `"200px"`   | IntersectionObserver margin                    |
+| `onStateChange`     | -           | `(state) => void`                              |
+| `onLoad` / `onError`| -           | callbacks                                      |
+
+## State machine
+
+```
+   construct
+       │
+       ▼
+   ┌─────┐
+   │idle │  lazy mode, not yet in viewport
+   └──┬──┘
+      │ intersects (or eager mode)
+      ▼
+   ┌──────────┐
+   │ loading  │  src assigned, awaiting load event
+   └─────┬────┘
+         │
+   ┌─────┴──────────┐
+   │                │
+ onLoad          onError
+   │                │
+   ▼                ▼
+┌──────┐    retry < max ─→ back to loading (with backoff)
+│loaded│    retry exhaust ─→ error
+└──────┘
+```
+
+The state is mirrored to `data-img-state` on both the root element
+and the `<img>` element so CSS can transition between placeholder
+and full image:
+
+```css
+[data-img-state="idle"] [data-pic-img] {
+    opacity: 0;
+}
+[data-img-state="loading"] [data-pic-img] {
+    opacity: 0.4;
+    filter: blur(8px);
+}
+[data-img-state="loaded"] [data-pic-img] {
+    opacity: 1;
+    filter: none;
+    transition: opacity 200ms, filter 200ms;
+}
+[data-img-state="error"] [data-pic-img] {
+    display: none;
+}
+[data-img-state="error"] [data-pic-error] {
+    display: flex;
+}
+```
+
+## containerSources — element-driven art direction
+
+Native `<picture>` selects sources based on the viewport (via
+`media="..."` on `<source>` tags). When you want sources selected
+based on the actual element's container width (a thumbnail in a
+grid is a different ideal size than the same image in a hero),
+pass a `containerSources` array. The primitive uses a
+ResizeObserver to re-evaluate when the element resizes.
+
+```js
+createPicture({
+    src: "default.jpg",
+    containerSources: [
+        { maxWidth: 320, src: "thumb.jpg" },
+        { minWidth: 321, maxWidth: 800, src: "medium.jpg" },
+        { minWidth: 801, src: "large.jpg" },
+    ],
+});
+```
+
+The picker chooses the most specific match (smallest matching range).
+Falls back to `src` if no match.
+
+## Aspect ratio
+
+Set `aspectRatio: "16/9"` (or any CSS aspect-ratio value) to add
+`data-aspect-ratio="16/9"` to both root and img. Consumer CSS:
+
+```css
+[data-pic-root] img {
+    aspect-ratio: var(--ar, attr(data-aspect-ratio));
+    /* OR with fallback:
+    aspect-ratio: 16 / 9; */
+    width: 100%;
+    height: auto;
+}
+```
+
+Setting aspect-ratio prevents layout shift when the image loads.
+
+## Element wrapper
+
+```html
+<lite-picture src="hero.jpg" aspect-ratio="16/9" placeholder="lqip.jpg">
+    <picture data-pic-root>
+        <source type="image/avif" srcset="hero.avif">
+        <source type="image/webp" srcset="hero.webp">
+        <img data-pic-img alt="Hero">
+    </picture>
+</lite-picture>
+```
+
+### Attributes
+
+| Attribute      | Effect                                  |
+| -------------- | --------------------------------------- |
+| `src`          | required; the main image src            |
+| `aspect-ratio` | `"16/9"` etc                            |
+| `lazy`         | flag (default behavior)                 |
+| `eager`        | flag (overrides lazy)                   |
+| `placeholder`  | LQIP src                                |
+| `max-retries`  | default 2                               |
+
+### Imperative API + events
+
+```js
+host.retry()
+host.state    // current state
+
+// events
+host.addEventListener("statechange", e => e.detail.state);
+host.addEventListener("load",        e => {});
+host.addEventListener("error",       e => e.detail.error);
+```
+
+## CSS contract
+
+This primitive's painted attributes follow the canonical CSS contract
+in `docs/CSS_CONTRACT.md`. See that doc for the cross-primitive
+taxonomy (booleans like `data-open` / `data-disabled` / `data-loading`,
+enums like `data-status` / `data-side`, ARIA pairings, host accessor
+naming, and event naming).

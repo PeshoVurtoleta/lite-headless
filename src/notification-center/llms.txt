@@ -1,0 +1,171 @@
+# @zakkster/lite-headless/notification-center
+
+Persistent list of past notifications with mark-read, filtering, and
+clear-all. The "bell icon with unread badge" UX, used in nearly every
+admin dashboard.
+
+Distinct from `createToaster`:
+
+|              | toast              | notification-center  |
+|--------------|--------------------|----------------------|
+| lifetime     | ephemeral (N sec)  | persistent           |
+| dismissal    | auto + click       | manual mark-read     |
+| stack        | viewport overlay   | collapsible panel    |
+| unread state | n/a                | first-class          |
+| filtering    | n/a                | by kind, by read     |
+
+Common pattern: toast.show() fires + same payload pushed into the
+notification center. The center keeps the user's history.
+
+## API
+
+```js
+import { createNotificationCenter } from "@zakkster/lite-headless/notification-center";
+
+const nc = createNotificationCenter({
+    defaultNotifications: [
+        { id: "n1", title: "Server restarted", kind: "info",    timestamp: Date.now() - 60000 },
+        { id: "n2", title: "Build passed",      kind: "success", timestamp: Date.now() - 1000 },
+    ],
+    maxItems: 100,
+    defaultFilter: null,
+    onChange:      (notifications) => {},
+    onMarkRead:    (id) => {},
+    onMarkAllRead: () => {},
+    onClear:       (id) => {},
+    onClearAll:    () => {},
+});
+```
+
+## Notification shape
+
+```js
+{
+    id:        string,
+    title:     string,
+    body:      string,     // optional
+    kind:      "info" | "success" | "warning" | "error" | "system",
+    timestamp: Date | number,    // ms epoch or Date; default = now
+    read:      boolean,    // default false
+    meta:      {},         // consumer-defined
+}
+```
+
+## Reactive accessors
+
+```js
+nc.notifications()    // NotificationDef[] newest-first
+nc.unreadCount()      // number
+nc.visible()          // NotificationDef[] passing the current filter
+nc.filter()           // { kind?, read?: boolean } | null
+```
+
+## Queries
+
+```js
+nc.getNotification(id)
+```
+
+## Mutations
+
+```js
+nc.add(notification)            // prepends; dedup by id (newer replaces)
+nc.remove(id)
+nc.update(id, partial)
+nc.setNotifications(arr)
+nc.markRead(id) / .markUnread(id) / .markAllRead()
+nc.clearAll() / .clearByKind(kind) / .clearRead()
+nc.setFilter({ kind, read }) / .clearFilter()
+```
+
+## Attach methods
+
+```js
+nc.attachRoot(el)                 // role=region; data-nc-unread + data-nc-has-unread
+nc.attachItem(el, id)             // per-row paint + click-marks-read
+nc.attachUnreadBadge(el)          // textContent = unread count; "99+" clamp
+nc.attachClearAllButton(el)
+nc.attachMarkAllReadButton(el)
+```
+
+## Painted attributes
+
+### Root (attachRoot)
+- `role="region"`, `aria-label="Notifications"`
+- `data-nc-unread="<count>"`
+- `data-nc-has-unread` if count > 0
+
+### Items (attachItem)
+- `role="listitem"`, `tabindex="0"`
+- `data-nc-id="<id>"`
+- `data-nc-kind="<kind>"`
+- `data-nc-read` (read) / `data-nc-unread` (unread)
+- `data-nc-missing` if the notification no longer exists (consumer
+  should remove the element)
+
+### Unread badge (attachUnreadBadge)
+- `aria-live="polite"`, `aria-atomic="true"`
+- `data-nc-hidden` if count = 0 (consumer CSS hides via `[data-nc-hidden]`)
+
+## Custom element
+
+```html
+<lite-notification-center max-items="100">
+    <header>
+        <h2>Notifications</h2>
+        <span data-nc-badge></span>
+        <button data-nc-mark-all-read>Mark all read</button>
+        <button data-nc-clear-all>Clear all</button>
+    </header>
+    <div data-nc-list role="list">
+        <article data-nc-id="n1" data-nc-title="Server restarted" data-nc-kind="info"></article>
+        <article data-nc-id="n2" data-nc-title="Build passed"     data-nc-kind="success"></article>
+    </div>
+</lite-notification-center>
+```
+
+### Custom element host API
+
+```js
+host.notifications              // accessor: NotificationDef[]
+host.unreadCount                // accessor: number
+host.visible                    // accessor: NotificationDef[]
+host.add(n) / .remove(id) / .update(id, partial)
+host.markRead(id) / .markUnread(id) / .markAllRead()
+host.clearAll() / .clearByKind(kind) / .clearRead()
+host.setFilter(f) / .clearFilter()
+host._notificationCenterInstance
+```
+
+### Custom element events
+
+- `ncchange` `{ detail: { notifications } }` -- fires after any mutation
+
+## Composition
+
+- **`lite-popover`**: bell icon trigger + popover containing the center.
+- **`lite-toast`**: pair toast.show() with nc.add() for live-feedback +
+  history.
+- **`lite-tabs`**: filter tabs (All / Unread / Errors) by calling
+  setFilter on tab change.
+- **`lite-skeleton`**: skeleton items while loading from server.
+
+## Notes
+
+- Notifications are stored newest-first. The `notifications()` and
+  `visible()` accessors return arrays in that order; consumers can
+  iterate them directly to render rows.
+- `maxItems` is enforced on every `add()` and `setNotifications()` call.
+  When the cap is hit, the OLDEST entries are evicted. To trim the
+  newer end instead, manage the list yourself with `setNotifications`.
+- The primitive doesn't fire its own toast — pairing with `createToaster`
+  is the consumer's job. Typical pattern: a thin `notify()` helper
+  calls both `nc.add(payload)` and `toaster.show(payload)`.
+
+## CSS contract
+
+This primitive's painted attributes follow the canonical CSS contract
+in `docs/CSS_CONTRACT.md`. See that doc for the cross-primitive
+taxonomy (booleans like `data-open` / `data-disabled` / `data-loading`,
+enums like `data-status` / `data-side`, ARIA pairings, host accessor
+naming, and event naming).

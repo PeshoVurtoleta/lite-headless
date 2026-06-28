@@ -1,0 +1,213 @@
+# @zakkster/lite-headless/pagination
+
+Headless pagination control: page-N-of-M navigation with prev/next/
+first/last buttons + a dynamic page-number list with automatic
+ellipsis insertion for long ranges. The primitive owns the
+navigation logic and ARIA wiring; the consumer renders the page
+list (or uses the wrapper which renders for you).
+
+## Quick example
+
+```js
+import { createPagination } from "@zakkster/lite-headless/pagination";
+
+const pg = createPagination({
+    pageCount:    20,
+    defaultPage:   1,
+    siblingCount:  1,    // pages each side of current
+    boundaryCount: 1,    // pages at start/end
+    onChange: (page, reason) => loadResults(page),
+});
+
+pg.attachRoot    (navEl);     // role=navigation, aria-label
+pg.attachPrev    (prevBtn);   // data-disabled at page 1
+pg.attachNext    (nextBtn);   // data-disabled at last page
+pg.attachFirst   (firstBtn);  // jumps to 1
+pg.attachLast    (lastBtn);   // jumps to total
+pg.attachPageList(listEl);    // consumer renders <li>s into this
+
+// Render the page items list (consumer)
+function render() {
+    listEl.innerHTML = "";
+    for (const item of pg.items()) {
+        const li = document.createElement("li");
+        if (item.type === "ellipsis") {
+            li.textContent = "…";
+        } else {
+            const btn = document.createElement("button");
+            btn.textContent = String(item.page);
+            li.appendChild(btn);
+            pg.markPage(btn, item.page);     // wire click + aria-current
+        }
+        listEl.appendChild(li);
+    }
+}
+```
+
+The `<lite-pagination>` wrapper does the render automatically.
+
+## Options
+
+| Option           | Default | Notes                                                |
+| ---------------- | ------- | ---------------------------------------------------- |
+| `pageCount`      | `1`     | Total pages (positive integer)                       |
+| `defaultPage`    | `1`     | Uncontrolled seed (clamped to range)                 |
+| `page`           | -       | Signal<number> for controlled mode (read-only)       |
+| `siblingCount`   | `1`     | Pages either side of current (non-negative)          |
+| `boundaryCount`  | `1`     | Pages at start/end (non-negative)                    |
+| `onChange`       | -       | `(page, reason) => void` on page change              |
+| `onItemsChange`  | -       | `(items) => void` whenever the items array changes   |
+
+`reason` values: `"set"`, `"next"`, `"prev"`, `"first"`, `"last"`,
+`"click"` (from a page button), `"attribute"` (from the wrapper's
+attribute observer).
+
+## items() algorithm
+
+`items()` returns an array describing what to render. Short-
+circuit: if `total <= 2*sibling + 2*boundary + 3`, all pages are
+shown without ellipsis. Otherwise the algorithm renders four
+ranges with single-page-gap merging:
+
+| Configuration                            | items()                            |
+| ---------------------------------------- | ---------------------------------- |
+| 5 pages, sibling=1, boundary=1, p=3      | `1 2 [3] 4 5`                      |
+| 20 pages, sibling=1, boundary=1, p=1     | `[1] 2 … 20`                       |
+| 20 pages, sibling=1, boundary=1, p=10    | `1 … 9 [10] 11 … 20`               |
+| 20 pages, sibling=1, boundary=1, p=20    | `1 … 19 [20]`                      |
+| 10 pages, sibling=1, boundary=1, p=4     | `1 2 3 [4] 5 … 10`                 |
+| 20 pages, sibling=1, boundary=2, p=10    | `1 2 … 9 [10] 11 … 19 20`          |
+| 10 pages, sibling=1, boundary=0, p=5     | `4 [5] 6`                          |
+| 50 pages, sibling=3, boundary=2, p=25    | `1 2 … 22 23 24 [25] 26 27 28 … 49 50` |
+
+Item shape:
+
+```ts
+type Item =
+    | { type: "page";     page: number; current: boolean }
+    | { type: "ellipsis"; position: "left" | "right" }
+```
+
+Single-page-gap merging: when the gap between a boundary and the
+sibling range is exactly one page, the algorithm renders the
+intermediate page directly instead of an ellipsis (because an
+ellipsis hiding a single page wastes a slot that could just be the
+page).
+
+## Attachment methods
+
+| Method                 | Effect                                                               |
+| ---------------------- | -------------------------------------------------------------------- |
+| `attachRoot(el)`       | role=navigation, aria-label="Pagination" (unless overridden)         |
+| `attachPrev(el)`       | data-disabled at page 1; click → prev()                              |
+| `attachNext(el)`       | data-disabled at last page; click → next()                           |
+| `attachFirst(el)`      | data-disabled at page 1; click → first()                             |
+| `attachLast(el)`       | data-disabled at last page; click → last()                           |
+| `attachPageList(el)`   | role=list; container for the dynamically-rendered page buttons      |
+| `markPage(el, page)`   | wires click + aria-current paint; returns OFF cleanup function       |
+
+`markPage` returns a cleanup function — the wrapper calls it to
+detach the previous page buttons before re-rendering. If you
+manage the render yourself, save the cleanup from each `markPage`
+and call them all before rebuilding the list.
+
+## ARIA
+
+| Element     | Attributes                                                  |
+| ----------- | ----------------------------------------------------------- |
+| Root        | `role="navigation"`, `aria-label="Pagination"`              |
+| Nav buttons | `aria-label="Go to {previous/next/first/last} page"`, `aria-disabled`, real `disabled` (when target is a `<button>`) |
+| Page list   | `role="list"`                                               |
+| Page button | `aria-current="page"` when current; `aria-label="Go to page N"` (unless overridden); `data-current="true"` for CSS |
+| Ellipsis    | `<span aria-hidden="true">…</span>` (wrapper-rendered)      |
+
+## Imperative API
+
+```js
+pg.setPage(n, reason?)
+pg.setPageCount(n)        // clamps current page if it overflows
+pg.first() / pg.last()
+pg.next() / pg.prev()
+
+pg.page()                 // reactive accessor
+pg.pageCount()
+pg.items()                // current Item[]
+
+pg.destroy()
+```
+
+## Custom element wrapper
+
+```html
+<lite-pagination page-count="50" page="1" sibling-count="1" boundary-count="1">
+    <button data-pgn-first>«</button>
+    <button data-pgn-prev>‹</button>
+    <ol data-pgn-list></ol>
+    <button data-pgn-next>›</button>
+    <button data-pgn-last>»</button>
+</lite-pagination>
+```
+
+The wrapper renders `<li>` items into `[data-pgn-list]` automatically
+on every page or pageCount change. Each rendered `<li>` contains
+either a `<button data-pgn-page="N">` or a `<span aria-hidden>…</span>`.
+
+### Attributes
+
+| Attribute        | Effect                                                  |
+| ---------------- | ------------------------------------------------------- |
+| `page-count`     | Reactive: set to change total pages                     |
+| `page`           | Reactive: set to navigate to a page                     |
+| `sibling-count`  | Pages either side of current (initial only)             |
+| `boundary-count` | Pages at start/end (initial only)                       |
+
+### Imperative API on host
+
+```js
+host.setPage(n, reason?)
+host.setPageCount(n)
+host.first() / host.last() / host.next() / host.prev()
+host.page         // read-only
+host.pageCount    // read-only
+host.items        // read-only Item[]
+```
+
+### Dispatched events
+
+- `change` — `{ detail: { page, reason } }`
+- `itemschange` — `{ detail: { items } }`
+
+## CSS contract
+
+```css
+/* Nav buttons */
+[data-pgn-prev], [data-pgn-next],
+[data-pgn-first], [data-pgn-last] { /* base styles */ }
+[data-pgn-prev][data-disabled],
+[data-pgn-next][data-disabled],
+[data-pgn-first][data-disabled],
+[data-pgn-last][data-disabled] {
+    opacity: 0.4; cursor: not-allowed;
+}
+
+/* Page buttons */
+[data-pgn-page] { /* base */ }
+[data-pgn-page][data-current="true"] {
+    /* active style */
+}
+
+/* Ellipsis */
+[data-pgn-ellipsis] { /* spacer style */ }
+```
+
+## When NOT to use
+
+- **Infinite scroll / load-more**: pagination is for discrete page
+  navigation. For infinite scroll, use intersection observer
+  patterns directly.
+- **Tab-style page switcher** (a fixed small N, e.g., 3-5 pages):
+  use the `tabs` primitive — it has roving tabindex and the right
+  ARIA pattern for that case.
+- **Form pagination wizards** (step 1 of 5): use `stepper` instead;
+  it has step validation and is semantically closer to "wizard"
+  than "pagination".

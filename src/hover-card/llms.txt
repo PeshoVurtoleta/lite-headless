@@ -1,0 +1,95 @@
+# @zakkster/lite-headless / hover-card
+
+A rich hover/focus preview card (think a GitHub user hovercard). The floating
+positioning is driven by **@zakkster/lite-floating** (createFloating +
+bindTransform + offset/flip/shift), whose autoUpdate pulls in
+**@zakkster/lite-observe** transitively to keep the card pinned on scroll and
+resize.
+
+This is the one primitive that uses the standalone floating engine instead of
+the shared `_overlay/position` positioner -- a deliberate showcase of the
+lite-floating integration. The other overlay primitives keep `_overlay/position`
+to preserve their exact-pixel test contracts.
+
+## Quick example
+
+```js
+import { createHoverCard } from "@zakkster/lite-headless/hover-card";
+
+const hc = createHoverCard({
+    placement: "bottom-start",
+    openDelay: 300,
+    closeDelay: 200,
+});
+hc.attachTrigger(linkEl);
+hc.attachContent(cardEl);   // portaled, positioned, aria-hidden while closed
+```
+
+The pointer is considered "alive" while it is over the trigger **or** the card,
+so the user can move from the link into the card without it closing.
+
+## Options
+
+| Option | Default | Notes |
+|---|---|---|
+| `placement` | `"bottom"` | Floating-UI placement string (e.g. `"top-end"`) |
+| `offset` | `8` | gap in px between trigger and card |
+| `flip` | `true` | flip to the opposite side when it would overflow |
+| `shift` | `true` | shift along the axis to stay in view |
+| `openDelay` | `300` | ms hover-intent before opening (focus opens instantly) |
+| `closeDelay` | `200` | ms grace period for crossing the trigger->card gap |
+| `closeOnEscape` | `true` | Escape closes the card |
+| `container` | `document.body` | portal target |
+| `transition` | `false` | wait for `transitionend` before flipping status |
+
+## API
+
+```ts
+{
+    open(): boolean
+    status(): "closed" | "opening" | "open" | "closing"
+    setOpen(open: boolean, reason?: string): void
+    toggle(reason?: string): void
+
+    attachRoot(el): off
+    attachTrigger(el): off
+    attachAnchor(el): off       // position relative to a different element
+    attachContent(el): off
+    attachArrow(el): off
+
+    destroy(): void
+}
+```
+
+## Painted attributes
+
+- trigger: `data-hover-card-trigger`, `data-open`, `aria-expanded` (no aria-haspopup)
+- content: `data-hover-card-content`, `data-open`, `data-status`, `data-placement` ("bottom-start"), `data-side` (top/right/bottom/left), `data-align` (start/center/end), `aria-hidden` while closed, `tabindex="-1"`
+- arrow: `data-side`
+- root: `data-hover-card-root`, `data-open`
+
+A hover card is a supplementary, sighted-user affordance: the content carries
+**no role** and is `aria-hidden` while closed, so assistive tech skips it while
+the trigger link still carries the real destination.
+
+## Wrapper (`<lite-hover-card>`)
+
+```html
+<lite-hover-card placement="bottom-start" open-delay="300">
+  <a data-trigger href="/u/zak">@zak</a>
+  <div data-content>
+    <div data-arrow></div>
+    <strong>Zahary Shinikchiev</strong>
+    <p>Author of the @zakkster/* zero-GC ecosystem.</p>
+  </div>
+</lite-hover-card>
+```
+
+Attributes: `placement`, `offset`, `open-delay`, `close-delay`, `no-escape`,
+`container`, `transition`. Host: `toggle()`, `setOpen(v)`, `isOpen`, `status`.
+
+## Composition
+
+Pairs naturally with `avatar`, `badge`, and `card` inside the content. Use
+`attachAnchor` to anchor the card to a wrapper while the hover target is a
+smaller inline element.

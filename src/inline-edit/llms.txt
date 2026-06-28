@@ -1,0 +1,229 @@
+# @zakkster/lite-headless/inline-edit
+
+Click-to-edit text. Display mode shows a value; clicking (or pressing Enter on a focused display) transitions to edit mode where an input holds a draft. Enter / blur commits, Escape cancels. Used in titles, kanban card text, tag names, profile fields -- anywhere an inline edit replaces a separate edit screen.
+
+## Quick example
+
+```js
+import { createInlineEdit } from "@zakkster/lite-headless/inline-edit";
+
+const ie = createInlineEdit({
+    initialValue: "Untitled card",
+    validate: (next) => next.length >= 3 || "too short",
+    onCommit: (next, prev) => persist(cardId, next),
+});
+
+ie.attachRoot(rootEl);
+ie.attachDisplay(displayEl);     // <span>Untitled card</span>
+ie.attachInput(inputEl);         // <input> (hidden by default)
+```
+
+The primitive paints `hidden` on whichever element isn't active in the current mode (display vs edit), and `data-mode="display|edit"` on the root for CSS hooks.
+
+## Behavior
+
+### Mode transitions
+
+```
+display -> click (or Enter/Space on focused display) -> edit
+edit    -> Enter (or Tab if configured) on input    -> commit -> display
+edit    -> blur on input (if 'blur' in commitOn)    -> commit -> display
+edit    -> Escape on input                          -> cancel -> display
+edit    -> commit() but validation fails            -> stays edit, isInvalid=true
+```
+
+When the primitive enters edit mode, it focuses the input and selects its contents (so the user can type to replace). Focus is deferred to a microtask so the `hidden` removal commits in layout first -- without that, some browsers refuse the focus call silently.
+
+### Validation pipeline
+
+For each commit attempt:
+
+1. `normalize(s)` if provided (transform: lowercase, slugify, etc.).
+2. `trim()` if `trim: true` (default).
+3. **empty?** rejected with reason `"empty"` (unless `allowEmpty: true`).
+4. `validate(next, prev)` if provided. Return `false` or a non-empty string to reject; the string is the reason.
+
+A failed commit:
+- Sets `isInvalid()` to true
+- Fires `onInvalid(value, reason)`
+- Stays in edit mode (does NOT commit)
+- Typing again clears `isInvalid` so the user can fix and retry
+
+### Commit triggers
+
+`commitOn` is an array (default `["Enter", "blur"]`):
+- `"Enter"` -- Enter key on the input (single-line)
+- `"blur"`  -- input loses focus
+- `"Tab"`   -- Tab key (preventDefault'd so focus stays put after commit)
+
+`cancelOn` is an array (default `["Escape"]`).
+
+### Multiline (textarea)
+
+With `multiline: true`:
+- Use a `<textarea>` for the input slot
+- Enter alone inserts a newline (browser default, NOT preventDefault'd)
+- **Cmd-Enter / Ctrl-Enter** commits (only if `"Enter"` is in `commitOn`)
+- All other commit/cancel triggers work the same
+
+This matches the convention in Slack, Linear, Notion -- you want newlines in a textarea, with an explicit modifier for "I'm done".
+
+### onChange vs onCommit
+
+These fire under different conditions:
+- `onChange(next, prev)` fires ONLY when the value actually changed.
+- `onCommit(next, prev)` fires on every successful commit, even if the value didn't change (e.g. the user clicked into edit, then pressed Enter without typing).
+
+Use `onCommit` for "the user explicitly confirmed this value" (e.g. close the edit UI, send a server ping that this row is "done editing"). Use `onChange` for "react to a new value" (persist, update derived state).
+
+## Options
+
+| Option         | Default                 | Notes                                              |
+| -------------- | ----------------------- | -------------------------------------------------- |
+| `initialValue` | `""`                    | must be a string                                   |
+| `placeholder`  | `""`                    | applied to input as placeholder attr               |
+| `trim`         | `true`                  |                                                    |
+| `allowEmpty`   | `false`                 | empty after trim is rejected unless this is true   |
+| `commitOn`     | `["Enter", "blur"]`     | array of triggers                                  |
+| `cancelOn`     | `["Escape"]`            |                                                    |
+| `multiline`    | `false`                 | for textarea inputs; Enter behavior changes        |
+| `normalize`    | -                       | `(s) => string`                                    |
+| `validate`     | -                       | `(next, prev) => boolean \| string`                |
+| `onChange`     | -                       | `(next, prev) => void` (only on actual change)     |
+| `onCommit`     | -                       | `(next, prev) => void` (every successful commit)   |
+| `onCancel`     | -                       | `() => void`                                       |
+| `onInvalid`    | -                       | `(value, reason) => void`                          |
+| `onEditStart`  | -                       | `() => void` (fired when entering edit mode)       |
+| `ariaLabel`    | -                       | forwarded to root                                  |
+
+## API
+
+```js
+ie.value()              // string, committed
+ie.draftValue()         // string, current edit draft
+ie.isEditing()          // boolean
+ie.isInvalid()          // boolean (last commit attempt failed)
+
+ie.setValue(s)          // programmatic; no events
+ie.setDraftValue(s)
+ie.startEdit()
+ie.commit()             // -> boolean (success?)
+ie.cancel()
+
+ie.attachRoot(el)              // -> off()
+ie.attachDisplay(el)           // -> off()
+ie.attachInput(inputEl)        // -> off()
+ie.attachTrigger(buttonEl)     // -> off() (optional explicit edit trigger)
+ie.destroy()
+```
+
+## ARIA + DOM contract
+
+| Element  | Painted attributes                                                       |
+| -------- | ------------------------------------------------------------------------ |
+| Root     | `data-inline-edit-root` · `data-mode="display\|edit"` · `data-invalid="true"` (when applicable) · `aria-label` (if provided) |
+| Display  | `data-inline-edit-display` · `hidden` (when editing) · textContent mirrors `value()` |
+| Input    | `data-inline-edit-input` · `hidden` (when displaying) · value mirrors `draftValue()` · `placeholder` (if option set) |
+| Trigger  | `data-inline-edit-trigger` (optional)                                    |
+
+For keyboard accessibility, give the display element `tabindex="0"` if you want users to be able to tab into it and press Enter/Space to start editing. Without `tabindex`, click is the only way to start.
+
+## Common patterns
+
+### Card title with min length
+
+```js
+const title = createInlineEdit({
+    initialValue: card.title,
+    placeholder: "Title…",
+    validate: (next) => next.length >= 3 || "Min 3 characters",
+    onCommit: (next) => api.updateCard(card.id, { title: next }),
+});
+```
+
+### Slug normalizer
+
+```js
+const slug = createInlineEdit({
+    initialValue: post.slug,
+    normalize: (s) => s.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""),
+    validate: (next) => /^[a-z0-9-]+$/.test(next) || "lowercase letters, digits, hyphens",
+});
+```
+
+### Multiline description (Cmd-Enter to save)
+
+```js
+const desc = createInlineEdit({
+    initialValue: card.description,
+    multiline: true,
+    allowEmpty: true,
+    commitOn: ["Enter", "blur"],   // Cmd-Enter on multiline; blur otherwise
+    cancelOn: ["Escape"],
+});
+```
+
+## Element wrapper
+
+```html
+<lite-inline-edit value="Untitled" aria-label="Card title">
+    <span data-inline-edit-display-slot tabindex="0"></span>
+    <input data-inline-edit-input-slot type="text">
+</lite-inline-edit>
+```
+
+Optional explicit edit trigger:
+
+```html
+<lite-inline-edit value="Untitled">
+    <span data-inline-edit-display-slot></span>
+    <button data-inline-edit-trigger-slot>edit</button>
+    <input data-inline-edit-input-slot type="text">
+</lite-inline-edit>
+```
+
+### Attributes
+
+| Attribute       | Effect                                              |
+| --------------- | --------------------------------------------------- |
+| `value`         | initial committed value                             |
+| `placeholder`   | input placeholder                                   |
+| `trim`          | `"false"` disables                                  |
+| `allow-empty`   | `"true"` enables                                    |
+| `multiline`     | flag attribute                                      |
+| `commit-on`     | comma-separated; default `"Enter,blur"`             |
+| `cancel-on`     | comma-separated; default `"Escape"`                 |
+| `aria-label`    | forwarded                                           |
+
+### Imperative API + events
+
+```js
+host.value         // string (getter)
+host.draftValue    // string (getter)
+host.isEditing     // boolean (getter)
+host.isInvalid     // boolean (getter)
+host.setValue(s)
+host.startEdit()
+host.commit()
+host.cancel()
+
+host.addEventListener("change",    (e) => /* e.detail = { value, previous } */);
+host.addEventListener("commit",    (e) => /* e.detail = { value, previous } */);
+host.addEventListener("cancel",    () => {});
+host.addEventListener("editstart", () => {});
+host.addEventListener("invalid",   (e) => /* e.detail = { value, reason } */);
+```
+
+## When NOT to use
+
+- **Heavy form fields with adjacent labels, errors, hints**: build a proper form component. This primitive is for single-value inline replaceable text.
+- **Rich-text editing** (bold, links, mentions): use a proper rich-text editor. This primitive's "edit mode" is a plain input.
+- **Permanent text inputs**: if the field is always visible as an input, just use `<input>` directly. The point of inline-edit is the display/edit toggle.
+
+## CSS contract
+
+This primitive's painted attributes follow the canonical CSS contract
+in `docs/CSS_CONTRACT.md`. See that doc for the cross-primitive
+taxonomy (booleans like `data-open` / `data-disabled` / `data-loading`,
+enums like `data-status` / `data-side`, ARIA pairings, host accessor
+naming, and event naming).

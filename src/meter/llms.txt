@@ -1,0 +1,149 @@
+# @zakkster/lite-headless / meter
+
+ARIA `role="meter"`. A scalar measurement within a known range.
+
+## When to use meter vs progress
+
+| | meter | progress |
+|---|---|---|
+| ARIA role | `meter` | `progressbar` |
+| Semantic | "this value sits at X" | "this task is X% done" |
+| Indeterminate | no | yes |
+| Examples | vote share, fuel level, gauge | uploads, multi-step wizards |
+
+For **Twitch Prediction / Poll vote shares**: meter is the right
+semantic. The value isn't a task in progress; it's a measured share
+of total votes.
+
+## Quick example
+
+```js
+import { createMeter } from "@zakkster/lite-headless/meter";
+
+const meter = createMeter({
+    value: 0.42,
+    min: 0,
+    max: 1,
+    label: "Vote share — Yes",
+});
+meter.attachRoot(rootEl);
+meter.attachFill(fillEl);
+
+// Live updates:
+meter.setValue(0.51);
+```
+
+## Options
+
+| Option | Default | Notes |
+| --- | --- | --- |
+| `value` | `0` | Current value (clamped to `[min..max]`) |
+| `min` | `0` | Range minimum |
+| `max` | `1` | Range maximum |
+| `low` | `null` | If value < low, region is "low" |
+| `high` | `null` | If value > high, region is "high" |
+| `optimum` | `null` | Defines which region is the "good" one |
+| `label` | `null` | aria-label (only set if root doesn't already have one) |
+| `valueText` | `null` | aria-valuetext (human-readable override) |
+
+`max` must be strictly greater than `min`; the constructor throws otherwise.
+
+## State (computed per HTML meter spec)
+
+When `low` / `high` / `optimum` are configured, `meter.state()` returns
+one of:
+
+- `"optimum"` — value is in the optimum region
+- `"sub-optimum"` — value is in a neighbor region
+- `"low"` — value is on the opposite side from optimum
+
+When no thresholds are set, state is always `"optimum"`.
+
+The state mirrors browser behavior for native `<meter low high optimum>`:
+
+- If `optimum` is in the mid band: both lo and hi extremes are "sub-optimum"
+- If `optimum` is below `low`: the mid band is "sub-optimum"; the hi extreme is "low"
+- If `optimum` is above `high`: the mid band is "sub-optimum"; the lo extreme is "low"
+
+## API
+
+```ts
+{
+    value(): number
+    min(): number
+    max(): number
+    fraction(): number     // (value - min) / (max - min), clamped [0..1]
+    state(): "optimum" | "sub-optimum" | "low"
+
+    setValue(v: number): void
+    setValueText(t: string | null): void
+
+    attachRoot(el): off
+    attachFill(el): off    // optional — paints --meter + data-zone on a fill child
+
+    destroy(): void
+}
+```
+
+## Painted attributes
+
+### Root (`[data-meter-root]`)
+
+- `role="meter"` (only if not pre-set)
+- `aria-valuenow="<value>"`
+- `aria-valuemin="<min>"`
+- `aria-valuemax="<max>"`
+- `aria-valuetext="<text>"` (when `valueText` provided)
+- `aria-label="<label>"` (only if root doesn't already have `aria-label`/`aria-labelledby`)
+- `data-zone="optimum|sub-optimum|low"`
+- CSS variable `--meter: <0..1 fraction>`
+
+### Fill (`[data-meter-fill]`)
+
+- `data-zone="<same as root>"`
+- CSS variable `--meter: <0..1 fraction>`
+
+The fill is purely a CSS hook. Consumer renders it however they want:
+
+```css
+/* Horizontal fill bar */
+[data-meter-fill] {
+    transform-origin: left center;
+    transform: scaleX(var(--meter, 0));
+}
+
+/* Or width-based */
+[data-meter-fill] { width: calc(var(--meter, 0) * 100%); }
+
+/* Color per state */
+[data-meter-fill][data-zone="optimum"]      { background: var(--green); }
+[data-meter-fill][data-zone="sub-optimum"]  { background: var(--amber); }
+[data-meter-fill][data-zone="low"]          { background: var(--red);   }
+```
+
+## Wrapper (`<lite-meter>`)
+
+```html
+<lite-meter value="0.42" min="0" max="1" low="0.25" high="0.75"
+            label="Yes vote share" value-text="42 percent of votes">
+    <div data-meter-fill></div>
+</lite-meter>
+```
+
+Attributes:
+- `value`, `min`, `max` — numeric (default 0, 0, 1)
+- `low`, `high`, `optimum` — numeric (optional)
+- `label` — `aria-label` text
+- `value-text` — `aria-valuetext` override
+
+Reactive: `value` and `value-text` attributes flow through bidirectionally.
+
+Host accessors:
+- `host.value`, `host.fraction`, `host.state`
+- `host.setValue(v)`, `host.setValueText(t)`
+- `host._meterInstance` (advanced)
+
+## CSS contract
+
+Follows `docs/CSS_CONTRACT.md`. `data-zone` is a Class-3 enum.
+`data-meter-root`/`data-meter-fill` are Class-4 slot markers.

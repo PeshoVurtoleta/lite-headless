@@ -1,0 +1,217 @@
+# @zakkster/lite-headless/kanban
+
+Headless kanban board: columns of cards with drag-to-reorder (intra-column)
+and programmatic + HTML5-DnD-based moves between columns.
+
+Composes `createSortable` per column for the in-column reorder.
+
+## API
+
+```js
+import { createKanban } from "@zakkster/lite-headless/kanban";
+
+const kb = createKanban({
+    columns: [
+        { id: "todo",  title: "To Do" },
+        { id: "doing", title: "Doing" },
+        { id: "done",  title: "Done" },
+    ],
+    cards: [
+        { id: "c1", columnId: "todo", title: "Buy milk" },
+        { id: "c2", columnId: "todo", title: "Write blog post" },
+    ],
+    onCardMove: (cardId, fromColumnId, toColumnId, newIndex, reason) => {},
+    onCardClick: (cardId, domEvent) => {},
+    sortableOptions: { /* forwarded to each column's sortable */ },
+});
+```
+
+## Shapes
+
+```js
+// ColumnDef
+{ id: string, title: string, ...meta }
+
+// CardDef
+{ id: string, columnId: string, title: string, ...meta }
+```
+
+`id` is required and must be unique. `meta` fields are preserved
+verbatim — consumers can stash arbitrary data (priority, assignees,
+labels, etc.).
+
+## Reactive accessors
+
+```js
+kb.columns()                 // ColumnDef[]
+kb.cards()                   // CardDef[]
+kb.cardsInColumnReactive(id) // Card[] in display order (reactive inside an effect)
+```
+
+## Queries (non-reactive)
+
+```js
+kb.cardsInColumn(colId)   // Card[] in display order
+kb.getCard(id)            // Card | null
+kb.getColumn(id)          // Column | null
+```
+
+## Mutations
+
+```js
+kb.addColumn(col)             // dedup'd by id
+kb.removeColumn(id)           // removes column + all its cards
+kb.addCard(card)              // dedup'd by id; rejects unknown columnId
+kb.removeCard(id)
+kb.updateCard(id, partial)    // columnId field cannot be changed here (use moveCard)
+kb.moveCard(cardId, toColumnId, toIndex?, reason?)
+```
+
+`moveCard` is the only API for changing a card's `columnId`. The
+`reason` argument is forwarded to `onCardMove` (defaults to `"api"`).
+
+## Attach methods
+
+```js
+kb.attachColumn(el, colId)           // wires column container as sortable root
+kb.attachCard(el, cardId)            // wires card into its column's sortable
+kb.attachHandle(cardEl, handleEl)    // limits drag origin to a handle within a card
+kb.attachDraggable(cardEl, cardId)   // optional: HTML5-DnD draggable=true setup
+kb.attachDropZone(columnEl, colId)   // optional: HTML5-DnD drop target for cross-column moves
+```
+
+`attachCard` must be called AFTER `attachColumn` for the same column —
+the card hooks into the column's sortable instance.
+
+## Cross-column drag-and-drop
+
+Three ways to wire cross-column moves:
+
+### A. Programmatic only
+
+```js
+kb.moveCard("c1", "doing", 0);
+```
+
+The simplest case. Useful for bulk operations, undo, or when DnD is
+driven by something other than HTML5 (touch gestures, voice command,
+etc.).
+
+### B. Built-in HTML5 DnD (zero extra wiring)
+
+For each column container, call `attachDropZone`. For each card, call
+`attachDraggable`. The wrapper variant does both automatically when
+the host has the `html5-dnd` attribute.
+
+```js
+const cards = document.querySelectorAll(".card");
+for (const card of cards) {
+    kb.attachDraggable(card, card.dataset.cardId);
+}
+const columns = document.querySelectorAll(".column");
+for (const col of columns) {
+    kb.attachDropZone(col, col.dataset.columnId);
+}
+```
+
+The HTML5 DnD path writes the card id into
+`dataTransfer.setData("text/x-kanban-card-id", cardId)`. The drop
+handler parses it back, computes the target index from the pointer y
+coordinate (vs the midpoints of cards in the target column), and
+calls `moveCard`.
+
+### C. Pointer-based DnD (consumer-built)
+
+If you want unified pointer-based drag for both intra- and inter-
+column (with touch + scroll handling), build it on top of the
+`moveCard` API. The primitive doesn't ship its own pointer-based
+cross-column drag because in-column pointer drag is already provided
+by sortable, and mixing modes leads to UX bugs.
+
+## Painted attributes
+
+### Columns (via attachColumn → sortable.attachRoot)
+- `role="listbox"` (sortable's choice; kanban accepts the listbox
+  semantics because cards are keyboard-focusable + pickable)
+- `data-kanban-column-id="<colId>"`
+- (HTML5 DnD only) `data-kanban-drop-active` while pointer is over
+
+### Cards (via attachCard → sortable.attachItem)
+- `role="option"`
+- `tabindex="0"`
+- `data-kanban-card-id="<cardId>"`
+- `data-kanban-card-column="<colId>"` (updated when the card moves)
+- (HTML5 DnD only) `data-kanban-card-dragging` while being dragged
+
+## Custom element
+
+```html
+<lite-kanban html5-dnd>
+    <div data-kanban-column="todo" data-kanban-column-title="To Do">
+        <div data-kanban-card-id="c1">Buy milk</div>
+        <div data-kanban-card-id="c2">Write blog post</div>
+    </div>
+    <div data-kanban-column="doing" data-kanban-column-title="Doing">
+        <div data-kanban-card-id="c3">Code review</div>
+    </div>
+    <div data-kanban-column="done" data-kanban-column-title="Done">
+    </div>
+</lite-kanban>
+```
+
+The wrapper auto-discovers columns + cards from the markup. Adding a
+`data-kanban-column-title="..."` populates the `title` field of the
+auto-created column. Adding `html5-dnd` to the host enables built-in
+HTML5 drag-and-drop wiring (otherwise the wrapper only wires in-column
+sortable reorder).
+
+### Custom element host API
+
+```js
+host.columns             // ColumnDef[] (accessor)
+host.cards               // CardDef[] (accessor)
+host.cardsInColumn(id)
+host.getCard(id) / .getColumn(id)
+host.moveCard(cardId, toColumnId, toIndex, reason?)
+host.addCard(card) / .removeCard(id) / .updateCard(id, partial)
+host.addColumn(col) / .removeColumn(id)
+host._kanbanInstance     // raw primitive escape hatch
+```
+
+### Custom element events
+
+- `cardmove`  `{ detail: { cardId, fromColumnId, toColumnId, newIndex, reason } }`
+- `cardclick` `{ detail: { cardId } }`
+
+## Composition
+
+- **`lite-popover`**: click a card to open an edit popover.
+- **`lite-dialog`**: open a "new task" modal that calls
+  `host.addCard(...)` on submit.
+- **`lite-toast`**: feedback on card moves ("Moved to Done").
+- **`lite-skeleton`**: skeleton column while tasks load from server.
+- **`lite-inline-edit`**: edit a card title inline without opening a
+  modal.
+
+## Notes
+
+- The primitive does NOT pre-build any DOM. Consumers provide their own
+  column containers + card elements; the primitive paints attributes
+  and wires sortable.
+- In-column reorder is handled by sortable's pointer events (touch +
+  mouse). Keyboard pick-up (Space to grab, arrows to move, Space to
+  drop) is also provided by sortable.
+- Cross-column reorder via HTML5 DnD has known mobile limitations
+  (touch support is patchy across browsers). For touch-first apps,
+  build cross-column drag on top of `moveCard` with pointer events.
+- `removeColumn` removes the column AND all cards in it. To "archive"
+  cards instead, call `removeColumn` and then `addCard` to recreate
+  them in a different column.
+
+## CSS contract
+
+This primitive's painted attributes follow the canonical CSS contract
+in `docs/CSS_CONTRACT.md`. See that doc for the cross-primitive
+taxonomy (booleans like `data-open` / `data-disabled` / `data-loading`,
+enums like `data-status` / `data-side`, ARIA pairings, host accessor
+naming, and event naming).

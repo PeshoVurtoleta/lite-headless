@@ -1,0 +1,244 @@
+# @zakkster/lite-headless/pin-input
+
+PIN / OTP / one-time-code input. N input boxes with auto-advance,
+backspace-handles-empty, paste-distribution, and ARIA wiring. The primitive
+owns the value + which-box-is-active state; the consumer provides the
+markup (N input elements) and styles. Built for 2FA flows, payment PINs,
+and any short fixed-length code entry.
+
+## Quick example
+
+```js
+import { createPinInput } from "@zakkster/lite-headless/pin-input";
+
+const pin = createPinInput({
+    length: 6,
+    type: "numeric",
+    onComplete: (code) => {
+        verifyMfaCode(code).then(...);
+    },
+});
+
+pin.attachRoot(rootEl);
+for (let i = 0; i < 6; i++) {
+    pin.attachInput(inputEls[i], i);
+}
+```
+
+```html
+<div class="pin-group">
+    <input class="pin-box"> <input class="pin-box"> <input class="pin-box">
+    <input class="pin-box"> <input class="pin-box"> <input class="pin-box">
+</div>
+```
+
+The consumer styles `.pin-box` however they want — typically `width: 2.5rem; text-align: center; font-size: 1.5rem;` and an outline on `:focus`. Nothing about layout or sizing is owned by the primitive.
+
+## Behavior
+
+### Auto-advance
+
+Typing a valid character in box N writes it and moves focus to box N+1. The last box stays focused (so the user sees what they typed) and `onComplete` fires.
+
+### Backspace
+
+- Box has a value -> clear it, stay focused.
+- Box is empty -> move focus to previous box, clear that box too.
+- Backspace at empty box 0 is a no-op.
+
+This matches every native OTP UI and is what users expect; without it, "I typed a wrong digit" requires moving focus + backspacing separately.
+
+### Paste
+
+The killer feature for SMS OTP flows: the user gets `Your code is 123456` and copy-pastes the whole code. The primitive detects this:
+
+- If the pasted (filtered) text length === `length`, fill all boxes from index 0 regardless of where the paste happened. This is the common case.
+- Otherwise, insert at the current position, filling up to remaining capacity. Focus moves to the end of the inserted text.
+- Pasted text is filtered by the pattern: pasting "1-2-3-4-5-6" into a numeric pin gives "123456".
+
+### Pattern filtering
+
+By default `type: "numeric"` (a `/[0-9]/` predicate). Other built-ins: `"alphanumeric"` = `/[A-Za-z0-9]/`. Pass a `RegExp` for custom patterns:
+
+```js
+createPinInput({ length: 4, type: /[0-9A-F]/ })   // hex
+createPinInput({ length: 8, type: /[\u4e00-\u9fa5]/ })  // CJK
+```
+
+Invalid characters are silently dropped at the keystroke -- no flash of bad input, no rejection sound. The same filter applies to paste and `setValue`.
+
+### Keyboard
+
+- digit/char: write + auto-advance
+- Backspace: clear current OR clear previous + back
+- ArrowLeft / ArrowRight: navigate without writing
+- Home / End: first / last box
+- Enter: explicit submit (fires onComplete if complete)
+- Any char failing the pattern is blocked at keydown (preventDefault) so it never visibly appears in the input
+
+## Options
+
+| Option            | Default        | Notes                                            |
+| ----------------- | -------------- | ------------------------------------------------ |
+| `length`          | 6              | 1..16                                            |
+| `type`            | `"numeric"`    | `"numeric"` / `"alphanumeric"` / `RegExp`        |
+| `initialValue`    | `""`           | Filtered through `type` before being stored      |
+| `onChange`        | -              | `(value, isComplete) => void`                    |
+| `onComplete`      | -              | `(value) => void` — fires once per incomplete -> complete edge |
+| `onInvalidPaste`  | -              | `(rawText) => void` — fires when paste has no valid chars |
+| `inputAriaLabel`  | `(i, n) => "Digit N of N"` | Customize per-input aria-label    |
+| `ariaLabel`       | `"One-time code"` | Applied to the root group                     |
+
+## API
+
+```js
+pin.value()                          // string, 0..length chars
+pin.isComplete()                     // boolean
+pin.position()                       // 0..length-1, currently-active box
+
+pin.setValue(s)                      // filters by pattern; sets focus to end
+pin.setPosition(i)                   // move active pointer + focus
+pin.clear()                          // reset to ""
+pin.submit()                         // explicit; fires onComplete if complete
+pin.focusInput(i)
+
+pin.attachRoot(el)                   // -> off()
+pin.attachInput(inputEl, index)      // -> off()
+pin.destroy()
+```
+
+`attach*` returns an `off()` cleanup function that removes the wired attrs + listeners. Useful when the same primitive drives a re-rendered list of inputs.
+
+## ARIA contract
+
+Root:
+- `role="group"`
+- `aria-label="<ariaLabel>"` (default "One-time code")
+- `data-pin-root`
+- `data-pin-length="<N>"`
+- `data-pin-state="incomplete|complete"`
+- `data-pin-value-length="<K>"` (current filled count)
+
+Each input:
+- `data-pin-input`
+- `data-pin-index="<i>"`
+- `maxlength="1"`
+- `aria-label="Digit <i+1> of <N>"` (customizable via `inputAriaLabel`)
+- `inputmode="numeric"` when type is numeric
+- `autocomplete="one-time-code"` on input 0 ONLY (iOS Safari uses this to surface the SMS auto-fill prompt; multi-box layouts conventionally put it on just the first input and the OS distributes the autofilled code via paste-like behavior, which the primitive's paste handler catches)
+
+## Common patterns
+
+### MFA verify flow
+
+```js
+const pin = createPinInput({
+    length: 6,
+    onComplete: async (code) => {
+        statusEl.textContent = "Verifying…";
+        try {
+            await api.verifyMfa(code);
+            location.href = "/dashboard";
+        } catch (err) {
+            statusEl.textContent = "Wrong code, try again";
+            pin.clear();
+        }
+    },
+});
+```
+
+### Numeric PIN with masking
+
+The primitive doesn't mask values itself -- instead, apply CSS to the inputs to visually replace characters:
+
+```css
+.pin-box {
+    /* Show bullets for typed chars but keep the real value in the DOM */
+    -webkit-text-security: disc;
+    text-security: disc;
+}
+```
+
+Or use `type="password"` on the input element:
+
+```html
+<input class="pin-box" type="password">
+```
+
+The primitive's autocomplete + inputmode attrs are set on the `input` regardless of its DOM `type`, so screen readers + soft keyboards still get correct hints.
+
+### Custom hex pattern
+
+```js
+const hexPin = createPinInput({
+    length: 4,
+    type: /[0-9A-Fa-f]/,
+    ariaLabel: "Hex confirmation code",
+});
+```
+
+### Paste-only flow
+
+If the user shouldn't type but only paste (e.g. authenticator backup codes), use `aria-readonly` on inputs and disable the `input` listener via `attachInput`'s `off()` -- or, simpler, hide all but one input visually and let paste-fill distribute.
+
+## Element wrapper
+
+```html
+<lite-pin-input length="6" type="numeric" aria-label="2FA code">
+    <input data-pin-slot>
+    <input data-pin-slot>
+    <input data-pin-slot>
+    <input data-pin-slot>
+    <input data-pin-slot>
+    <input data-pin-slot>
+</lite-pin-input>
+```
+
+```js
+const pin = document.querySelector("lite-pin-input");
+pin.addEventListener("complete", (e) => {
+    console.log("code:", e.detail.value);
+});
+pin.addEventListener("change", (e) => {
+    progressBar.value = e.detail.value.length / 6;
+});
+```
+
+### Reactive attributes
+
+| Attribute    | Effect                                              |
+| ------------ | --------------------------------------------------- |
+| `length`     | 1..16 (default 6; read once on attach)              |
+| `type`       | "numeric" or "alphanumeric" (default "numeric")     |
+| `aria-label` | Root group label                                    |
+
+### Imperative API + events
+
+```js
+host.value           // string (getter)
+host.isComplete      // boolean (getter)
+host.position        // 0..length-1 (getter)
+host.setValue(s)
+host.clear()
+host.submit()
+host.focusInput(i)
+
+host.addEventListener("change",   (e) => /* e.detail = { value, isComplete } */);
+host.addEventListener("complete", (e) => /* e.detail = { value } */);
+```
+
+The wrapper auto-attaches any descendant carrying `data-pin-slot` (in document order, up to `length` slots). MutationObserver picks up dynamic templates (shadow DOM hydration, framework re-renders).
+
+## When NOT to use
+
+- **A single text input with `maxlength`** -- if you don't need separate boxes, just use one input. The primitive's value is its segmented UX + paste-distribution.
+- **Variable-length entry** -- this primitive enforces a fixed `length`. For variable-length codes, use a normal `<input>` with whatever pattern validation you need.
+- **A masked PIN keypad with non-input buttons** -- this primitive expects real `<input>` elements. For numeric-keypad UIs (10 buttons + entered-state display), build a different component.
+
+## CSS contract
+
+This primitive's painted attributes follow the canonical CSS contract
+in `docs/CSS_CONTRACT.md`. See that doc for the cross-primitive
+taxonomy (booleans like `data-open` / `data-disabled` / `data-loading`,
+enums like `data-status` / `data-side`, ARIA pairings, host accessor
+naming, and event naming).
