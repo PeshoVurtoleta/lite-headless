@@ -1,0 +1,201 @@
+# @zakkster/lite-headless/form-field
+
+Wrapper primitive that wires a label, control, helper text, and error
+message into a coherent ARIA pattern. Doesn't own the input value;
+that's the consumer's (or a paired primitive's). Owns:
+
+- validity state (valid + errorMessage)
+- required flag
+- touched flag (true once the control has been blurred; gates error
+  display by default)
+
+## API
+
+```js
+import { createFormField } from "@zakkster/lite-headless/form-field";
+
+const ff = createFormField({
+    defaultValid: true,
+    defaultErrorMessage: null,
+    defaultRequired: false,
+    showErrorsBeforeTouched: false,
+    onValidChange: (valid, errorMessage) => {},
+    onTouch: () => {},
+});
+```
+
+## Reactive accessors
+
+```js
+ff.valid()         // boolean
+ff.errorMessage()  // string | null
+ff.required()      // boolean
+ff.touched()       // boolean
+ff.showsError()    // boolean -- derived; true when invalid AND (touched OR showErrorsBeforeTouched)
+```
+
+## Mutations
+
+```js
+ff.setValid(true | false, errorMessage)
+ff.setRequired(true | false)
+ff.setTouched(true | false)
+ff.reset()
+```
+
+## Attach
+
+```js
+ff.attachRoot(el)           // paints data-invalid / data-required / data-touched / data-shows-error
+ff.attachLabel(el)          // wires label.for = control.id; paints data-required
+ff.attachControl(el)        // wires aria-invalid / aria-required / aria-describedby chain; blur->touched
+ff.attachHelperText(el)     // always in aria-describedby
+ff.attachErrorText(el)      // role=alert + aria-live=polite; textContent tracks errorMessage
+```
+
+Attach order doesn't matter -- the wrapper resolves the wiring when
+both pieces are present.
+
+## Painted attributes
+
+### Root (attachRoot)
+- `data-invalid`         (when !valid)
+- `data-required`        (when required)
+- `data-touched`         (when touched)
+- `data-shows-error`     (when showsError() is true)
+
+### Label (attachLabel)
+- `for="<control.id>"`
+- `data-required`
+
+### Control (attachControl)
+- `id="lh-ff-control-*"` (auto-assigned)
+- `aria-invalid="true|false"`
+- `aria-required="true|false"`
+- `aria-describedby="<helper.id> <error.id>?"` (error id only when shown)
+
+### Error text (attachErrorText)
+- `role="alert"`, `aria-live="polite"`
+- `data-hidden` (when !showsError; consumer CSS hides via `[data-hidden]`)
+
+## Custom element
+
+```html
+<lite-form-field required>
+    <label data-ff-label>Email</label>
+    <input data-ff-control type="email">
+    <p data-ff-helper>We won't share your email.</p>
+    <p data-ff-error></p>
+</lite-form-field>
+```
+
+### Host API
+
+```js
+host.valid             // accessor: boolean
+host.errorMessage      // accessor: string | null
+host.required          // accessor: boolean
+host.touched           // accessor: boolean
+host.setValid(v, msg) / .setRequired(r) / .setTouched(t) / .reset()
+host._formFieldInstance
+```
+
+### Host attributes
+- `required`                     -- mirrors setRequired(true)
+- `invalid`                       -- mirrors setValid(false)
+- `error="<message>"`             -- mirrors setValid(false, "<message>")
+- `show-errors-immediately`       -- bypass the touched gate
+
+### Custom element events
+- `validchange` `{ detail: { valid, errorMessage } }`
+- `touch`
+
+## Composition
+
+Use with any input-bearing primitive:
+
+```js
+const ff = createFormField({ defaultRequired: true });
+const combobox = createCombobox({ defaultValue: null });
+ff.attachControl(triggerEl);
+combobox.attachTrigger(triggerEl);
+
+effect(() => {
+    const v = combobox.value();
+    if (!v) ff.setValid(false, "Selection required");
+    else    ff.setValid(true);
+});
+```
+
+## Pairing with `@zakkster/lite-form` (recommended)
+
+`form-field` handles **ARIA wiring only**: label.for, control.id,
+aria-describedby chain, aria-invalid, touched gate. It does NOT own
+the input value, run validators, track dirty state, or coordinate
+submit. For all of that, pair with [`@zakkster/lite-form`][lf]
+&mdash; the canonical state engine in the @zakkster family.
+
+```js
+import { createForm }      from "@zakkster/lite-form";
+import { createFormField } from "@zakkster/lite-headless/form-field";
+import { effect }          from "@zakkster/lite-signal";
+
+const form = createForm({
+    initialValues: { email: "" },
+    validators: {
+        email: (v) => /.+@.+\..+/.test(v) ? null : "Not a valid email",
+    },
+    validateOn: "blur",
+});
+
+const ff = createFormField({ defaultRequired: true });
+ff.attachRoot(rootEl);
+ff.attachLabel(labelEl);
+ff.attachControl(inputEl);
+ff.attachHelperText(helperEl);
+ff.attachErrorText(errorEl);
+
+// Bridge: form-field reads lite-form's reactive state, lite-form
+// owns the value. Each is fine-grained -- typing one field runs
+// exactly one validator, then exactly one ARIA paint.
+const field = form.field("email");
+inputEl.value = field.value();
+inputEl.addEventListener("input", (e) => field.set(e.target.value));
+inputEl.addEventListener("blur",  () => field.blur());
+
+effect(() => {
+    const err = field.error();    // null until "show" gate opens
+    ff.setValid(err == null, err);
+});
+effect(() => { ff.setTouched(field.touched()); });
+```
+
+The split exists because the two concerns scale independently:
+`lite-form` can drive a 100-field form with ~1.5M keystrokes/sec
+benchmarked; `form-field` knows nothing about values and never
+re-runs. Validation pipeline lives in `lite-form`; DOM ARIA lives
+in `form-field`; consumers wire them together via a few `effect()`
+bridges.
+
+[lf]: https://www.npmjs.com/package/@zakkster/lite-form
+
+## Notes
+
+- The blur listener on the control auto-marks the field as touched on
+  the first blur. Consumers can also call `setTouched(true)` directly
+  (useful for "submit attempted" flows where all fields should be
+  marked touched at once).
+- Errors are hidden by default until touched -- this is the standard
+  UX pattern (don't yell at users before they've interacted). Override
+  with `showErrorsBeforeTouched: true` if your form should show errors
+  immediately (e.g. server-side validation results).
+- The primitive does NOT block submit on its own. Validation logic
+  lives in the consumer; the primitive only manages the display state.
+
+## CSS contract
+
+This primitive's painted attributes follow the canonical CSS contract
+in `docs/CSS_CONTRACT.md`. See that doc for the cross-primitive
+taxonomy (booleans like `data-open` / `data-disabled` / `data-loading`,
+enums like `data-status` / `data-side`, ARIA pairings, host accessor
+naming, and event naming).

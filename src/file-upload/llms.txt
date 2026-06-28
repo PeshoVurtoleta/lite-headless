@@ -1,0 +1,294 @@
+# @zakkster/lite-headless/file-upload
+
+Client-side file upload coordinator. Manages a list of FileEntry records, tracks per-file upload status, exposes progress signals per file + aggregate, and wires drag-drop + file-input + per-file abort. Composes cleanly with `@zakkster/lite-headless/progress` -- mount one progress bar per FileEntry, bound to `entry.progress`.
+
+## Quick example
+
+```js
+import { createFileUpload } from "@zakkster/lite-headless/file-upload";
+
+const fu = createFileUpload({
+    accept: "image/*,.pdf",
+    maxSize: 10 * 1024 * 1024,        // 10 MB
+    onUpload: async (entry, { signal, onProgress }) => {
+        const xhr = new XMLHttpRequest();
+        return new Promise((resolve, reject) => {
+            xhr.upload.addEventListener("progress", (e) => {
+                if (e.lengthComputable) onProgress(e.loaded);
+            });
+            xhr.onload  = () => xhr.status < 400 ? resolve() : reject(new Error("HTTP " + xhr.status));
+            xhr.onerror = () => reject(new Error("network error"));
+            signal.addEventListener("abort", () => xhr.abort());
+            xhr.open("POST", "/upload");
+            xhr.send(entry.file);
+        });
+    },
+});
+
+fu.attachDropZone(dropZoneEl);
+fu.attachInput(fileInputEl);
+```
+
+The primitive does **not** do the network -- you provide `onUpload(entry, { signal, onProgress })`. It can be XHR, `fetch`, S3 presigned, Tus resumable, whatever. The primitive owns the queue + lifecycle + abort plumbing.
+
+## Behavior
+
+### Lifecycle
+
+```
+addFiles -> validate -> queued -> uploading -> done
+                          |             |    \-> error  (with .error set)
+                          |             \-> aborted   (no error)
+                          \-> removed (clear / removeEntry mid-flight)
+```
+
+`autoUpload: true` (default) starts each accepted file immediately. With `autoUpload: false` files sit in `"queued"` until `uploadAll()` (or per-entry start, which isn't exposed -- use uploadAll).
+
+### Validation pipeline (per file added)
+
+1. `maxFiles` cap on total queued count.
+2. `maxSize` on `file.size`.
+3. `accept` -- matches by:
+   - `"image/*"` -> `file.type.startsWith("image/")`
+   - `".pdf"`    -> case-insensitive name `endsWith(".pdf")`
+   - `"application/json"` -> exact MIME match
+   Multiple values separated by commas.
+4. `validate(file)` if provided. Return `false` or a non-empty string to reject; the string is forwarded as the rejection reason.
+
+Each rejection fires `onInvalid(file, reason)` with one of: `"max-files"`, `"max-size"`, `"accept"`, `"validate"`, `"multiple-disabled"`, or your custom string.
+
+### Drag-drop
+
+`attachDropZone(el)` wires `dragenter` / `dragover` / `dragleave` / `drop` with proper `preventDefault` so the browser doesn't open the file. While dragging, the element gets `data-drag-over="true"` reactively (clears on leave or drop). Use that to style the hover state:
+
+```css
+[data-drop-zone] {
+    border: 2px dashed var(--line);
+    transition: border-color 120ms, background 120ms;
+}
+[data-drop-zone][data-drag-over="true"] {
+    border-color: var(--accent);
+    background: var(--accent-tint);
+}
+```
+
+`dragleave` correctly distinguishes "leaving the zone" vs "moving over a child element" by checking `relatedTarget` containment.
+
+### Per-file abort
+
+Each FileEntry has its own `AbortController` (where available). `fu.abort(id)` calls `controller.abort()`, your `onUpload` driver's signal listener fires, and the entry transitions to `"aborted"` (no `onError` -- abort is intentional). If you `removeEntry(id)` while uploading, the entry is aborted as a side effect.
+
+### Retry
+
+`fu.retry(id)` re-queues an `"error"` or `"aborted"` entry: fresh AbortController, `bytesLoaded` reset to 0, status -> `"queued"`. If `autoUpload`, it starts immediately.
+
+## API
+
+```js
+fu.entries()                  // readonly FileEntry[]
+fu.isDragOver()               // boolean (drop zone hovered)
+fu.totalProgress()            // 0..1 aggregate across non-aborted entries
+fu.pendingCount()             // count of queued + uploading
+
+fu.addFiles(fileList)         // -> accepted entries (validated first)
+fu.removeEntry(id)            // -> boolean (aborts if uploading)
+fu.retry(id)                  // -> boolean
+fu.abort(id)                  // -> boolean (only while uploading)
+fu.clear()                    // remove all, abort in-flight
+fu.uploadAll()                // start all queued entries
+
+fu.attachDropZone(el)         // -> off()
+fu.attachInput(inputEl)       // -> off()
+fu.destroy()
+```
+
+### FileEntry shape
+
+```ts
+{
+    id:           string,          // unique
+    file:         File,
+    status:       "queued" | "uploading" | "done" | "error" | "aborted",
+    progress:     Computed<number>,  // 0..1 (derived from bytesLoaded / bytesTotal)
+    bytesLoaded:  Signal<number>,    // your onUpload writes here via onProgress(n)
+    bytesTotal:   number,            // file.size
+    error:        Error | null,
+    _ctrl:        AbortController,
+}
+```
+
+The reactive surfaces (`progress`, `bytesLoaded`) are real lite-signal handles -- pass them to `mountProgress(el, entry.progress)` from `@zakkster/lite-headless/progress` and you get an animated bar per file with no extra wiring.
+
+## Composition with `@zakkster/lite-headless/progress`
+
+```js
+import { createFileUpload } from "@zakkster/lite-headless/file-upload";
+import { effect } from "@zakkster/lite-signal";
+import "@zakkster/lite-headless/progress/element";
+
+const fu = createFileUpload({ onUpload: drive });
+
+// Render rows + bind per-row progress
+const _bars = new Map();    // entryId -> { bar, stop }
+effect(() => {
+    const entries = fu.entries();
+    const seen = new Set();
+    // Ensure every entry has a row + a <lite-progress> bound to its progress signal
+    for (const entry of entries) {
+        seen.add(entry.id);
+        if (_bars.has(entry.id)) continue;
+        const row = document.createElement("li");
+        row.innerHTML = `<span>${entry.file.name}</span>`;
+        const bar = document.createElement("lite-progress");
+        bar.setAttribute("variant", "linear");
+        bar.setAttribute("max", "100");
+        row.appendChild(bar);
+        rowsEl.appendChild(row);
+        const stop = effect(() => {
+            const pct = Math.round(entry.progress() * 100);
+            if (bar.setValue) bar.setValue(pct);
+        });
+        _bars.set(entry.id, { row, bar, stop });
+    }
+    // Tear down rows for entries that no longer exist
+    for (const id of _bars.keys()) {
+        if (seen.has(id)) continue;
+        const rec = _bars.get(id);
+        rec.stop();
+        rec.row.remove();
+        _bars.delete(id);
+    }
+});
+```
+
+Or, simpler, use the `<lite-file-upload>` wrapper, which paints rows + status reactively and adds a `[data-file-progress-host]` slot per row where you can mount your progress UI with the same effect pattern (just bind to each entry's `.progress` accessor).
+
+## Options
+
+| Option         | Default       | Notes                                                  |
+| -------------- | ------------- | ------------------------------------------------------ |
+| `accept`       | `""`          | mime / extension list (`"image/*,.pdf"`)               |
+| `multiple`     | `true`        |                                                        |
+| `maxFiles`     | `Infinity`    |                                                        |
+| `maxSize`      | `Infinity`    | per file, bytes                                        |
+| `validate`     | -             | `(file) => boolean \| string`                          |
+| `autoUpload`   | `true`        |                                                        |
+| `onUpload`     | -             | `(entry, ctx) => Promise<void>` -- ctx: signal, onProgress |
+| `onFilesAdded` | -             | `(entries) => void`                                    |
+| `onProgress`   | -             | `(entry) => void`                                      |
+| `onComplete`   | -             | `(entry) => void`                                      |
+| `onError`      | -             | `(entry, err) => void`                                 |
+| `onInvalid`    | -             | `(file, reason) => void`                               |
+| `onAllDone`    | -             | `() => void` -- after every queued+uploading transitions to done/error |
+
+## Element wrapper
+
+```html
+<lite-file-upload accept="image/*,.pdf" multiple max-size="10485760">
+    <div data-drop-zone>
+        Drop files here, or
+        <button data-file-pick>browse</button>
+    </div>
+    <ul data-file-list></ul>
+    <input data-file-input type="file" hidden>
+</lite-file-upload>
+```
+
+The wrapper:
+- Auto-attaches `[data-drop-zone]` (or the host itself) as the drop target
+- Auto-attaches `[data-file-input]` as the file picker; clicking `[data-file-pick]` triggers it
+- Renders one `<li data-file-row>` per entry into `[data-file-list]` with status text, X-remove button, and Retry button (visible only on error/aborted). Each row has a `[data-file-progress-host]` slot where you can mount your own progress bar.
+
+The wrapper ships with a **default demo driver** that simulates a 1.5-second upload with linear progress (useful for the demo + offline testing). To use a real driver, set `host.onUpload = async (entry, ctx) => { ... }` **before** the element upgrades (e.g. in a script that runs before `customElements` definition resolves, or use the imperative `createFileUpload` directly).
+
+### Attributes
+
+| Attribute        | Effect                                |
+| ---------------- | ------------------------------------- |
+| `accept`         | passed through                        |
+| `multiple`       | present = true                        |
+| `max-files`      | parsed as integer                     |
+| `max-size`       | bytes, parsed as integer              |
+| `auto-upload`    | `"false"` disables                    |
+
+### Imperative API + events
+
+```js
+host.entries        // FileEntry[] (getter)
+host.isDragOver     // boolean (getter)
+host.totalProgress  // 0..1 (getter)
+host.pendingCount   // number (getter)
+host.addFiles(fl)
+host.removeEntry(id)
+host.retry(id)
+host.clear()
+host.abort(id)
+host.uploadAll()
+
+host.addEventListener("change",      (e) => /* e.detail = { entries } */);
+host.addEventListener("filesadded",  (e) => /* e.detail = { entries } */);
+host.addEventListener("progress",    (e) => /* e.detail = { entry } */);
+host.addEventListener("complete",    (e) => /* e.detail = { entry } */);
+host.addEventListener("uploaderror", (e) => /* e.detail = { entry, error } */);
+host.addEventListener("invalid",     (e) => /* e.detail = { file, reason } */);
+host.addEventListener("alldone",     () => {});
+```
+
+## Common patterns
+
+### Image uploads only, 5 MB cap, with retry UI
+
+```js
+const fu = createFileUpload({
+    accept: "image/*",
+    maxSize: 5 * 1024 * 1024,
+    maxFiles: 10,
+    onUpload: async (entry, { signal, onProgress }) => {
+        // Your real upload driver
+    },
+});
+```
+
+### Form-style queue (no auto-upload)
+
+```js
+const fu = createFileUpload({
+    autoUpload: false,
+    onUpload: async (entry) => { /* runs on Submit only */ },
+});
+
+submitBtn.addEventListener("click", async () => {
+    fu.uploadAll();
+});
+```
+
+### Client-side preview (no network)
+
+```js
+const fu = createFileUpload({});       // no onUpload -- files stay queued
+fu.attachInput(input);
+effect(() => {
+    previewEl.innerHTML = "";
+    fu.entries().forEach((e) => {
+        if (e.file.type.startsWith("image/")) {
+            const img = document.createElement("img");
+            img.src = URL.createObjectURL(e.file);
+            previewEl.appendChild(img);
+        }
+    });
+});
+```
+
+## When NOT to use
+
+- **Single-file form `<input type=file>` with no preview/progress UI**: just use the input directly. The primitive is for queue + progress + drag-drop UX.
+- **Resumable/chunked upload protocols (Tus, S3 multipart)**: bring those in via your `onUpload` driver -- the primitive doesn't care about chunking, it cares about the per-entry lifecycle. Update `bytesLoaded` as you finish chunks and you get aggregate progress for free.
+- **Server-side processing pipelines**: this is pure client coordinator. Anything past `POST /upload` is your responsibility.
+
+## CSS contract
+
+This primitive's painted attributes follow the canonical CSS contract
+in `docs/CSS_CONTRACT.md`. See that doc for the cross-primitive
+taxonomy (booleans like `data-open` / `data-disabled` / `data-loading`,
+enums like `data-status` / `data-side`, ARIA pairings, host accessor
+naming, and event naming).

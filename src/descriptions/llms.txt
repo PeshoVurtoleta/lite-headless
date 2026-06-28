@@ -1,0 +1,118 @@
+# @zakkster/lite-headless / descriptions
+
+Key-value layout for admin detail views. Each item has a label + value;
+items are arranged in a grid of 1–4 columns. Optionally bordered.
+
+This is primarily a layout + ARIA primitive. The visual styling
+(borders, padding, separator lines) is consumer-driven via CSS.
+
+## Quick example
+
+```js
+import { createDescriptions } from "@zakkster/lite-headless/descriptions";
+
+const d = createDescriptions({
+    columns: 3,
+    bordered: true,
+});
+d.attachRoot(rootEl);
+d.attachItem(item1);   // each item has a [data-desc-label] + [data-desc-value]
+d.attachItem(item2);
+```
+
+## Options
+
+| Option | Default | Notes |
+|---|---|---|
+| `columns` | `1` | Grid column count (1–4) |
+| `bordered` | `false` | Paints `data-bordered` for CSS borders |
+
+## API
+
+```ts
+{
+    columns: number      // readonly
+    bordered: boolean    // readonly
+
+    attachRoot(el): off
+    attachItem(el): off
+
+    destroy(): void
+}
+```
+
+## Painted attributes
+
+### Root (`[data-descriptions-root]`)
+
+- `data-columns="<1|2|3|4>"`
+- `data-bordered` — boolean, when `bordered: true`
+
+### Items (`[data-desc-item]`)
+
+- `role="group"` (only if not pre-set)
+
+### Label + Value (consumer-authored slots)
+
+- `[data-desc-label]` — gets an auto-generated `id`
+- `[data-desc-value]` — gets `aria-labelledby="<label-id>"` for SR association
+
+## Wrapper (`<lite-descriptions>`)
+
+```html
+<lite-descriptions columns="3" bordered>
+    <div data-desc-item>
+        <div data-desc-label>Username</div>
+        <div data-desc-value>alice_dev</div>
+    </div>
+    <div data-desc-item>
+        <div data-desc-label>Email</div>
+        <div data-desc-value>alice@example.com</div>
+    </div>
+    <div data-desc-item>
+        <div data-desc-label>Role</div>
+        <div data-desc-value><lite-tag intent="primary">Admin</lite-tag></div>
+    </div>
+    <div data-desc-item>
+        <div data-desc-label>Status</div>
+        <div data-desc-value><lite-tag intent="success">Active</lite-tag></div>
+    </div>
+    <div data-desc-item>
+        <div data-desc-label>Last login</div>
+        <div data-desc-value>2 hours ago</div>
+    </div>
+    <div data-desc-item>
+        <div data-desc-label>Member since</div>
+        <div data-desc-value>March 2024</div>
+    </div>
+</lite-descriptions>
+```
+
+Attributes: `columns="1|2|3|4"`, `bordered`.
+
+## CSS contract
+
+```css
+[data-descriptions-root] {
+    display: grid;
+    gap: 1px;
+    background: var(--border-color);   /* shows through gap when bordered */
+}
+[data-descriptions-root][data-columns="1"] { grid-template-columns: 1fr; }
+[data-descriptions-root][data-columns="2"] { grid-template-columns: 1fr 1fr; }
+[data-descriptions-root][data-columns="3"] { grid-template-columns: 1fr 1fr 1fr; }
+[data-descriptions-root][data-columns="4"] { grid-template-columns: 1fr 1fr 1fr 1fr; }
+
+[data-desc-item] {
+    background: var(--surface);
+    padding: 12px 16px;
+    display: flex; flex-direction: column; gap: 4px;
+}
+[data-desc-label] { font-size: 11px; opacity: 0.65; }
+[data-desc-value] { font-size: 13px; }
+
+/* Bordered: rely on the gap+background trick OR explicit borders */
+[data-descriptions-root]:not([data-bordered]) {
+    background: transparent;
+}
+```

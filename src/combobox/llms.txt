@@ -1,0 +1,98 @@
+# @zakkster/lite-headless/combobox
+
+createCombobox(options) -> ComboboxHandle
+
+Single-select listbox-style combobox. Focus stays on the trigger; the listbox
+uses the aria-activedescendant pattern (the trigger's aria-activedescendant
+attribute names the highlighted item's id).
+
+## Options
+
+- open: WriteSignal<boolean>            -- external controlled mode
+- defaultOpen: boolean = false
+- onOpenChange(next, reason)            -- reason: 'trigger'|'api'|'escape'|'outside'|'select'|'tab'
+
+- value: WriteSignal<any>               -- external controlled value
+- defaultValue: any = null
+- onValueChange(next, reason)           -- reason: 'select'|'api'
+
+- placement: string = 'bottom-start'    -- 12 placements; same as popover
+- offset: number = 4
+- flip: boolean = true
+- shift: boolean = true
+- boundary: 'clipping'|'viewport'|HTMLElement = 'clipping'
+
+- typeahead: boolean = true
+- typeaheadTimeout: number = 500        -- ms before typeahead buffer resets
+- loop: boolean = true                   -- ArrowDown at end wraps to start
+- autoFocus: 'first'|'selected'|'none' = 'first'
+- closeOnSelect: boolean = true
+- closeOnEscape: boolean = true
+- closeOnOutsideClick: boolean = true
+
+- container: HTMLElement|null = document.body
+- transition: boolean = false
+
+## Returned
+
+{
+    open: ReadSignal<boolean>,
+    status: ReadSignal<'closed'|'opening'|'open'|'closing'|'closed'>,
+    setOpen(value, reason),
+    toggle(),
+    value(): currentValue,
+    setValue(value, reason),
+    attachTrigger(buttonEl),
+    attachListbox(ulEl),
+    attachItem(liEl, { value, label }),
+    attachInside(el)                    -- mark external control as "inside" for outside-click
+    destroy(),
+    destroyed
+}
+
+## Keyboard model
+
+trigger has focus throughout. When OPEN:
+  ArrowDown / ArrowUp         move highlight (loops by default)
+  Home / End                  jump to first / last
+  Enter / Space               select highlighted, close (if closeOnSelect)
+  Escape                      close without selecting
+  Tab                         close (lets normal tab flow continue)
+  <printable char>            typeahead (same-char cycles, mixed accumulates)
+
+When CLOSED:
+  ArrowDown / ArrowUp / Enter / Space    open
+  <printable char>                       open + typeahead
+
+## Slot conventions (for <lite-combobox>)
+
+- [data-trigger]              -- the button (gets aria-haspopup="listbox")
+- [data-listbox]              -- the ul/ol (gets role="listbox")
+- [data-item][data-value="…"] -- each option (gets role="option", aria-selected)
+
+## <lite-combobox> attributes
+
+- open, value                 -- reactive, reflected
+- placement, offset           -- positioning
+- no-flip, no-shift           -- disable flip/shift
+- no-loop                     -- disable wrap-around in arrow nav
+- no-typeahead                -- disable typeahead
+- auto-focus                  -- 'first' | 'selected' | 'none'
+- no-close-on-select          -- keep listbox open after selection
+- no-escape, no-outside       -- disable dismissal sources
+- container, transition       -- same as dialog/popover
+
+## States exposed on items
+
+- aria-selected: 'true' when value matches; 'false' otherwise
+- data-selected: present when value matches (for CSS hooks)
+- data-highlighted: present on the keyboard-highlighted item
+- aria-activedescendant on trigger: the highlighted item's id
+
+## CSS contract
+
+This primitive's painted attributes follow the canonical CSS contract
+in `docs/CSS_CONTRACT.md`. See that doc for the cross-primitive
+taxonomy (booleans like `data-open` / `data-disabled` / `data-loading`,
+enums like `data-status` / `data-side`, ARIA pairings, host accessor
+naming, and event naming).

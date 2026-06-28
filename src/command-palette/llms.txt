@@ -1,0 +1,300 @@
+# @zakkster/lite-headless/command-palette
+
+Headless command palette: a registry of invocable commands with
+fuzzy filtering, ARIA combobox keyboard nav, and a global Cmd+K /
+Ctrl+K binding to toggle visibility. Designed to **compose with
+a dialog** — the palette doesn't duplicate modal / focus-trap
+work; the consumer wires the open/close events to their dialog
+primitive.
+
+## Quick example
+
+```js
+import { createCommandPalette } from "@zakkster/lite-headless/command-palette";
+import { createDialog }         from "@zakkster/lite-headless/dialog";
+
+const dialog  = createDialog({ modal: true });
+const palette = createCommandPalette({
+    triggerKey: { key: "k", meta: true },   // Cmd+K / Ctrl+K
+    onOpen:     () => dialog.open(),
+    onClose:    () => dialog.close(),
+});
+
+palette.attachInput(document.getElementById("cmd-input"));
+palette.attachList (document.getElementById("cmd-list"));
+palette.attachEmpty(document.getElementById("cmd-empty"));
+
+palette.register([
+    { id: "save",  label: "Save",  keywords: ["write"], onSelect: () => save() },
+    { id: "open",  label: "Open",                       onSelect: () => openFile() },
+    { id: "find",  label: "Find",  keywords: ["search"],onSelect: () => find() },
+]);
+
+// Render results into the list when they change
+palette.results();  // -> [{ id, cmd, score, matches }, ...]
+```
+
+## Options
+
+| Option            | Default               | Notes                                                       |
+| ----------------- | --------------------- | ----------------------------------------------------------- |
+| `triggerKey`      | `{key:"k",meta:true}` | Global keybind. `meta:true` matches Cmd OR Ctrl             |
+| `fuzzy`           | `true`                | enable fuzzy (non-contiguous) matching as last-resort tier  |
+| `maxResults`      | `50`                  | cap the result list                                         |
+| `recentBoost`     | `5`                   | score bonus for recently-invoked commands (within tier)     |
+| `rememberRecent`  | `true`                | track invoke history                                         |
+| `recentLimit`     | `10`                  | how many recent commands to remember                         |
+| `invokeOnSelect`  | `true`                | call `cmd.onSelect` on Enter / click                         |
+| `onSelect`        | -                     | `(cmd, source) => ?`                                         |
+| `onOpen`          | -                     | `(reason) => ?`                                              |
+| `onClose`         | -                     | `(reason) => ?`                                              |
+| `onOpenChange`    | -                     | `(isOpen, reason) => ?`                                      |
+| `onQueryChange`   | -                     | `(query) => ?`                                               |
+| `onResultsChange` | -                     | `(results) => ?` — fires whenever the filtered list changes |
+| `onActiveIndexChange` | -                 | `(index) => ?`                                               |
+
+`source` values for invoke: `"click"`, `"keyboard"`, `"invoke"` (default).
+`reason` values for open/close: `"keybind"`, `"toggle"`, `"escape"`, `"invoke"`, `"imperative"`.
+
+## Composition with dialog
+
+The palette is INTENTIONALLY not a modal. It owns the command
+registry, filtering, keyboard nav, and ARIA combobox wiring. The
+modal concerns (backdrop, focus trap, scroll lock) belong to the
+dialog primitive. Consumers compose:
+
+```js
+palette.onOpen  = () => dialog.open();   // or use onOpenChange
+palette.onClose = () => dialog.close();
+dialog.onClose  = () => palette.close(); // bidirectional sync
+```
+
+Or via the element wrappers, using events:
+
+```html
+<lite-dialog id="dlg" modal>
+    <lite-command-palette id="palette">
+        <input data-cmd-input placeholder="Type a command...">
+        <ul data-cmd-list></ul>
+        <div data-cmd-empty>No commands found</div>
+    </lite-command-palette>
+</lite-dialog>
+
+<script>
+    const palette = document.getElementById("palette");
+    const dialog  = document.getElementById("dlg");
+    palette.addEventListener("openchange", e => {
+        if (e.detail.open) dialog.open();
+        else               dialog.close();
+    });
+    dialog.addEventListener("closechange", e => {
+        if (!e.detail.open) palette.close();
+    });
+</script>
+```
+
+## Command shape
+
+```js
+{
+    id:        "save",                         // required, unique
+    label:     "Save",                         // required, what users see
+    keywords?: ["write", "persist"],           // alt search terms
+    group?:    "File",                         // category label (consumer-rendered)
+    disabled?: false,                          // hide if true
+    when?:     () => context.isInEditor,       // dynamic filter
+    onSelect?: (cmd, source) => save(),        // invoked on Enter / click
+    // any other custom fields (icon, shortcut, ...) are preserved
+    // for the consumer to read off result.cmd in onResultsChange
+}
+```
+
+`when()` is re-evaluated **only** when `palette.refresh()` is called
+or when query changes. After mutating external context (e.g.,
+focusing a different region of your app), call `palette.refresh()`
+to update the filtered list.
+
+## Scoring tiers
+
+The palette ranks each registered command against the query and
+returns matches sorted by score (descending). Insertion order
+breaks ties. Scoring tiers (highest first):
+
+| Tier              | Score range | Example (query: `"save"`)                          |
+| ----------------- | ----------- | -------------------------------------------------- |
+| Exact label match | 100         | `"save"` matches `"Save"`                          |
+| Prefix match      | 95          | `"save"` matches `"Save As..."`                    |
+| Start-of-word     | 80-89       | `"save"` matches `"Auto Save"` at idx 5            |
+| Substring         | 50-65       | `"save"` matches `"Unsaved doc"` at idx 2          |
+| Keyword           | 45          | `"write"` matches a command with keyword `"write"` |
+| Fuzzy             | 20-30       | `"ocl"` matches `"Open Command Line"`              |
+
+Within a tier, earlier match position scores slightly higher
+(`startOfWordMatch` at idx 2 beats `startOfWordMatch` at idx 10).
+
+`recentBoost` adds up to 5 points to recently-invoked commands.
+Because the boost is small relative to tier gaps (95 → 50 is 45
+points), recents rise within their tier but don't escalate above
+higher tiers. Exact matches always win.
+
+Match positions (the character spans that matched) are returned
+with each result so the consumer can render highlighted spans:
+
+```js
+palette.addEventListener("resultschange", (e) => {
+    list.innerHTML = "";
+    for (let i = 0; i < e.detail.results.length; i++) {
+        const r = e.detail.results[i];
+        const li = document.createElement("li");
+        li.innerHTML = highlight(r.cmd.label, r.matches);  // <b>...</b> ranges
+        list.appendChild(li);
+        palette.markItem(li, r.id, i);    // <-- IMPORTANT: register for click + active state
+    }
+});
+```
+
+## Attachment methods
+
+| Method                | Notes                                                              |
+| --------------------- | ------------------------------------------------------------------ |
+| `attachInput(el)`     | role=combobox, aria-expanded follows open state, aria-controls=list |
+| `attachList(el)`      | role=listbox; delegates click + hover                              |
+| `attachEmpty(el)`     | toggles `[hidden]` based on result count                            |
+| `markItem(el, id, i)` | wrapper helper — call for each rendered <li>; sets role=option, etc |
+
+## Imperative API
+
+```js
+palette.register(cmd)              // single command
+palette.register([cmd1, cmd2, ...]) // bulk
+palette.unregister(id)
+palette.clear()
+palette.refresh()                  // re-evaluate when() filters
+
+palette.open(reason?)
+palette.close(reason?)
+palette.toggle(reason?)
+
+palette.setQuery(q)
+palette.invoke(id, source?)
+palette.invokeActive(source?)
+palette.setActive(idx)
+palette.next() / palette.prev()
+
+// reactive accessors
+palette.isOpen()
+palette.query()
+palette.results()                  // current filtered + ranked
+palette.activeIndex()
+palette.commands()
+
+palette.destroy()
+```
+
+## Keyboard
+
+On the input (when focused):
+
+| Key                | Action                                  |
+| ------------------ | --------------------------------------- |
+| ArrowDown / Ctrl+J / Ctrl+N | next result (wraps)            |
+| ArrowUp / Ctrl+K / Ctrl+P   | prev result (wraps)            |
+| Home               | first result                            |
+| End                | last result                             |
+| Enter              | invoke active                           |
+| Escape             | close                                   |
+| Cmd+K (or trigger) | close (toggling out)                    |
+
+Global (anywhere on the page):
+
+| Key                | Action                                  |
+| ------------------ | --------------------------------------- |
+| triggerKey         | toggle palette open/closed              |
+
+The global keybind is INPUT-CONTEXT AWARE — pressing Cmd+K while
+focus is in another `<input>`, `<textarea>`, `<select>`, or
+contenteditable does NOT open the palette. (Exception: the
+palette's own input gets the keybind because it's already the
+target. That's how Cmd+K can close the palette while you're
+typing in it.)
+
+To disable the global keybind, pass `triggerKey: null` (or attribute
+`trigger-key="none"` on the wrapper).
+
+## Custom element wrapper
+
+```html
+<lite-command-palette trigger-key="Cmd+K" max-results="50">
+    <input data-cmd-input placeholder="Type a command..." />
+    <ul   data-cmd-list></ul>
+    <div  data-cmd-empty>No commands found</div>
+</lite-command-palette>
+
+<script type="module">
+    import "@zakkster/lite-headless/command-palette/element";
+
+    const palette = document.querySelector("lite-command-palette");
+
+    palette.register([
+        { id: "save",    label: "Save",    keywords: ["write"], onSelect: save },
+        { id: "open",    label: "Open",                         onSelect: openFile },
+        { id: "find",    label: "Find",    keywords: ["search"], onSelect: find },
+        { id: "format",  label: "Format Document", group: "Edit", onSelect: format },
+    ]);
+
+    // render results as they change
+    const list = palette.querySelector("[data-cmd-list]");
+    palette.addEventListener("resultschange", (e) => {
+        list.innerHTML = "";
+        e.detail.results.forEach((r, i) => {
+            const li = document.createElement("li");
+            li.textContent = r.cmd.label;
+            list.appendChild(li);
+            palette.markItem(li, r.id, i);
+        });
+    });
+
+    // initial paint
+    palette.dispatchEvent(new CustomEvent("resultschange", { detail: { results: palette.results } }));
+</script>
+```
+
+### Attributes
+
+| Attribute       | Effect                                                              |
+| --------------- | ------------------------------------------------------------------- |
+| `trigger-key`   | `"Cmd+K"` (default), `"Ctrl+/"`, `"Cmd+Shift+P"`, `"none"`, or JSON  |
+| `max-results`   | numeric cap (default 50)                                            |
+| `no-fuzzy`      | disable fuzzy tier (presence)                                       |
+| `no-recent`     | disable recent-boost (presence)                                     |
+| `recent-limit`  | how many recent commands to track (default 10)                      |
+
+### Dispatched events
+
+- `openchange`    — `{ detail: { open, reason } }`
+- `select`        — `{ detail: { command, source } }`
+- `querychange`   — `{ detail: { query } }`
+- `resultschange` — `{ detail: { results } }`
+- `activeindexchange` — `{ detail: { index } }`
+
+## When NOT to use
+
+- **Form select / autocomplete** — use the `combobox` primitive,
+  which is designed for picking a single value into a form field.
+- **Single-trigger menu** — use the `menu` primitive (right-click
+  menus, dropdown menus from a button).
+- **Just a fuzzy filter input** — if you don't need invocation,
+  global keybinding, or recent-boost, a plain `<input>` + filtered
+  list will do.
+
+The command palette is specifically for: **a global, searchable
+registry of INVOCABLE actions accessed via a keyboard shortcut**.
+That's the niche.
+
+## CSS contract
+
+This primitive's painted attributes follow the canonical CSS contract
+in `docs/CSS_CONTRACT.md`. See that doc for the cross-primitive
+taxonomy (booleans like `data-open` / `data-disabled` / `data-loading`,
+enums like `data-status` / `data-side`, ARIA pairings, host accessor
+naming, and event naming).

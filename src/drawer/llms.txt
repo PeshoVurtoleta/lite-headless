@@ -1,0 +1,155 @@
+# @zakkster/lite-headless/drawer
+
+Slide-in panel anchored to a viewport edge. Like a dialog whose
+visual anchor is an edge instead of the center -- composes the same
+overlay machinery (portal, focus trap, scroll lock, escape + outside
+dismiss).
+
+Use for: filter panels, mobile nav, row-detail side panes, settings
+drawers, anything that "slides in from the edge".
+
+## API
+
+```js
+import { createDrawer } from "@zakkster/lite-headless/drawer";
+
+const drawer = createDrawer({
+    defaultOpen: false,
+    defaultSide: "right",            // "left" | "right" | "top" | "bottom"
+    modal: true,                      // backdrop + focus trap + scroll lock
+    closeOnEscape: true,
+    closeOnOutsideClick: true,
+    lockScrollOnOpen: true,
+    trapFocus: true,
+    returnFocus: true,
+    awaitTransitionEnd: false,        // wait for slide-out before flipping to closed
+    onOpenChange: (open, reason) => {},
+});
+
+drawer.attachContent(asideEl);
+drawer.attachTrigger(buttonEl);
+drawer.attachBackdrop(backdropEl);   // optional; click closes
+drawer.attachCloseButton(closeBtnEl); // any number of these
+drawer.attachTitle(headingEl);       // wires aria-labelledby
+drawer.attachDescription(pEl);       // wires aria-describedby
+```
+
+## Reactive accessors
+
+```js
+drawer.open()       // boolean
+drawer.status()     // "closed" | "opening" | "open" | "closing"
+drawer.side()       // "left" | "right" | "top" | "bottom"
+```
+
+## Mutations
+
+```js
+drawer.show() / .hide() / .setOpen(b, reason)
+drawer.setSide("left")
+```
+
+## Painted attributes
+
+### Content (attachContent)
+- `role="dialog"` (modal) or `role="region"` (non-modal)
+- `aria-modal="true"` (modal only)
+- `aria-labelledby` (when title attached)
+- `aria-describedby` (when description attached)
+- `data-side="left|right|top|bottom"`
+- `data-status="closed|opening|open|closing"`
+- `data-open` (when open)
+
+### Trigger (attachTrigger)
+- `aria-haspopup="dialog"`
+- `aria-expanded="true|false"`
+- `aria-controls="<content.id>"`
+
+### Backdrop (attachBackdrop)
+- `data-drawer-backdrop`
+- `data-open` (when open)
+- `data-status` (mirrors content status)
+
+## Lifecycle while open
+
+When the drawer opens, the primitive (synchronously):
+1. Portals the content + backdrop to `portalRoot` (defaults to
+   `document.body`).
+2. Locks body scroll (if `modal` + `lockScrollOnOpen`).
+3. Saves the currently-focused element for restoration on close.
+4. Installs a focus trap inside the content (if `modal` + `trapFocus`).
+5. Binds the global Escape stack + outside-click dismiss.
+6. Sets `aria-expanded="true"` on the trigger.
+
+On close it unwinds in reverse order. If `awaitTransitionEnd: true`,
+the close completes only after the `transitionend` / `animationend`
+event fires on the content -- so the slide-out animation gets to play
+to completion before the DOM is detached.
+
+## Custom element
+
+```html
+<lite-drawer side="right">
+    <button data-drawer-trigger>Open filters</button>
+    <div    data-drawer-backdrop></div>
+    <aside  data-drawer-content>
+        <h2 data-drawer-title>Filters</h2>
+        <p  data-drawer-description>Refine your results.</p>
+        <button data-drawer-close aria-label="Close">×</button>
+        <!-- consumer content -->
+    </aside>
+</lite-drawer>
+```
+
+### Host attributes
+- `side="left|right|top|bottom"`     -- reactive
+- `open`                              -- reactive; mirrors drawer.open()
+- `non-modal`                         -- disables backdrop + focus trap + scroll lock
+- `no-escape`                         -- disables Escape-key dismiss
+- `no-outside-close`                  -- disables outside-click + backdrop dismiss
+- `await-transitions`                 -- wait for transitionend before closing
+
+### Host API
+```js
+host.isOpen / .side / .status     // accessors
+host.show() / .hide() / .setSide(s) / .setOpen(b)
+host._drawerInstance
+```
+
+### Custom element events
+- `openchange` `{ detail: { open, reason } }`
+
+## Composition
+
+- **Filter panel** in a data table: drawer holds combobox + slider +
+  toggle-group filters; clicking the table's "Filter" button opens it.
+- **Mobile nav**: drawer with `side="left"` containing a tree/menu;
+  hamburger toggles it.
+- **Row detail**: in a table, clicking a row opens a drawer with that
+  row's details and edit controls.
+- **Settings**: app-level settings panel that slides from the right.
+
+## Notes
+
+- Multiple drawers per page are supported. The escape stack handles
+  N drawers correctly -- the most recently-opened drawer closes first
+  on Escape.
+- For animation: use CSS transitions on `[data-side]` + transform
+  translate. Example:
+  ```css
+  [data-side="right"] { transform: translateX(100%); transition: transform 200ms; }
+  [data-side="right"][data-open] { transform: translateX(0); }
+  ```
+- The primitive does NOT manage the slide-in CSS itself -- it only
+  emits state attributes. This keeps the headless contract intact:
+  consumer styles, primitive coordinates.
+- Backdrop is optional. Without one, the drawer floats above the page
+  with no overlay; outside-click + Escape still work if enabled.
+
+## CSS contract
+
+This primitive's painted attributes follow the canonical CSS contract
+in `docs/CSS_CONTRACT.md`. See that doc for the cross-primitive
+taxonomy (booleans like `data-open` / `data-disabled` / `data-loading`,
+enums like `data-status` / `data-side`, ARIA pairings, host accessor
+naming, and event naming).

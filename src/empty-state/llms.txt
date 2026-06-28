@@ -1,0 +1,114 @@
+# @zakkster/lite-headless / empty-state
+
+Structural primitive for the "no items" / "no results" / "error" /
+"loading-but-not-yet" UI pattern that recurs across admin products.
+Owns ARIA wiring (live region + labelledby + describedby chain) and
+slot-marker detection; consumer owns layout, icon, and action buttons.
+
+## What you get
+
+```js
+import { createEmptyState } from "@zakkster/lite-headless/empty-state";
+
+const es = createEmptyState({ variant: "empty" });
+es.attachRoot(rootEl);
+es.attachIcon(iconEl);
+es.attachTitle(titleEl);
+es.attachDescription(descEl);
+es.attachActions(actionsEl);
+
+// Variant switching (e.g. when an async fetch errors out):
+es.setVariant("error");
+```
+
+## Variants (the `variant` enum)
+
+Three canonical kinds. The variant is painted as `data-variant="<v>"`
+on the root; consumer CSS branches off it.
+
+- `"empty"` — list/container has no items (the typical case)
+- `"error"` — async load failed
+- `"loading"` — pre-data placeholder (a step beyond skeleton — when
+  you have copy explaining what's coming)
+
+Custom variant strings are allowed; they just become the painted enum.
+
+## Painted attributes
+
+Root (`[data-empty-state-root]`):
+- `role="status"` + `aria-live="polite"` (live region; new content is announced)
+- `aria-labelledby` → title id (when title attached)
+- `aria-describedby` → description id (when description attached)
+- `data-variant="empty|error|loading|..."`
+- `data-empty` (boolean; for variant-agnostic CSS)
+
+Title (`[data-empty-title]`):
+- Falls back to `role="heading"` + `aria-level="2"` if the element is
+  not already an `<h1>`–`<h4>`. Use a real `<h2>` or `<h3>` and the
+  primitive leaves it alone.
+- Gets a generated id if it doesn't have one (for the labelledby link).
+
+Description (`[data-empty-description]`):
+- Gets a generated id (for the describedby link).
+
+Icon (`[data-empty-icon]`):
+- `aria-hidden="true"` (icons here are decorative).
+
+Actions (`[data-empty-actions]`):
+- `role="group"` (announced as a CTA cluster).
+
+## Wrapper (`<lite-empty-state>`)
+
+```html
+<lite-empty-state variant="empty">
+    <div data-empty-icon>📭</div>
+    <h3 data-empty-title>No projects yet</h3>
+    <p data-empty-description>Create one to start tracking work.</p>
+    <div data-empty-actions>
+        <button>Create project</button>
+        <button>Import</button>
+    </div>
+</lite-empty-state>
+```
+
+Reactive attributes:
+- `variant="empty|error|loading|..."` — bidirectional; external
+  setAttribute("variant", "error") flows through `setVariant`.
+
+Host accessors:
+- `host.variant` (current variant string)
+- `host.setVariant(v)`
+- `host._emptyStateInstance` (advanced)
+
+Late-injected slot markers are auto-discovered via the wrapper's
+`createRoleObserver`; the consumer can swap title/desc/icon at runtime
+and the ARIA chain re-links itself.
+
+## Composition
+
+The variant axis makes one wrapper handle multiple UI states. A common
+pattern is to let the data layer drive the variant:
+
+```js
+effect(() => {
+    if      (fetcher.isError())   host.setVariant("error");
+    else if (fetcher.isLoading()) host.setVariant("loading");
+    else if (fetcher.data().length === 0) host.setVariant("empty");
+    else host.style.display = "none";    // not empty; hide the placeholder
+});
+```
+
+The CSS branches show / hide the relevant copy per variant:
+
+```css
+[data-variant="error"] [data-empty-title]:not(.t-error) { display: none; }
+[data-variant="loading"] [data-empty-title]:not(.t-loading) { display: none; }
+[data-variant="empty"] [data-empty-title]:not(.t-empty) { display: none; }
+```
+
+## CSS contract
+
+Follows the canonical CSS contract in `docs/CSS_CONTRACT.md`.
+`data-empty` is the Class-2 boolean marker; `data-variant` is a
+Class-3 enum. Slot markers (`data-empty-icon`, `data-empty-title`,
+etc.) are Class-4 inputs.

@@ -1,0 +1,222 @@
+# @zakkster/lite-headless/datepicker
+
+createDatePicker(options) -> DatePickerHandle
+
+Headless date-picker primitive. Second form-control in the package after
+slider; NOT an overlay (no portal, no positioner, no dismiss). For the
+common "open picker on input click" pattern, compose with createPopover:
+the picker lives inside a popover's content tree, and the popover's
+outside-click handling covers the cells via composedPath.
+
+## Value shape
+
+Value is always an array (matches slider precedent):
+
+- single mode:  [Date | null]
+- range mode:   [Date | null, Date | null]  -- sorted: start <= end when both set
+
+While picking a range:
+- before any click:    [null, null]
+- after first click:   [startDate, null]
+- after second click:  [startDate, endDate] (auto-sorted)
+- third click resets:  [newStartDate, null]
+
+All Date values are stripped to startOfDay (no time-of-day).
+
+## Options
+
+- mode: "single" | "range" = "single"
+- value: WriteSignal<Date[]>           -- external controlled mode
+- defaultValue: Date | Date[]
+- onValueChange: (next, reason) => void
+                                          reason: "pick"|"pick-start"|"pick-end"
+
+- minDate: Date                        -- cells before get aria-disabled
+- maxDate: Date                        -- cells after get aria-disabled
+- weekStartsOn: 0..6 = 0               -- 0=Sunday, 1=Monday, etc.
+- disabled: boolean = false
+
+- now: () => Date = () => new Date()   -- override for testability
+- today: Date | () => Date             -- if a function, the picker reacts to
+                                          its return inside an effect.
+                                          Drop-in for @zakkster/lite-time's
+                                          midnight-rollover signal.
+
+## Returned
+
+{
+    value(): Date[]                     -- snapshot, with fresh Date copies
+    setValue(next, reason?),
+    viewMonth: ReadSignal<Date>         -- the displayed month (day=1)
+    focusedDate: ReadSignal<Date>       -- the keyboard cursor's date
+    hoverDate: ReadSignal<Date|null>    -- range-preview pointer location
+    view: ReadSignal<"days"|"months"|"years">   -- v0.7
+    setView(v), cycleView(),                   -- v0.7
+    goToPrevMonth(), goToNextMonth(),
+    goToMonth(date),
+    getDaysInView(monthDate?): Date[]   -- 42 dates for the grid view
+    getMonthsInView(year?): Date[]      -- 12 months (v0.7)
+    getYearsInView(year?): Date[]       -- 12 years incl. 2 padding (v0.7)
+    weekStartsOn, mode, minDate, maxDate,
+
+    attachGrid(el),                     -- gets role="grid"; data-view mirrors signal
+    attachGridContainer(el),            -- listens for pointerleave to clear preview
+    attachDay(el, date),                -- per-cell; idempotent on same el
+    attachMonth(el, monthDate),         -- v0.7: months-view cell
+    attachYear(el, yearDate),           -- v0.7: years-view cell
+    attachPrevMonth(el),                -- click strides by view's unit
+    attachNextMonth(el),                -- (month / year / decade)
+    attachMonthLabel(el, opts?),        -- opts: { formatter, clickToCycle }
+
+    destroy(), destroyed
+}
+
+## Grid rendering pattern
+
+The consumer owns the markup; the picker attaches behavior:
+
+```js
+const picker = createDatePicker({ today: TODAY });
+picker.attachGrid(gridEl);
+picker.attachMonthLabel(monthEl);
+picker.attachPrevMonth(prevBtn);
+picker.attachNextMonth(nextBtn);
+
+function render() {
+    grid.innerHTML = "";
+    for (const d of picker.getDaysInView()) {
+        const cell = document.createElement("button");
+        cell.textContent = String(d.getDate());
+        grid.appendChild(cell);
+        picker.attachDay(cell, d);
+    }
+}
+render();
+picker.viewMonth.subscribe(render);
+```
+
+Or reuse cells across months (no DOM churn):
+
+```js
+const cells = Array.from({ length: 42 }, () => {
+    const b = document.createElement("button");
+    grid.appendChild(b);
+    return b;
+});
+function repaint() {
+    const days = picker.getDaysInView();
+    for (let i = 0; i < 42; i++) {
+        cells[i].textContent = String(days[i].getDate());
+        picker.attachDay(cells[i], days[i]);   // idempotent
+    }
+}
+repaint();
+picker.viewMonth.subscribe(repaint);
+```
+
+## Keyboard model (on the grid element)
+
+  ArrowLeft / ArrowRight              -1 / +1 day
+  ArrowUp / ArrowDown                 -7 / +7 days (prev/next week)
+  PageUp / PageDown                   -1 / +1 month
+  Shift+PageUp / Shift+PageDown       -1 / +1 year
+  Home                                start of week (respects weekStartsOn)
+  End                                 end of week
+  Enter / Space                       pick the focused date
+
+Crossing a month boundary auto-switches viewMonth.
+
+## States exposed on cells
+
+- role="gridcell"
+- data-date="YYYY-M-D"                 stable key for the cell's date
+- tabindex                            "0" on focused cell, "-1" on others (roving)
+- data-focused                        present on focused cell
+- data-today + aria-current="date"    today's cell
+- data-selected + aria-selected       selected dates
+- data-in-range                       (range mode) cells between start and end
+- data-in-range-preview               (range mode, partial selection) hover preview
+- data-range-start, data-range-end    (range mode) endpoints
+- data-outside-month                  padding days from prev/next month
+- data-disabled + aria-disabled       outside minDate/maxDate
+
+## Integration: lite-time
+
+For pickers left open across midnight (e.g. a sidebar permanent calendar),
+pass a `today` function that subscribes to lite-time's day-rollover signal.
+The picker's reactive effect will re-paint the today marker when midnight
+hits. For ephemeral popover-wrapped pickers, omit `today` -- it's computed
+once from `nowFn()` and that's fine.
+
+## Integration: lite-form
+
+The picker exposes a writable `value` signal that any form library can
+consume as a field. Pass `value: form.field("departureDate")` (or the
+equivalent) and the form library owns the value; the picker just renders
+and emits onValueChange.
+
+## Integration: createPopover
+
+Wrap the picker's calendar markup inside a popover content element. The
+popover's outside-click handler uses composedPath and treats the cells as
+inside the content tree automatically. On selection (e.g. onValueChange
+for single mode, or onValueChange with reason="pick-end" for range),
+call popover.setOpen(false) to close.
+
+## v0.7: year + decade views
+
+The picker has a three-state view machine driven by the `view` signal:
+
+- `"days"` (default) — 42-cell month grid (the v0.6 surface)
+- `"months"` — 12-cell grid (Jan..Dec of the current viewMonth's year)
+- `"years"` — 12-cell grid for the decade containing viewMonth's year
+                (1 padding year before + 10 in-decade + 1 padding after)
+
+Cycle days → months → years via `picker.cycleView()` or by wiring it to
+the month label click:
+
+    picker.attachMonthLabel(labelEl, { clickToCycle: true });
+
+Render the months / years grids using the parallel helpers:
+
+    picker.getMonthsInView()   // 12 Date objects, day=1 of each month
+    picker.getYearsInView()    // 12 Date objects, Jan 1 of each year
+
+Attach cells just like days. attachMonth / attachYear are idempotent
+on the same element so the SAME 12 cells can be reused across
+drilldown transitions:
+
+    // first drilldown: render months
+    picker.setView("months");
+    for (let i = 0; i < 12; i++) picker.attachMonth(cells[i], months[i]);
+
+    // later drilldown to years: replace bindings on the same cells
+    picker.setView("years");
+    for (let i = 0; i < 12; i++) picker.attachYear(cells[i], years[i]);
+
+Per-view keyboard nav (on the grid):
+
+- months view: ← → ±1 month, ↑ ↓ ±3 months (3-col layout),
+               Page ±1 year, Home = Jan, End = Dec,
+               Enter = drill to days view at focused month
+- years view:  ← → ±1 year, ↑ ↓ ±3 years,
+               Page ±10 years (decade), Home/End = decade boundaries,
+               Enter = drill to months view at focused year
+
+Per-view prev/next stride: month / year / decade. Per-view label format:
+"June 2026" / "2026" / "2020 – 2029". Custom formatter receives
+(viewMonth, view) so consumers can override per view if needed.
+
+## Not in v0.7 (planned later)
+
+- multi-date mode
+- time-of-day picker (this is date-only)
+- timezone-correct date math beyond what Date gives
+
+## CSS contract
+
+This primitive's painted attributes follow the canonical CSS contract
+in `docs/CSS_CONTRACT.md`. See that doc for the cross-primitive
+taxonomy (booleans like `data-open` / `data-disabled` / `data-loading`,
+enums like `data-status` / `data-side`, ARIA pairings, host accessor
+naming, and event naming).

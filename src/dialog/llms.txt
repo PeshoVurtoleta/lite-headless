@@ -1,0 +1,61 @@
+# @zakkster/lite-headless/dialog
+
+createDialog(options) -> DialogHandle
+
+## Options
+
+- open: WriteSignal<boolean>     -- external controlled mode
+- defaultOpen: boolean = false   -- initial state, uncontrolled
+- onOpenChange(next, reason)     -- notifier; reason in: 'trigger'|'api'|'escape'|'outside'|'close'
+- modal: boolean = true          -- role=dialog, aria-modal, scroll lock, focus trap
+- closeOnEscape: boolean = true
+- closeOnOutsideClick: boolean = true
+- initialFocus: 'auto'|HTMLElement|string|false = 'auto'
+- finalFocus: 'trigger'|HTMLElement|false = 'trigger'
+- container: HTMLElement|null = document.body  -- portal target; null = render in place
+- transition: boolean = false    -- status waits for transitionend when true
+- labelledBy: string             -- aria-labelledby id
+- describedBy: string            -- aria-describedby id
+
+## Returned
+
+{
+    open: ReadSignal<boolean>,
+    status: ReadSignal<'closed'|'opening'|'open'|'closing'|'closed'>,
+    setOpen(value, reason),
+    toggle(),
+    attachTrigger(el): off,
+    attachContent(el): off,
+    attachClose(el): off,
+    destroy(),
+    destroyed: boolean
+}
+
+## Slot conventions (for <lite-dialog>)
+
+- [data-trigger]: opens dialog on click
+- [data-content]: the dialog panel (gets role/aria-modal/data-open/data-status)
+- [data-close]: closes dialog on click (multiple allowed)
+
+## <lite-dialog> attributes
+
+- open               -- reflects state, reactive
+- no-modal           -- modal:false
+- no-escape          -- closeOnEscape:false
+- no-outside         -- closeOnOutsideClick:false
+- container          -- 'self'|'none' = in place; else selector
+- transition         -- transition:true
+
+## States exposed on content
+
+- data-open: present when open (boolean)
+- data-status: 'closed' | 'opening' | 'open' | 'closing'
+- aria-hidden: 'true' when closed, removed when open
+
+## CSS contract
+
+This primitive's painted attributes follow the canonical CSS contract
+in `docs/CSS_CONTRACT.md`. See that doc for the cross-primitive
+taxonomy (booleans like `data-open` / `data-disabled` / `data-loading`,
+enums like `data-status` / `data-side`, ARIA pairings, host accessor
+naming, and event naming).

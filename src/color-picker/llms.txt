@@ -1,0 +1,168 @@
+# @zakkster/lite-headless / color-picker
+
+Headless color picker. Internal state is HSV; public reads and writes
+support HSV, sRGB, HEX, HSL, and OKLCH (the latter first-class because
+the @zakkster design-system stack lives in OKLCH).
+
+## What you get
+
+```js
+import { createColorPicker } from "@zakkster/lite-headless/color-picker";
+
+const cp = createColorPicker({
+    defaultHex: "#7dd3fc",
+    alpha: true,                  // default; pass false to disable alpha
+    onValueChange: (hsv, reason) => { /* state, "drag-area"|"setHue"|... */ },
+    onCommit:      (hsv, reason) => { /* on drag-end / swatch click */ },
+});
+
+cp.attachRoot(rootEl);
+cp.attachArea(areaEl);                 // 2D saturation × brightness
+cp.attachAreaHandle(areaHandleEl);
+cp.attachHueSlider(hueRailEl);         // 1D hue rail (default horizontal)
+cp.attachHueHandle(hueHandleEl);
+cp.attachAlphaSlider(alphaRailEl);     // 1D alpha rail (optional)
+cp.attachAlphaHandle(alphaHandleEl);
+cp.attachSwatch(swatchBtn, "#ff5500"); // preset color
+```
+
+## Reads (call-style accessors)
+
+- `cp.hue()`         → 0..360
+- `cp.saturation()`  → 0..1
+- `cp.brightness()`  → 0..1 (the V in HSV)
+- `cp.alpha()`       → 0..1
+- `cp.hsv()`         → `{ h, s, v, a }`
+- `cp.rgb()`         → `{ r, g, b, a }` (r/g/b are 0..255 integers)
+- `cp.hex()`         → `"#rrggbb"` or `"#rrggbbaa"` if alpha < 1
+- `cp.hsl()`         → `{ h, s, l, a }`
+- `cp.oklch()`       → `{ l, c, h, a }` (l ~ 0..1, c ~ 0..0.4, h 0..360)
+
+## Writes (mutations)
+
+- `cp.setHue(n, reason?)`         — 0..360 with wraparound
+- `cp.setSaturation(n, reason?)`  — clamped to [0, 1]
+- `cp.setBrightness(n, reason?)`  — clamped to [0, 1]
+- `cp.setAlpha(n, reason?)`       — clamped to [0, 1]
+- `cp.setHsv({h,s,v,a}, reason?)` — partial fields allowed
+- `cp.setRgb({r,g,b,a}, reason?)` — r/g/b in 0..255
+- `cp.setHex(s, reason?)`         — returns `true` on success, `false` on parse error
+- `cp.setOklch({l,c,h,a}, reason?)` — out-of-gamut silently clamped
+
+Every setter calls `onValueChange` if and only if the underlying signal
+actually changed (no-op writes are filtered). The `reason` channel
+distinguishes drag-area / drag-hue / drag-alpha / setHue / setRgb /
+setHex / setOklch / swatch / attribute / api.
+
+## Painted CSS custom properties
+
+Painted on attached elements; consumer CSS reads them to render gradients
+and handle positions. Per the @zakkster/lite-headless CSS contract,
+state lives in data-attributes; positions and color values live in
+custom properties.
+
+**Root** (`[data-color-picker-root]`):
+- `--color-hex`         — current hex (e.g. `#7dd3fc`)
+- `--color-h`           — hue 0..360
+- `--color-s`           — saturation 0..1
+- `--color-v`           — brightness 0..1
+- `--color-r/g/b`       — sRGB channels 0..255
+- `--color-a`           — alpha 0..1
+
+**Area** (`[data-color-area]`):
+- `--color-h`           — hue of the area background
+- `--saturation`        — 0..1 (current x position)
+- `--brightness`        — 0..1 (current y position; 1 = top)
+
+**Area handle** (`[data-color-area-handle]`):
+- `--x`                 — saturation, 0..1 (left-to-right)
+- `--y`                 — 1 - brightness, 0..1 (top-to-bottom)
+
+**Hue rail** (`[data-color-hue-slider]` and `[data-color-hue-handle]`):
+- `--hue-pct`           — 0..1 (hue / 360)
+
+**Alpha rail** (`[data-color-alpha-slider]` and `[data-color-alpha-handle]`):
+- `--color-hex`         — solid color behind the alpha rail
+- `--alpha`             — 0..1
+
+## Wrapper (`<lite-color-picker>`)
+
+```html
+<lite-color-picker value="#7dd3fc">
+    <div data-color-area>
+        <div data-color-area-handle></div>
+    </div>
+    <div data-color-hue-slider>
+        <div data-color-hue-handle></div>
+    </div>
+    <div data-color-alpha-slider>
+        <div data-color-alpha-handle></div>
+    </div>
+    <button data-color-swatch data-color="#ff5500">red</button>
+    <button data-color-swatch data-color="#00aaff">cyan</button>
+</lite-color-picker>
+```
+
+Reactive attributes:
+- `value="#rrggbb"` — bidirectional; external `setAttribute("value", ...)` flows in via `setHex`.
+- `alpha="false"`   — disable the alpha channel; alpha attach helpers no-op.
+
+Host accessors (canonical):
+- `host.hex`, `host.rgb`, `host.hsv`, `host.hsl`, `host.oklch`  (read; pure objects)
+- `host.hue`, `host.saturation`, `host.brightness`, `host.alpha` (numbers)
+- `host.setHex(s)`, `host.setRgb(o)`, `host.setHsv(o)`, `host.setOklch(o)`, `host.setAlpha(n)`
+- `host._colorPickerInstance` (advanced)
+
+Events (bubbles up from host):
+- `valuechange` — `{ detail: { hsv, hex, rgb, oklch, reason } }`
+- `commit`      — same shape, on drag-end / swatch click
+
+## OKLCH first-class
+
+`oklch()` returns `{ l, c, h, a }` with the spec-defined ranges. Setter
+accepts the same shape. The conversion goes through linear-sRGB +
+OKLab (per CSS Color 4) and is round-trip stable to within 1 sRGB
+unit per channel. Out-of-gamut OKLCH values are clamped at the sRGB
+boundary; callers wanting gamut mapping should pre-process.
+
+## Zero-alloc hot path
+
+Pointer drag on the area and on the rails does NOT allocate per-frame:
+- Track rect cached on `pointerdown`, invalidated on `scroll` / `resize`
+  / `pointerup` / `pointercancel`.
+- `pointerToSV` / `pointerToValue` read the cached rect and call the
+  setter directly with primitive numbers.
+- Signal updates use call-style accessors with the existing dirty-check
+  in `_setIfDifferent` so a pixel move that doesn't cross a value
+  boundary still emits zero allocations downstream.
+
+CSS-custom-property writes use `style.setProperty(...)` with `toFixed(4)`
+strings; this does allocate a small string per write, but only when
+the signal value actually changed (the effect's dependency graph
+ensures we don't re-paint unchanged elements).
+
+## Composition
+
+```js
+import { createColorPicker } from "@zakkster/lite-headless/color-picker";
+import { createFormField }   from "@zakkster/lite-headless/form-field";
+import { effect }            from "@zakkster/lite-signal";
+
+const ff = createFormField({ defaultRequired: true });
+const cp = createColorPicker({ defaultHex: "#7dd3fc" });
+
+// Bridge: the hex string is the field's "value"; validate it.
+effect(() => {
+    const hex = cp.hex();
+    const ok = /^#[0-9a-f]{6}([0-9a-f]{2})?$/i.test(hex);
+    ff.setValid(ok, ok ? null : "Invalid hex");
+});
+```
+
+## CSS contract
+
+This primitive's painted attributes follow the canonical CSS contract
+in `docs/CSS_CONTRACT.md`. See that doc for the cross-primitive
+taxonomy (booleans like `data-open` / `data-disabled` / `data-loading`,
+enums like `data-status` / `data-side`, ARIA pairings, host accessor
+naming, and event naming).
