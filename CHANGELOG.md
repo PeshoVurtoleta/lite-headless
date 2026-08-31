@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.1.1 -- 2026-08-31
 
 ### Fixed
 
@@ -26,20 +26,14 @@
   frozen at destroy") while writes stay no-ops. Zero hot-path cost -- a
   binding load costs the same for `let` and `const`, and the stand-in is
   built once, on the cold destroy path; double destroy stays safe
-  (`dispose` is generation-guarded, sealing is idempotent).
-
-### Changed
-
-- `subscribe()` on a destroyed handle's accessor now fires the callback once
-  with the frozen final value and returns a no-op unsubscribe (previously it
-  subscribed to a live-but-inert node: same one fire, but the node lingered).
-  A consumer that captured a RAW per-item signal -- a file-upload entry's
-  `progress` destructured off the entry object before `removeEntry` -- reads
-  `undefined` after that entry is dropped; the entry OBJECT's
-  `progress`/`bytesLoaded` properties are re-pointed at frozen stand-ins, so
-  reading through the entry keeps answering the final values. Consumer-
-  supplied controlled signals are never disposed and keep working after
-  `destroy()`.
+  (`dispose` is generation-guarded, sealing is idempotent). This fix was
+  folded onto main between the release commit and publish; the published
+  1.1.1 tarball (shasum 928c7b5a) contains it.
+- demo import map: added the missing `@zakkster/lite-cleanup` entry.
+  `@zakkster/lite-floating` and `@zakkster/lite-observe` (their shared
+  `src/_finalize.js`) import the bare specifier `@zakkster/lite-cleanup`
+  transitively; without a mapping the browser failed the whole demo module
+  graph with `Failed to resolve module specifier "@zakkster/lite-cleanup"`.
 
 ### Added
 
@@ -56,18 +50,6 @@
   disposal regression fails phase A fast with a `CapacityError`. Phase A
   churn also grew from 8 to 20 factory recipes.
 
-## 1.1.1 -- 2026-08-31
-
-### Fixed
-
-- demo import map: added the missing `@zakkster/lite-cleanup` entry.
-  `@zakkster/lite-floating` and `@zakkster/lite-observe` (their shared
-  `src/_finalize.js`) import the bare specifier `@zakkster/lite-cleanup`
-  transitively; without a mapping the browser failed the whole demo module
-  graph with `Failed to resolve module specifier "@zakkster/lite-cleanup"`.
-
-### Added
-
 - ASCII law gate: `test/ascii-law.test.js` walks the shipped file set
   (`src/` recursively, `types.d.ts`, `docs/`, `llms.txt`, `README.md`,
   `package.json`, `LICENSE`; `CHANGELOG.md` excluded as a historical
@@ -77,10 +59,11 @@
   suite blueprint spine.
 - `engines.node` set to `>=20.10.0`.
 - `prepublishOnly` script wired to `npm run verify` (test + types + torture).
-- Gates at release: 1564/1564 node:test; `tsc --noEmit` clean;
-  `GATE leak=size 0/0 findings=0 warnings=3 | gc major=0 minor=22 | ok`;
-  control variant exits 1. No runtime behavior change in this release: the
-  src diff is comment-only (verified by comment-stripped byte comparison).
+- Gates on the shipped tree: 1573/1573 node:test; `tsc --noEmit` clean;
+  torture GATE leak 0/0, findings 0, major=0 on lite-signal's default fixed
+  1024-node registry; control variant exits 1. The H4 documentation sweep's
+  src diff is comment-only (verified by comment-stripped byte comparison);
+  the signal-pool fix above is this release's one runtime behavior change.
 
 ### Changed
 
@@ -91,11 +74,22 @@
   `scripts/gen-css-appendix.mjs`; `CSS_CONTRACT.md` swept by hand), and
   `types.d.ts`.
 - `package.json` description: em-dash replaced.
+- `subscribe()` on a destroyed handle's accessor now fires the callback once
+  with the frozen final value and returns a no-op unsubscribe (previously it
+  subscribed to a live-but-inert node: same one fire, but the node lingered).
+  A consumer that captured a RAW per-item signal -- a file-upload entry's
+  `progress` destructured off the entry object before `removeEntry` -- reads
+  `undefined` after that entry is dropped; the entry OBJECT's
+  `progress`/`bytesLoaded` properties are re-pointed at frozen stand-ins, so
+  reading through the entry keeps answering the final values. Consumer-
+  supplied controlled signals are never disposed and keep working after
+  `destroy()`.
 - `.gitignore` updated; `test-results/` no longer tracked.
 - Root `llms.txt` catalog: added `button` to the form-controls group (the
   catalog listed 57 primitives while claiming 58).
-- Test totals and other counts synced to 1564 at `README.md:3`/`:359`/`:362`,
-  `llms.txt:83`, `demo/index.html:3955`/`:11080`.
+- Test totals and other counts synced to 1564 by the documentation pass, then
+  re-synced to 1573 (README tagline + Testing, llms.txt, demo pill + footer)
+  after the signal-pool fold.
 
 ### Removed
 
