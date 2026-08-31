@@ -1,5 +1,55 @@
 # Changelog
 
+## 1.3.0 -- 2026-08-31
+
+### Added
+
+- `api-surface-snapshot.json` gains an `exports` block: every src-resolving
+  package.json exports subpath keyed to its live surface -- module subpaths
+  record their sorted named exports, `/element` subpaths record the single
+  custom-element tag they define. The snapshot's internal `version` moves to
+  `2.0.0`.
+- `frozen` block in the snapshot: the legacy `aliases`/`primitives`/`totals`
+  census is carried forward verbatim from 1.0.0-pre and gated by a recorded
+  sha256 over its canonical serialization.
+- `scripts/api-surface.mjs` (shared enumerator: `buildSurface`, `serialize`,
+  `canonicalize`, `hashFrozen`) and `scripts/api-update.mjs`, wired as
+  `npm run api:update`, which regenerates the snapshot from live reality.
+- `test/api-surface.test.js`: seven cases diffing the committed snapshot's
+  `exports` block against the live surface in both directions, asserting the
+  frozen hash, checking the snapshot and generator sources are ASCII-legal, and
+  gating that every live export is either declared in types.d.ts or pinned in
+  the snapshot `undocumented` allowlist.
+- `undocumented` block in the snapshot: 32 live exports not declared in their
+  own subpath's `declare module` block (10 color-picker color-math helpers,
+  18 datepicker date helpers,
+  `avatar` deriveInitials / hueFromString, `pagination` buildItems, and
+  `dialog` DIALOG_OPTION_KEYS), counted and gated so no new drift can be
+  laundered into the allowlist -- the list may only shrink. Declaration parity
+  for these 32 is deferred to a future minor. DIALOG_OPTION_KEYS is a
+  cross-module seam consumed by alert-dialog to validate against dialog's key
+  list; declaration parity must rule on whether it stays public before it is
+  typed.
+- Noted for the declaration-parity minor: the barrel's `declare module`
+  re-export lines (types.d.ts:56 and :80) re-export `deriveInitials`,
+  `hueFromString`, and `buildItems` from source blocks that never declare them;
+  these dangling re-exports survive only under `skipLibCheck`. Fix deferred to
+  that session.
+
+### Changed
+
+- The optional `@zakkster/lite-floating` peer (and devDependency) floor moves
+  `^1.0.0 -> ^1.1.0`. lite-floating 1.1.0 pool-returns its disposed positioner
+  output signals (the H-12 seal pattern, ported there), so the torture
+  harness's floating-adapter retention sweep (512 create/open/close/destroy
+  cycles) now runs on lite-signal's default fixed 1024-node registry like
+  every suite-owned churn -- the grow-policy registry swap it previously
+  required is deleted. Gates on the updated dependency: 1607/1607 node:test,
+  GATE leak 0/0 findings 0 major=0 alloc=0 B/op ok, control variant exits 1.
+- llms.txt and README no longer describe lite-floating as "only for
+  hover-card": the floating-adapter subpath (1.2.0) also uses it. Both now
+  name the two consumers and the ^1.1.0 floor.
+
 ## 1.2.0 -- 2026-08-31
 
 ### Added

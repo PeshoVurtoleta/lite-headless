@@ -14,7 +14,7 @@
 // If bundle size matters at scale, prefer the subpath imports.
 
 // Three-place version sync: package.json, this const, llms.txt.
-export const VERSION = "1.2.0";
+export const VERSION = "1.3.0";
 
 export { createAccordion } from "./accordion/index.js";
 export { createAffix } from "./affix/index.js";

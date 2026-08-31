@@ -39,7 +39,7 @@ import {
     createObserverOrphanKernel,
     createAsyncRetentionKernel,
 } from "@zakkster/lite-leak";
-import { effect, createRegistry, setDefaultRegistry } from "@zakkster/lite-signal";
+import { effect } from "@zakkster/lite-signal";
 
 // ----- happy-dom setup (once) -- mirrors test/_setup.js global exposure ----
 import { Window } from "happy-dom";
@@ -238,22 +238,17 @@ churn(
     256,
 );
 
-// H5 floating-adapter retention sweep -- MUST run last in phase A, on a
-// grow-policy registry. Every open spins up a @zakkster/lite-floating instance
-// whose x/y/placement/isPositioned OUTPUT signals are deliberately NOT pool-
-// returned on dispose() (lite-floating's reads-freeze contract reclaims them
-// via FinalizationRegistry, i.e. on GC, not synchronously). That is the correct
-// contract for an external GC-based dependency, but it means 512 cycles would
-// exhaust the suite's fixed 1024-node ledger long before any GC runs -- a false
-// CapacityError that has nothing to do with a real listener/observer leak. The
-// fixed-pool discipline is the SUITE's own H-12 contract for its own factories
-// (all of which ran above, on the default registry, and proved clean); it does
-// not apply to lite-floating. So we swap in a grow registry for this sweep only.
-// The real proof here is retention: tracker.size() -> 0 and audit() empty prove
+// H5 floating-adapter retention sweep -- runs last in phase A, on the SAME
+// default fixed 1024-node registry as everything above. lite-floating >=1.1.0
+// pool-returns its x/y/placement/isPositioned output signals on dispose()
+// (the H-12 seal pattern, ported there), so 512 create/open/close/destroy
+// cycles no longer accumulate registry nodes; a regression in either the
+// adapter's destroy() or lite-floating's pool return now fails fast as
+// lite-signal's CapacityError. (Before 1.1.0 this sweep needed a grow-policy
+// registry because lite-floating reclaimed via FinalizationRegistry/GC.)
+// Retention proof is unchanged: tracker.size() -> 0 and audit() empty prove
 // the adapter's destroy() disposes the floating effect and unwires its
-// scroll/resize listeners. A retained listener or undisposed effect would
-// surface as an owner-disposed finding regardless of which registry is active.
-setDefaultRegistry(createRegistry({ maxNodes: 1 << 16, onCapacityExceeded: "grow" }));
+// scroll/resize listeners.
 churn(
     () => createTooltip({ positioner: createFloatingPositioner() }),
     (x) => { x.attachTrigger(el("button")); x.attachAnchor(el("div")); x.attachContent(el("div")); x.setOpen(true); x.setOpen(false); },

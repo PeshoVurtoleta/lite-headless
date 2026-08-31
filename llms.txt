@@ -1,6 +1,6 @@
 # @zakkster/lite-headless
 
-VERSION 1.2.0
+VERSION 1.3.0
 
 58 headless UI primitives on signal-based reactivity (@zakkster/lite-signal).
 Zero styling. Tree-shakable via per-primitive subpath exports. Framework-
@@ -37,7 +37,9 @@ hover-card is positioned by @zakkster/lite-floating (createFloating +
 bindTransform + offset/flip/shift), whose autoUpdate pulls in
 @zakkster/lite-observe transitively. The other overlays keep _overlay/position
 (exact-pixel test contract). lite-floating + lite-observe are OPTIONAL peers --
-needed only if you use hover-card.
+needed only if you use hover-card or the floating-adapter subpath. The
+lite-floating floor is ^1.1.0: its 1.1.0 pool-returns disposed positioner
+signals (H-12 seal pattern), which the torture churn relies on.
 
 ## Subpaths
 
@@ -60,7 +62,7 @@ Newest additions: separator, clipboard, password-input, alert-dialog, hover-card
 
 - @zakkster/lite-signal   (required)
 - @zakkster/lite-element  (optional; only for */element subpaths)
-- @zakkster/lite-floating (optional; only for hover-card)
+- @zakkster/lite-floating (optional, ^1.1.0; hover-card + floating-adapter)
 - @zakkster/lite-observe  (optional; pulled transitively by lite-floating)
 
 ## Conventions
@@ -101,7 +103,7 @@ Newest additions: separator, clipboard, password-input, alert-dialog, hover-card
 - node:test (NOT vitest)
 - happy-dom devDep (pinned ^15.11.0)
 - Per-test setupDOM/teardownDOM; teardown calls window.happyDOM.close()
-- 1600 tests; `tsc --noEmit` type-checks the full public surface
+- 1607 tests; types.d.ts declares the documented surface (`tsc --noEmit`), while `test/api-surface.test.js` pins the full JS export surface against api-surface-snapshot.json (`npm run api:update` to regenerate) and holds 32 undocumented live exports (not declared in the subpath's own `declare module` block) in a gated allowlist pending a declaration-parity session
 
 ## License
 

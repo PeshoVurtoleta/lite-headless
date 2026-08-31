@@ -43,7 +43,873 @@
       "primitive": "switch"
     }
   ],
-  "note": "JS API surface extracted from src/. Commit this and diff against it on every release.",
+  "exports": {
+    ".": {
+      "kind": "module",
+      "names": [
+        "VERSION",
+        "buildItems",
+        "createAccordion",
+        "createAffix",
+        "createAlertDialog",
+        "createAnchor",
+        "createAvatar",
+        "createBackTop",
+        "createBadge",
+        "createBanner",
+        "createBreadcrumb",
+        "createButton",
+        "createCalendar",
+        "createCard",
+        "createCarousel",
+        "createClipboard",
+        "createColorPicker",
+        "createCombobox",
+        "createCommandPalette",
+        "createDatePicker",
+        "createDescriptions",
+        "createDialog",
+        "createDrawer",
+        "createEmptyState",
+        "createFileUpload",
+        "createFormField",
+        "createHoverCard",
+        "createInlineEdit",
+        "createKanban",
+        "createMenu",
+        "createMeter",
+        "createNotificationCenter",
+        "createPagination",
+        "createPasswordInput",
+        "createPicture",
+        "createPinInput",
+        "createPopover",
+        "createProgress",
+        "createRadioGroup",
+        "createRating",
+        "createResult",
+        "createSeparator",
+        "createSkeleton",
+        "createSlider",
+        "createSortable",
+        "createSplitPanels",
+        "createStat",
+        "createStepper",
+        "createSteps",
+        "createSwitch",
+        "createTabs",
+        "createTag",
+        "createTagInput",
+        "createTimeline",
+        "createToast",
+        "createToggleGroup",
+        "createToolbar",
+        "createTooltip",
+        "createTour",
+        "createTree",
+        "deriveInitials",
+        "hueFromString"
+      ]
+    },
+    "./accordion": {
+      "kind": "module",
+      "names": [
+        "createAccordion"
+      ]
+    },
+    "./accordion/element": {
+      "defines": [
+        "lite-accordion"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./affix": {
+      "kind": "module",
+      "names": [
+        "createAffix"
+      ]
+    },
+    "./affix/element": {
+      "defines": [
+        "lite-affix"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./alert-dialog": {
+      "kind": "module",
+      "names": [
+        "createAlertDialog"
+      ]
+    },
+    "./alert-dialog/element": {
+      "defines": [
+        "lite-alert-dialog"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./anchor": {
+      "kind": "module",
+      "names": [
+        "createAnchor"
+      ]
+    },
+    "./anchor/element": {
+      "defines": [
+        "lite-anchor"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./avatar": {
+      "kind": "module",
+      "names": [
+        "createAvatar",
+        "deriveInitials",
+        "hueFromString"
+      ]
+    },
+    "./avatar/element": {
+      "defines": [
+        "lite-avatar"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./backtop": {
+      "kind": "module",
+      "names": [
+        "createBackTop"
+      ]
+    },
+    "./backtop/element": {
+      "defines": [
+        "lite-backtop"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./badge": {
+      "kind": "module",
+      "names": [
+        "createBadge"
+      ]
+    },
+    "./badge/element": {
+      "defines": [
+        "lite-badge"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./banner": {
+      "kind": "module",
+      "names": [
+        "createBanner"
+      ]
+    },
+    "./banner/element": {
+      "defines": [
+        "lite-banner"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./breadcrumb": {
+      "kind": "module",
+      "names": [
+        "createBreadcrumb"
+      ]
+    },
+    "./breadcrumb/element": {
+      "defines": [
+        "lite-breadcrumb"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./button": {
+      "kind": "module",
+      "names": [
+        "createButton"
+      ]
+    },
+    "./button/element": {
+      "defines": [
+        "lite-button"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./calendar": {
+      "kind": "module",
+      "names": [
+        "createCalendar"
+      ]
+    },
+    "./calendar/element": {
+      "defines": [
+        "lite-calendar"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./card": {
+      "kind": "module",
+      "names": [
+        "createCard"
+      ]
+    },
+    "./card/element": {
+      "defines": [
+        "lite-card"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./carousel": {
+      "kind": "module",
+      "names": [
+        "createCarousel"
+      ]
+    },
+    "./carousel/element": {
+      "defines": [
+        "lite-carousel"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./clipboard": {
+      "kind": "module",
+      "names": [
+        "createClipboard"
+      ]
+    },
+    "./clipboard/element": {
+      "defines": [
+        "lite-clipboard"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./color-picker": {
+      "kind": "module",
+      "names": [
+        "createColorPicker",
+        "hsvToHsl",
+        "hsvToRgb",
+        "linearRgbToOklab",
+        "linearToSrgb",
+        "oklabToLinearRgb",
+        "oklchToRgb",
+        "parseHex",
+        "rgbToHsv",
+        "rgbToOklch",
+        "srgbToLinear"
+      ]
+    },
+    "./color-picker/element": {
+      "defines": [
+        "lite-color-picker"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./combobox": {
+      "kind": "module",
+      "names": [
+        "createCombobox"
+      ]
+    },
+    "./combobox/element": {
+      "defines": [
+        "lite-combobox"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./command-palette": {
+      "kind": "module",
+      "names": [
+        "createCommandPalette"
+      ]
+    },
+    "./command-palette/element": {
+      "defines": [
+        "lite-command-palette"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./datepicker": {
+      "kind": "module",
+      "names": [
+        "addDays",
+        "addMonths",
+        "addYears",
+        "buildDaysInView",
+        "buildMonthsInView",
+        "buildYearsInView",
+        "createDatePicker",
+        "dayKey",
+        "decadeRange",
+        "isAfter",
+        "isBefore",
+        "isInDecade",
+        "isInRange",
+        "isSameDay",
+        "isSameMonth",
+        "monthKey",
+        "startOfDay",
+        "startOfMonth",
+        "yearKey"
+      ]
+    },
+    "./datepicker/element": {
+      "defines": [
+        "lite-date-picker"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./descriptions": {
+      "kind": "module",
+      "names": [
+        "createDescriptions"
+      ]
+    },
+    "./descriptions/element": {
+      "defines": [
+        "lite-descriptions"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./dialog": {
+      "kind": "module",
+      "names": [
+        "DIALOG_OPTION_KEYS",
+        "createDialog"
+      ]
+    },
+    "./dialog/element": {
+      "defines": [
+        "lite-dialog"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./drawer": {
+      "kind": "module",
+      "names": [
+        "createDrawer"
+      ]
+    },
+    "./drawer/element": {
+      "defines": [
+        "lite-drawer"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./empty-state": {
+      "kind": "module",
+      "names": [
+        "createEmptyState"
+      ]
+    },
+    "./empty-state/element": {
+      "defines": [
+        "lite-empty-state"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./file-upload": {
+      "kind": "module",
+      "names": [
+        "createFileUpload"
+      ]
+    },
+    "./file-upload/element": {
+      "defines": [
+        "lite-file-upload"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./floating-adapter": {
+      "kind": "module",
+      "names": [
+        "createFloatingPositioner"
+      ]
+    },
+    "./form-field": {
+      "kind": "module",
+      "names": [
+        "createFormField"
+      ]
+    },
+    "./form-field/element": {
+      "defines": [
+        "lite-form-field"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./hover-card": {
+      "kind": "module",
+      "names": [
+        "createHoverCard"
+      ]
+    },
+    "./hover-card/element": {
+      "defines": [
+        "lite-hover-card"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./inline-edit": {
+      "kind": "module",
+      "names": [
+        "createInlineEdit"
+      ]
+    },
+    "./inline-edit/element": {
+      "defines": [
+        "lite-inline-edit"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./kanban": {
+      "kind": "module",
+      "names": [
+        "createKanban"
+      ]
+    },
+    "./kanban/element": {
+      "defines": [
+        "lite-kanban"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./menu": {
+      "kind": "module",
+      "names": [
+        "createMenu"
+      ]
+    },
+    "./menu/element": {
+      "defines": [
+        "lite-menu"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./meter": {
+      "kind": "module",
+      "names": [
+        "createMeter"
+      ]
+    },
+    "./meter/element": {
+      "defines": [
+        "lite-meter"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./notification-center": {
+      "kind": "module",
+      "names": [
+        "createNotificationCenter"
+      ]
+    },
+    "./notification-center/element": {
+      "defines": [
+        "lite-notification-center"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./pagination": {
+      "kind": "module",
+      "names": [
+        "buildItems",
+        "createPagination"
+      ]
+    },
+    "./pagination/element": {
+      "defines": [
+        "lite-pagination"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./password-input": {
+      "kind": "module",
+      "names": [
+        "createPasswordInput"
+      ]
+    },
+    "./password-input/element": {
+      "defines": [
+        "lite-password-input"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./picture": {
+      "kind": "module",
+      "names": [
+        "createPicture"
+      ]
+    },
+    "./picture/element": {
+      "defines": [
+        "lite-picture"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./pin-input": {
+      "kind": "module",
+      "names": [
+        "createPinInput"
+      ]
+    },
+    "./pin-input/element": {
+      "defines": [
+        "lite-pin-input"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./popover": {
+      "kind": "module",
+      "names": [
+        "createPopover"
+      ]
+    },
+    "./popover/element": {
+      "defines": [
+        "lite-popover"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./progress": {
+      "kind": "module",
+      "names": [
+        "createProgress"
+      ]
+    },
+    "./progress/element": {
+      "defines": [
+        "lite-progress"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./radio-group": {
+      "kind": "module",
+      "names": [
+        "createRadioGroup"
+      ]
+    },
+    "./radio-group/element": {
+      "defines": [
+        "lite-radio-group"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./rating": {
+      "kind": "module",
+      "names": [
+        "createRating"
+      ]
+    },
+    "./rating/element": {
+      "defines": [
+        "lite-rating"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./result": {
+      "kind": "module",
+      "names": [
+        "createResult"
+      ]
+    },
+    "./result/element": {
+      "defines": [
+        "lite-result"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./separator": {
+      "kind": "module",
+      "names": [
+        "createSeparator"
+      ]
+    },
+    "./separator/element": {
+      "defines": [
+        "lite-separator"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./skeleton": {
+      "kind": "module",
+      "names": [
+        "createSkeleton"
+      ]
+    },
+    "./skeleton/element": {
+      "defines": [
+        "lite-skeleton"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./slider": {
+      "kind": "module",
+      "names": [
+        "createSlider"
+      ]
+    },
+    "./slider/element": {
+      "defines": [
+        "lite-slider"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./sortable": {
+      "kind": "module",
+      "names": [
+        "createSortable"
+      ]
+    },
+    "./sortable/element": {
+      "defines": [
+        "lite-sortable"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./split-panels": {
+      "kind": "module",
+      "names": [
+        "createSplitPanels"
+      ]
+    },
+    "./split-panels/element": {
+      "defines": [
+        "lite-split-panels"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./stat": {
+      "kind": "module",
+      "names": [
+        "createStat"
+      ]
+    },
+    "./stat/element": {
+      "defines": [
+        "lite-stat"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./stepper": {
+      "kind": "module",
+      "names": [
+        "createStepper"
+      ]
+    },
+    "./stepper/element": {
+      "defines": [
+        "lite-stepper"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./steps": {
+      "kind": "module",
+      "names": [
+        "createSteps"
+      ]
+    },
+    "./steps/element": {
+      "defines": [
+        "lite-steps"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./switch": {
+      "kind": "module",
+      "names": [
+        "createSwitch"
+      ]
+    },
+    "./switch/element": {
+      "defines": [
+        "lite-switch"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./tabs": {
+      "kind": "module",
+      "names": [
+        "createTabs"
+      ]
+    },
+    "./tabs/element": {
+      "defines": [
+        "lite-tabs"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./tag": {
+      "kind": "module",
+      "names": [
+        "createTag"
+      ]
+    },
+    "./tag-input": {
+      "kind": "module",
+      "names": [
+        "createTagInput"
+      ]
+    },
+    "./tag-input/element": {
+      "defines": [
+        "lite-tag-input"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./tag/element": {
+      "defines": [
+        "lite-tag"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./timeline": {
+      "kind": "module",
+      "names": [
+        "createTimeline"
+      ]
+    },
+    "./timeline/element": {
+      "defines": [
+        "lite-timeline"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./toast": {
+      "kind": "module",
+      "names": [
+        "createToast"
+      ]
+    },
+    "./toast/element": {
+      "defines": [
+        "lite-toast"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./toggle-group": {
+      "kind": "module",
+      "names": [
+        "createToggleGroup"
+      ]
+    },
+    "./toggle-group/element": {
+      "defines": [
+        "lite-toggle-group"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./toolbar": {
+      "kind": "module",
+      "names": [
+        "createToolbar"
+      ]
+    },
+    "./toolbar/element": {
+      "defines": [
+        "lite-toolbar"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./tooltip": {
+      "kind": "module",
+      "names": [
+        "createTooltip"
+      ]
+    },
+    "./tooltip/element": {
+      "defines": [
+        "lite-tooltip"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./tour": {
+      "kind": "module",
+      "names": [
+        "createTour"
+      ]
+    },
+    "./tour/element": {
+      "defines": [
+        "lite-tour"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./tree": {
+      "kind": "module",
+      "names": [
+        "createTree"
+      ]
+    },
+    "./tree/element": {
+      "defines": [
+        "lite-tree"
+      ],
+      "kind": "element",
+      "names": []
+    }
+  },
+  "frozen": {
+    "at": "1.0.0-pre",
+    "hash": "sha256-11aeceec3dd0cbd077838defcdc08d249ae01d994bee0b9f3c8b6fc4fc7e3902",
+    "reason": "Legacy 1.0.0-pre host/factory census; retained verbatim as a drift baseline. Not re-derived from src -- the live gate is the exports block."
+  },
+  "note": "JS API surface for src/. The exports block is derived live from the package.json exports map and gated by test/api-surface.test.js; regenerate with `npm run api:update`. The aliases/primitives/totals blocks are frozen (see frozen.hash) and carried forward verbatim from 1.0.0-pre.",
   "primitives": {
     "accordion": {
       "factory_return": [
@@ -1563,5 +2429,39 @@
     "mirrored": 335,
     "primitives": 53
   },
-  "version": "1.0.0-pre"
+  "undocumented": [
+    "./avatar#deriveInitials",
+    "./avatar#hueFromString",
+    "./color-picker#hsvToHsl",
+    "./color-picker#hsvToRgb",
+    "./color-picker#linearRgbToOklab",
+    "./color-picker#linearToSrgb",
+    "./color-picker#oklabToLinearRgb",
+    "./color-picker#oklchToRgb",
+    "./color-picker#parseHex",
+    "./color-picker#rgbToHsv",
+    "./color-picker#rgbToOklch",
+    "./color-picker#srgbToLinear",
+    "./datepicker#addDays",
+    "./datepicker#addMonths",
+    "./datepicker#addYears",
+    "./datepicker#buildDaysInView",
+    "./datepicker#buildMonthsInView",
+    "./datepicker#buildYearsInView",
+    "./datepicker#dayKey",
+    "./datepicker#decadeRange",
+    "./datepicker#isAfter",
+    "./datepicker#isBefore",
+    "./datepicker#isInDecade",
+    "./datepicker#isInRange",
+    "./datepicker#isSameDay",
+    "./datepicker#isSameMonth",
+    "./datepicker#monthKey",
+    "./datepicker#startOfDay",
+    "./datepicker#startOfMonth",
+    "./datepicker#yearKey",
+    "./dialog#DIALOG_OPTION_KEYS",
+    "./pagination#buildItems"
+  ],
+  "version": "2.0.0"
 }
