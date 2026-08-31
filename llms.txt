@@ -1,6 +1,6 @@
 # @zakkster/lite-headless
 
-VERSION 1.1.1
+VERSION 1.2.0
 
 58 headless UI primitives on signal-based reactivity (@zakkster/lite-signal).
 Zero styling. Tree-shakable via per-primitive subpath exports. Framework-
@@ -47,6 +47,13 @@ Pattern: `@zakkster/lite-headless/<name>` (factory) and
 also ships its own `llms.txt` next to its source with the full options table,
 API, and painted-attribute contract.
 
+Opt-in subpath `@zakkster/lite-headless/floating-adapter` exports
+`createFloatingPositioner(options?)` -> a `(spec) -> {update, autoUpdate,
+destroy}` positioner factory backed by @zakkster/lite-floating. Pass it as the
+`positioner` option of tooltip/popover/combobox/menu to route placement through
+lite-floating (identical spec + 12-placement vocabulary). Middleware built once
+per open; autoUpdate is a no-op (lite-floating owns it); element boundary throws.
+
 Newest additions: separator, clipboard, password-input, alert-dialog, hover-card.
 
 ## Peer dependencies
@@ -60,6 +67,12 @@ Newest additions: separator, clipboard, password-input, alert-dialog, hover-card
 
 - Static config (set once at createXxx). Reactive state is exposed via signals.
 - Unknown option keys throw TypeError at construction with a did-you-mean hint; null and non-objects are rejected; no-arg/undefined is legal.
+- tooltip/popover/combobox/menu accept a pluggable `positioner` factory
+  (`(spec) -> {update, autoUpdate, destroy}`); undefined selects the built-in
+  _overlay/position engine. The engine is resolved once at construction (no
+  per-tick branch on the default path); a non-function throws at construction
+  and a handle missing update/autoUpdate/destroy throws at first open. The
+  floating-adapter subpath supplies a lite-floating-backed factory.
 - status ReadSignal: 'closed' -> 'opening' -> 'open' -> 'closing' -> 'closed'
 - Slots use data-* attributes: data-trigger, data-content, data-anchor,
   data-arrow, data-close, data-trigger, data-indicator, data-input, data-toggle
@@ -88,7 +101,7 @@ Newest additions: separator, clipboard, password-input, alert-dialog, hover-card
 - node:test (NOT vitest)
 - happy-dom devDep (pinned ^15.11.0)
 - Per-test setupDOM/teardownDOM; teardown calls window.happyDOM.close()
-- 1573 tests; `tsc --noEmit` type-checks the full public surface
+- 1600 tests; `tsc --noEmit` type-checks the full public surface
 
 ## License
 

@@ -222,6 +222,8 @@ declare module "@zakkster/lite-headless/popover" {
         closeOnOutsideClick?: boolean;
         trapFocus?: boolean;
         onChange?: (open: boolean, reason?: string) => void;
+        /** Pluggable positioning engine. Defaults to the built-in engine. */
+        positioner?: import("@zakkster/lite-headless/floating-adapter").PositionerFactory;
     }
 
     export interface PopoverInstance {
@@ -257,6 +259,8 @@ declare module "@zakkster/lite-headless/tooltip" {
         flip?: boolean;
         delay?: number | { open?: number; close?: number };
         onChange?: (open: boolean, reason?: string) => void;
+        /** Pluggable positioning engine. Defaults to the built-in engine. */
+        positioner?: import("@zakkster/lite-headless/floating-adapter").PositionerFactory;
     }
 
     export interface TooltipInstance {
@@ -334,6 +338,8 @@ declare module "@zakkster/lite-headless/combobox" {
         initialValue?: T | null;
         onValueChange?: (value: T | null, reason?: string) => void;
         onOpenChange?: (open: boolean, reason?: string) => void;
+        /** Pluggable positioning engine. Defaults to the built-in engine. */
+        positioner?: import("@zakkster/lite-headless/floating-adapter").PositionerFactory;
     }
 
     export interface ComboboxInstance<T = unknown> {
@@ -367,6 +373,8 @@ declare module "@zakkster/lite-headless/menu" {
         offset?: number;
         closeOnSelect?: boolean;
         onSelect?: (key: string) => void;
+        /** Pluggable positioning engine. Defaults to the built-in engine. */
+        positioner?: import("@zakkster/lite-headless/floating-adapter").PositionerFactory;
     }
 
     export interface MenuInstance {
@@ -2317,6 +2325,57 @@ declare module "@zakkster/lite-headless/hover-card" {
     export function createHoverCard(opts?: HoverCardOptions): HoverCardInstance;
 }
 declare module "@zakkster/lite-headless/hover-card/element" {}
+
+// =============================================================================
+// floating-adapter (opt-in positioner engine)
+// =============================================================================
+
+declare module "@zakkster/lite-headless/floating-adapter" {
+    /** The spec a positioner factory receives when a float opens. Mirrors the
+     *  built-in _overlay/position engine's construction options. */
+    export interface PositionerSpec {
+        anchor: Element | null;
+        content: Element | null;
+        arrow?: Element | null;
+        placement?: string;
+        offset?: number;
+        flip?: boolean;
+        shift?: boolean;
+        /** "clipping" | "viewport" | Element. The floating-adapter throws on an
+         *  element boundary (lite-floating clamps to the viewport only). */
+        boundary?: "clipping" | "viewport" | Element;
+    }
+
+    /** The handle a positioner factory must return. */
+    export interface PositionerHandle {
+        update(): void;
+        autoUpdate(): () => void;
+        destroy(): void;
+    }
+
+    /** A pluggable positioning engine: called once per open with a spec,
+     *  returns a handle. Pass one as the `positioner` option of tooltip /
+     *  popover / combobox / menu. `undefined` selects the built-in engine. */
+    export type PositionerFactory = (spec: PositionerSpec) => PositionerHandle;
+
+    export interface FloatingPositionerOptions {
+        /** Positioning strategy passed through to lite-floating. */
+        strategy?: "absolute" | "fixed";
+        /** Auto-update options passed through to lite-floating, or `false` to
+         *  disable lite-floating's own auto-update wiring. */
+        autoUpdate?: boolean | {
+            ancestorResize?: boolean;
+            windowResize?: boolean;
+            windowScroll?: boolean;
+            layoutShift?: boolean;
+        };
+    }
+
+    /** Build a positioner factory backed by @zakkster/lite-floating. */
+    export function createFloatingPositioner(
+        options?: FloatingPositionerOptions,
+    ): PositionerFactory;
+}
 
 declare global {
     interface LiteDialogElement extends HTMLElement {

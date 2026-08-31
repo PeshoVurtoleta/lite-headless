@@ -1,5 +1,36 @@
 # Changelog
 
+## 1.2.0 -- 2026-08-31
+
+### Added
+
+- Pluggable positioning engine for tooltip, popover, combobox, and menu: a new
+  `positioner?: (spec) => { update, autoUpdate, destroy }` option, validated at
+  construction (`checkPositioner`) with its returned handle checked at first
+  open (`checkPositionerHandle`). Defaults to the built-in `_overlay/position`
+  engine; the default path keeps its exact code shape (engine resolved once at
+  construction, no per-tick branch, no added hot-path allocation).
+- `@zakkster/lite-headless/floating-adapter` subpath exporting
+  `createFloatingPositioner(options?)`, an opt-in bridge that routes placement
+  through @zakkster/lite-floating using the identical positioner spec signature
+  and identity placement vocabulary. Middleware is built once per open; the
+  adapter's `autoUpdate()` is a no-op because lite-floating owns its own
+  auto-update; placement paint is diffed; an element `boundary` throws (fail
+  closed -- lite-floating clamps to the viewport).
+- ADR `docs/decisions/0001-positioning.md` recording the INJECT decision
+  (pluggable positioner + adapter subpath) over MIGRATE (blocked on
+  lite-floating's missing measurement-injection surface) and STATUS QUO.
+- `examples/signal-decorators.html`: a buildless example driving lite-headless
+  handles from a lite-signal view-model.
+- Gates for the new surface: torture phase A gains a 512-cycle
+  createTooltip({ positioner: createFloatingPositioner() }) churn (tracker
+  returns to 0, findings 0; runs on a grow-policy registry because
+  lite-floating reclaims its output signals via GC, not pool return) and
+  phase B a 200000-tick adapter update loop (major=0, alloc=0 B/op, heap
+  delta < 64 KiB); 27 boundary tests in test/floating-adapter.test.js cover
+  the construction/first-open validation matrix, spec threading, menu's two
+  anchor call sites, and sealed reads. Suite total 1573 -> 1600.
+
 ## 1.1.1 -- 2026-08-31
 
 ### Fixed

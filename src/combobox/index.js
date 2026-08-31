@@ -49,9 +49,9 @@ import { createPositioner } from "../_overlay/position.js";
 import { portal } from "../_overlay/portal.js";
 import { uniqueId, setAttr, toggleAttr, ensureId, addIdToken, removeIdToken } from "../_overlay/aria.js";
 import { createRovingFocus, STRATEGY_ACTIVE_DESCENDANT } from "../_overlay/roving-focus.js";
-import { checkOptions } from "../_validate.js";
+import { checkOptions, checkPositioner, checkPositionerHandle } from "../_validate.js";
 
-const OPTION_KEYS = "open|defaultOpen|onOpenChange|value|defaultValue|onValueChange|placement|offset|flip|shift|boundary|typeahead|typeaheadTimeout|loop|autoFocus|closeOnSelect|closeOnEscape|closeOnOutsideClick|container|transition";
+const OPTION_KEYS = "open|defaultOpen|onOpenChange|value|defaultValue|onValueChange|placement|offset|flip|shift|boundary|typeahead|typeaheadTimeout|loop|autoFocus|closeOnSelect|closeOnEscape|closeOnOutsideClick|container|transition|positioner";
 
 export function createCombobox(options = {}) {
     checkOptions("createCombobox", options, OPTION_KEYS);
@@ -73,7 +73,17 @@ export function createCombobox(options = {}) {
 
         container = (typeof document !== "undefined" ? document.body : null),
         transition = false,
+
+        positioner,
     } = options;
+
+    checkPositioner("createCombobox", positioner);
+    // Resolve the positioning engine ONCE, at construction: the default path
+    // keeps its exact code shape; the one addition is a per-open verify guard
+    // that short-circuits when no custom positioner is set. The per-tick path
+    // is unchanged.
+    const _positionerFactory = positioner || createPositioner;
+    let _positionerVerified = false;
 
     const core = createOverlayCore({
         open, defaultOpen, onOpenChange,
@@ -148,10 +158,14 @@ export function createCombobox(options = {}) {
         }
         setAttr(_trigger, "aria-expanded", "true");
 
-        _positioner = createPositioner({
+        _positioner = _positionerFactory({
             anchor: _trigger, content: _listbox,
             placement, offset, flip, shift, boundary,
         });
+        if (positioner && !_positionerVerified) {
+            checkPositionerHandle("createCombobox", _positioner);
+            _positionerVerified = true;
+        }
         _positioner.update();
         _stopAutoUpdate = _positioner.autoUpdate();
 

@@ -11,6 +11,11 @@ Inherits from createDialog. Additional:
 - flip: boolean = true         -- try opposite side when main-axis overflows
 - shift: boolean = true        -- slide along cross-axis to stay in boundary
 - boundary: 'clipping'|'viewport'|HTMLElement = 'clipping'
+- positioner: (spec) -> {update, autoUpdate, destroy} = built-in engine
+                               -- pluggable placement engine; resolved once at
+                               -- construction. Non-function throws at construction;
+                               -- a handle missing update/autoUpdate/destroy throws at
+                               -- first open. See @zakkster/lite-headless/floating-adapter.
 
 Default modal: false (overrides dialog default).
 

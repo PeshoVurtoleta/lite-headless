@@ -107,3 +107,40 @@ export function checkOptions(fnName, options, knownKeys) {
         throw new TypeError(`${fnName}: unknown option "${key}". Known options: ${knownKeys.split("|").join(", ")}`);
     }
 }
+
+// Positioner factory validation, at construction. `undefined` is legal -- the
+// factory falls back to the built-in positioning engine. Anything that is not
+// a function fails closed: null, an object, a string are all rejected here,
+// naming the factory and the received type, in the same diction as
+// checkOptions ("got <desc>").
+export function checkPositioner(fnName, value) {
+    if (value === undefined) return;
+    if (typeof value !== "function") {
+        const desc = value === null ? "null"
+            : Array.isArray(value) ? "array"
+            : typeof value;
+        throw new TypeError(`${fnName}: positioner must be a function, got ${desc}`);
+    }
+}
+
+// The HANDLE a positioner factory returns must expose update / autoUpdate /
+// destroy. Checked once, at first open (never per tick). Fails closed naming
+// the first missing method so a malformed custom engine surfaces immediately
+// instead of throwing deep inside an open/close cycle.
+export function checkPositionerHandle(fnName, handle) {
+    if (handle === null || typeof handle !== "object") {
+        const desc = handle === null ? "null"
+            : Array.isArray(handle) ? "array"
+            : typeof handle;
+        throw new TypeError(`${fnName}: positioner must return a handle object, got ${desc}`);
+    }
+    if (typeof handle.update !== "function") {
+        throw new TypeError(`${fnName}: positioner handle is missing "update"`);
+    }
+    if (typeof handle.autoUpdate !== "function") {
+        throw new TypeError(`${fnName}: positioner handle is missing "autoUpdate"`);
+    }
+    if (typeof handle.destroy !== "function") {
+        throw new TypeError(`${fnName}: positioner handle is missing "destroy"`);
+    }
+}

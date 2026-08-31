@@ -39,9 +39,9 @@ import { createPositioner } from "../_overlay/position.js";
 import { portal } from "../_overlay/portal.js";
 import { uniqueId, setAttr, toggleAttr, ensureId, addIdToken, removeIdToken } from "../_overlay/aria.js";
 import { createRovingFocus, STRATEGY_DOM_FOCUS } from "../_overlay/roving-focus.js";
-import { checkOptions } from "../_validate.js";
+import { checkOptions, checkPositioner, checkPositionerHandle } from "../_validate.js";
 
-const OPTION_KEYS = "open|defaultOpen|onOpenChange|placement|offset|flip|shift|boundary|typeahead|typeaheadTimeout|loop|closeOnSelect|closeOnEscape|closeOnOutsideClick|isSubmenu|submenuOpenDelay|submenuCloseDelay|safeTriangle|container|transition";
+const OPTION_KEYS = "open|defaultOpen|onOpenChange|placement|offset|flip|shift|boundary|typeahead|typeaheadTimeout|loop|closeOnSelect|closeOnEscape|closeOnOutsideClick|isSubmenu|submenuOpenDelay|submenuCloseDelay|safeTriangle|container|transition|positioner";
 
 export function createMenu(options = {}) {
     checkOptions("createMenu", options, OPTION_KEYS);
@@ -82,7 +82,18 @@ export function createMenu(options = {}) {
 
         container = (typeof document !== "undefined" ? document.body : null),
         transition = false,
+
+        positioner,
     } = options;
+
+    checkPositioner("createMenu", positioner);
+    // Resolve the positioning engine ONCE, at construction: the default path
+    // keeps its exact code shape; the one addition is a per-open verify guard
+    // that short-circuits when no custom positioner is set. The per-tick path
+    // is unchanged. Both anchoring call sites (initial open + context-menu
+    // re-anchor) route here.
+    const _positionerFactory = positioner || createPositioner;
+    let _positionerVerified = false;
 
     const core = createOverlayCore({
         open, defaultOpen, onOpenChange,
@@ -284,10 +295,14 @@ export function createMenu(options = {}) {
 
         const a = activeAnchor();
         if (a) {
-            _positioner = createPositioner({
+            _positioner = _positionerFactory({
                 anchor: a, content: _menu,
                 placement, offset, flip, shift, boundary,
             });
+            if (positioner && !_positionerVerified) {
+                checkPositionerHandle("createMenu", _positioner);
+                _positionerVerified = true;
+            }
             _positioner.update();
             _stopAutoUpdate = _positioner.autoUpdate();
         }
@@ -764,10 +779,14 @@ export function createMenu(options = {}) {
             if (core.open()) {
                 if (_stopAutoUpdate) { _stopAutoUpdate(); _stopAutoUpdate = null; }
                 if (_positioner) { _positioner.destroy(); _positioner = null; }
-                _positioner = createPositioner({
+                _positioner = _positionerFactory({
                     anchor: va, content: _menu,
                     placement, offset, flip, shift, boundary,
                 });
+                if (positioner && !_positionerVerified) {
+                    checkPositionerHandle("createMenu", _positioner);
+                    _positionerVerified = true;
+                }
                 _positioner.update();
                 _stopAutoUpdate = _positioner.autoUpdate();
             } else {

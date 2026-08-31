@@ -4,7 +4,9 @@ createTooltip(options) -> TooltipHandle
 
 ## Options
 
-Inherits positioning options from createPopover. Additional:
+Inherits positioning options from createPopover (including the pluggable
+`positioner` factory; see popover llms and
+@zakkster/lite-headless/floating-adapter). Additional:
 
 - trigger: string = 'hover focus'        -- space-separated subset of 'hover|focus|click|manual'
 - openDelay: number = 200                -- ms before opening on hover (ignored for focus)

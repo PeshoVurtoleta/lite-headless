@@ -39,7 +39,7 @@ import {
     createObserverOrphanKernel,
     createAsyncRetentionKernel,
 } from "@zakkster/lite-leak";
-import { effect } from "@zakkster/lite-signal";
+import { effect, createRegistry, setDefaultRegistry } from "@zakkster/lite-signal";
 
 // ----- happy-dom setup (once) -- mirrors test/_setup.js global exposure ----
 import { Window } from "happy-dom";
@@ -70,6 +70,8 @@ import { createSlider } from "../src/slider/index.js";
 import { createTabs } from "../src/tabs/index.js";
 import { createTree } from "../src/tree/index.js";
 import { createPositioner } from "../src/_overlay/position.js";
+import { createTooltip } from "../src/tooltip/index.js";
+import { createFloatingPositioner } from "../src/floating-adapter.js";
 // signal-owning factories fixed for H-12 (destroy() must dispose owned signals)
 import { createAvatar } from "../src/avatar/index.js";
 import { createTour } from "../src/tour/index.js";
@@ -236,6 +238,28 @@ churn(
     256,
 );
 
+// H5 floating-adapter retention sweep -- MUST run last in phase A, on a
+// grow-policy registry. Every open spins up a @zakkster/lite-floating instance
+// whose x/y/placement/isPositioned OUTPUT signals are deliberately NOT pool-
+// returned on dispose() (lite-floating's reads-freeze contract reclaims them
+// via FinalizationRegistry, i.e. on GC, not synchronously). That is the correct
+// contract for an external GC-based dependency, but it means 512 cycles would
+// exhaust the suite's fixed 1024-node ledger long before any GC runs -- a false
+// CapacityError that has nothing to do with a real listener/observer leak. The
+// fixed-pool discipline is the SUITE's own H-12 contract for its own factories
+// (all of which ran above, on the default registry, and proved clean); it does
+// not apply to lite-floating. So we swap in a grow registry for this sweep only.
+// The real proof here is retention: tracker.size() -> 0 and audit() empty prove
+// the adapter's destroy() disposes the floating effect and unwires its
+// scroll/resize listeners. A retained listener or undisposed effect would
+// surface as an owner-disposed finding regardless of which registry is active.
+setDefaultRegistry(createRegistry({ maxNodes: 1 << 16, onCapacityExceeded: "grow" }));
+churn(
+    () => createTooltip({ positioner: createFloatingPositioner() }),
+    (x) => { x.attachTrigger(el("button")); x.attachAnchor(el("div")); x.attachContent(el("div")); x.setOpen(true); x.setOpen(false); },
+    512,
+);
+
 globalThis.gc?.();
 await new Promise((r) => setTimeout(r, 60));
 globalThis.gc?.();
@@ -305,22 +329,80 @@ for (let i = 0; i < HOT; i++) {
     if ((i & 8191) === 0) gc.sampleHeap(performance.now(), process.memoryUsage().heapUsed);
 }
 
+// (iii) floating-adapter hot path. The adapter wraps @zakkster/lite-floating;
+// each update() forwards to the floating handle's compute (synchronous here --
+// no requestAnimationFrame global -- so every tick recomputes). The anchor rect
+// is held CONSTANT so the steady-state (element-has-not-moved) tick is proven
+// allocation-free: lite-signal equality-gates x/y/placement, so bindTransform
+// and the diffed placement paint never re-fire, and encodePlacement's
+// zero-suffix concat returns the interned side string. A heapUsed-delta guard
+// (< 65536 bytes across 200000 ticks) catches any per-tick retention the GC
+// budget alone might miss. Fake anchor/content are plain objects with a shared
+// mutable rect (zero browser DOMRect allocation), matching phase (ii).
+const _faRect = { x: 20, y: 20, left: 20, top: 20, right: 120, bottom: 50, width: 100, height: 30 };
+const _faCRect = { x: 0, y: 0, left: 0, top: 0, right: 120, bottom: 60, width: 120, height: 60 };
+const _faAnchor = { nodeType: 1, getBoundingClientRect() { return _faRect; } };
+const _faContent = {
+    nodeType: 1,
+    style: {},
+    getBoundingClientRect() { return _faCRect; },
+    getAttribute() { return null; },
+    setAttribute() {},
+    hasAttribute() { return false; },
+    removeAttribute() {},
+};
+const _faFactory = createFloatingPositioner();
+const _faHandle = _faFactory({
+    anchor: _faAnchor,
+    content: _faContent,
+    placement: "bottom",
+    offset: 8,
+    flip: true,
+    shift: true,
+    boundary: "viewport",
+});
+_faHandle.update(); // one-time initial compute + signal/paint seed
+for (let i = 0; i < HOT; i++) {
+    _faHandle.update();
+    if ((i & 8191) === 0) gc.sampleHeap(performance.now(), process.memoryUsage().heapUsed);
+}
+
 // settle: GC entries arrive asynchronously; read summary AFTER a macrotask.
 await new Promise((r) => setTimeout(r, 60));
 const s = gc.summary();
 const report = checkNoGc(s, { maxMajor: 0, maxPauseMs: 4 });
 gc.stop();
 
+// floating-adapter RETENTION guard. Runs OUTSIDE the profiler window: the two
+// forced collections here would otherwise register as majors and pollute the
+// GC budget asserted above. The steady-state (element-not-moved) update tick
+// produces only transient young-gen garbage (lite-floating reads window.inner*
+// each compute); a full GC on both ends reclaims it, so a genuinely non-
+// retaining path lands a near-zero delta. A per-tick RETENTION would survive
+// the trailing GC and blow the 64 KiB ceiling.
+globalThis.gc?.();
+const _faHeapBefore = process.memoryUsage().heapUsed;
+for (let i = 0; i < HOT; i++) {
+    _faHandle.update();
+}
+globalThis.gc?.();
+const _faHeapAfter = process.memoryUsage().heapUsed;
+const _faHeapDelta = _faHeapAfter - _faHeapBefore;
+const _faAllocPerOp = _faHeapDelta > 0 ? Math.round(_faHeapDelta / HOT) : 0;
+const _faHeapOk = _faHeapDelta < 65536;
+_faHandle.destroy();
+
 // keep the control buffer reachable past summary() so it cannot be collected
 // early and hide the pressure it is meant to create.
 if (CONTROL && _ctrlBuf[HOT - 1] === null) throw new Error("unreachable");
 
-const ok = report.ok && live === 0 && leaks.length === 0 && findings.length === 0;
+const ok = report.ok && live === 0 && leaks.length === 0 && findings.length === 0 && _faHeapOk;
 console.log(
     "GATE leak=size " + live + "/0 findings=" + findings.length +
     " warnings=" + warns.length +
     " | gc major=" + s.gc.major + " minor=" + s.gc.minor +
     " maxMs=" + s.gc.maxMs.toFixed(2) +
+    " | alloc=" + _faAllocPerOp + " B/op" +
     " | " + (ok ? "ok" : "FAIL"),
 );
 if (!ok) {
@@ -329,6 +411,7 @@ if (!ok) {
     }
     for (const f of findings) console.error("  finding " + f.kind + ":" + f.reason);
     for (const l of leaks) console.error("  leak " + l);
+    if (!_faHeapOk) console.error("  violation floating-adapter heapDelta limit=65536 actual=" + _faHeapDelta);
     process.exitCode = 1;
 }
 

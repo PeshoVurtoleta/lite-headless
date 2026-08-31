@@ -25,9 +25,9 @@ import { createFocusTrap } from "../_overlay/focus.js";
 import { createPositioner } from "../_overlay/position.js";
 import { portal } from "../_overlay/portal.js";
 import { uniqueId, setAttr, toggleAttr, ensureId, addIdToken, removeIdToken } from "../_overlay/aria.js";
-import { checkOptions } from "../_validate.js";
+import { checkOptions, checkPositioner, checkPositionerHandle } from "../_validate.js";
 
-const OPTION_KEYS = "open|defaultOpen|onOpenChange|placement|offset|flip|shift|boundary|modal|closeOnEscape|closeOnOutsideClick|initialFocus|finalFocus|container|transition|labelledBy|describedBy";
+const OPTION_KEYS = "open|defaultOpen|onOpenChange|placement|offset|flip|shift|boundary|modal|closeOnEscape|closeOnOutsideClick|initialFocus|finalFocus|container|transition|labelledBy|describedBy|positioner";
 
 export function createPopover(options = {}) {
     checkOptions("createPopover", options, OPTION_KEYS);
@@ -57,7 +57,17 @@ export function createPopover(options = {}) {
         // aria
         labelledBy: labelledByOpt,
         describedBy: describedByOpt,
+
+        positioner,
     } = options;
+
+    checkPositioner("createPopover", positioner);
+    // Resolve the positioning engine ONCE, at construction: the default path
+    // keeps its exact code shape; the one addition is a per-open verify guard
+    // that short-circuits when no custom positioner is set. The per-tick path
+    // is unchanged.
+    const _positionerFactory = positioner || createPositioner;
+    let _positionerVerified = false;
 
     const core = createOverlayCore({
         open,
@@ -94,10 +104,14 @@ export function createPopover(options = {}) {
 
         const a = activeAnchor();
         if (a) {
-            _positioner = createPositioner({
+            _positioner = _positionerFactory({
                 anchor: a, content: _content, arrow: _arrow,
                 placement, offset, flip, shift, boundary,
             });
+            if (positioner && !_positionerVerified) {
+                checkPositionerHandle("createPopover", _positioner);
+                _positionerVerified = true;
+            }
             _positioner.update();
             _stopAutoUpdate = _positioner.autoUpdate();
         }

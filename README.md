@@ -1,6 +1,6 @@
 # @zakkster/lite-headless
 
-> 58 headless UI primitives on signal-based reactivity. Overlays (dialog, alert-dialog, popover, tooltip, hover-card, menu, combobox, command-palette, toast, drawer, tour) share one composition core; form controls and data/display primitives live alongside. Each primitive ships an optional `<lite-*>` custom element. Framework-agnostic, tree-shakable, zero runtime deps, 1573 tests, MIT.
+> 58 headless UI primitives on signal-based reactivity. Overlays (dialog, alert-dialog, popover, tooltip, hover-card, menu, combobox, command-palette, toast, drawer, tour) share one composition core; form controls and data/display primitives live alongside. Each primitive ships an optional `<lite-*>` custom element. Framework-agnostic, tree-shakable, zero runtime deps, 1600 tests, MIT.
 
 [![npm version](https://img.shields.io/npm/v/@zakkster/lite-headless.svg?style=for-the-badge&color=latest)](https://www.npmjs.com/package/@zakkster/lite-headless)
 [![sponsor](https://img.shields.io/badge/sponsor-PeshoVurtoleta-ea4aaa.svg?logo=github)](https://github.com/sponsors/PeshoVurtoleta)
@@ -145,6 +145,7 @@ createPopover({
     flip,        // default true
     shift,       // default true
     boundary,    // "clipping" (default) | "viewport" | HTMLElement
+    positioner,  // pluggable engine; default built-in (see floating-adapter)
     modal, container, transition, labelledBy, describedBy,
 });
 ```
@@ -157,6 +158,7 @@ createPopover({
 createTooltip({
     open, defaultOpen, onOpenChange,
     placement, offset, flip, shift, boundary, container,
+    positioner,       // pluggable engine; default built-in (see floating-adapter)
     trigger,          // "hover focus" (default) | subset of hover|focus|click|manual
     openDelay,        // ms; default 200
     closeDelay,       // ms; default 150
@@ -174,6 +176,7 @@ createCombobox({
     value,            // external WriteSignal (controlled)
     defaultValue, onValueChange,
     placement, offset, flip, shift, boundary,
+    positioner,       // pluggable engine; default built-in (see floating-adapter)
     typeahead,        // default true
     typeaheadTimeout, // ms; default 500
     loop,             // default true
@@ -191,6 +194,7 @@ Returns `{ ..., value(), setValue(v, reason), attachTrigger, attachListbox, atta
 createMenu({
     open, defaultOpen, onOpenChange,
     placement, offset, flip, shift, boundary,
+    positioner,        // pluggable engine; default built-in (see floating-adapter)
     typeahead, typeaheadTimeout, loop, container, transition,
     closeOnSelect,     // default true
     closeOnEscape, closeOnOutsideClick,
@@ -253,7 +257,7 @@ Classes 1-3 are outputs the primitive writes; class 4 are inputs the wrapper rea
 
 | Export           | Meaning                                                           |
 | ---------------- | ---------------------------------------------------------------- |
-| `VERSION`        | Package version string (`"1.1.1"`), also mirrored in `llms.txt`. |
+| `VERSION`        | Package version string (`"1.2.0"`), also mirrored in `llms.txt`. |
 | status values    | `"closed"` -> `"opening"` -> `"open"` -> `"closing"` (per overlay). |
 | generated id ns  | `lh-dialog-`, `lh-popover-`, ... namespaced per primitive.        |
 
@@ -310,6 +314,26 @@ Because the combobox and the datepicker both read and write `form.field(path).va
 
 ---
 
+## Integration recipes
+
+### Swap the positioner for `@zakkster/lite-floating`
+
+`tooltip`, `popover`, `combobox`, and `menu` position with the built-in `_overlay/position` engine by default. Pass a `positioner` factory to route placement through a different engine instead -- the built-in one stays the default, so nothing changes unless you opt in. The opt-in `@zakkster/lite-headless/floating-adapter` subpath wraps [`@zakkster/lite-floating`](https://www.npmjs.com/package/@zakkster/lite-floating) behind the identical spec and the identical 12-placement vocabulary:
+
+```js
+import { createTooltip } from "@zakkster/lite-headless/tooltip";
+import { createFloatingPositioner } from "@zakkster/lite-headless/floating-adapter";
+
+const tip = createTooltip({
+    placement: "top",
+    positioner: createFloatingPositioner(), // lite-floating drives placement + autoUpdate
+});
+```
+
+`createFloatingPositioner()` returns a `(spec) -> { update, autoUpdate, destroy }` factory: middleware is built once per open, lite-floating owns its own auto-update (so the adapter's `autoUpdate()` is a no-op), and placement paint is diffed. It fails closed on an element `boundary` (lite-floating clamps to the viewport). Adding it means adding `@zakkster/lite-floating` as a real dependency in your app; the built-in engine has zero peers. A custom engine is any factory with the same spec signature -- it is validated at construction and its handle is checked at first open. See `docs/decisions/0001-positioning.md` for why this is a seam and not a migration.
+
+---
+
 ## Zero-GC design notes
 
 <details>
@@ -358,10 +382,10 @@ Zero retained primitives, zero orphan findings, zero major GCs across 200000 hot
 
 ## Testing
 
-**1573 tests**, all passing, plus the torture gate and an optional real-browser suite.
+**1600 tests**, all passing, plus the torture gate and an optional real-browser suite.
 
 ```bash
-npm test             # 1573 node:test cases (per-primitive + composition layers)
+npm test             # 1600 node:test cases (per-primitive + composition layers)
 npm run types        # tsc --noEmit against types.d.ts (silent on success)
 npm run torture      # @zakkster/lite-leak + lite-gc-profiler: retention + 0-major-GC
 npm run torture:control  # the negative control; must exit non-zero
@@ -378,7 +402,7 @@ The unit suite runs on happy-dom with a per-test `setupDOM()` / `teardownDOM()` 
 - **A rendering library.** No virtual DOM, no JSX runtime, no template compiler. You bring the markup; the primitives attach behavior to your elements.
 - **A styling system.** Zero CSS in the package. The primitives expose `data-*` and `aria-*` hooks (201 and 31 distinct across the set); you style them.
 - **An animation engine.** The `status` signal is the integration point. Pair with CSS transitions, Web Animations, `lite-ease`, GSAP, Motion One -- whatever.
-- **A positioning library beyond the basics.** `_overlay/position` covers 12 placements + flip + shift + arrow + autoUpdate. For nested-scroll boundaries or middleware-style transforms, use Floating UI via `attachAnchor` (or the `hover-card` path, which already does).
+- **A positioning library beyond the basics.** `_overlay/position` covers 12 placements + flip + shift + arrow + autoUpdate. For richer placement, pass `positioner: createFloatingPositioner()` (the `floating-adapter` subpath) to route tooltip / popover / combobox / menu through `@zakkster/lite-floating`, use Floating UI via `attachAnchor`, or reach for the `hover-card` path, which already runs on lite-floating.
 - **A data grid.** The primitives are table-less by design; the sortable/virtualizable data grid lives in [`@zakkster/lite-table`](https://www.npmjs.com/package/@zakkster/lite-table). This package supplies the surrounding controls (menu, combobox, pagination, toolbar), not the grid itself.
 
 ---
@@ -389,7 +413,7 @@ Part of the **@zakkster** zero-GC stack.
 
 - [`lite-signal`](https://www.npmjs.com/package/@zakkster/lite-signal) -- **required peer**. Synchronous, zero-GC reactive graph. `open`, `value`, `status` come from here. `destroy()` seals every factory-owned node back into its pool (H-12), so the default fixed 1024-node registry bounds concurrent primitives, not lifetime churn; size it up via `createRegistry` + `setDefaultRegistry` only if you hold hundreds of live primitives at once.
 - [`lite-element`](https://www.npmjs.com/package/@zakkster/lite-element) -- **optional peer**. Enables the `<lite-*>` custom-element wrappers with reactive observed attributes.
-- [`lite-floating`](https://www.npmjs.com/package/@zakkster/lite-floating) -- **optional peer**. Positions `hover-card`.
+- [`lite-floating`](https://www.npmjs.com/package/@zakkster/lite-floating) -- **optional peer**. Positions `hover-card`, and backs the opt-in `floating-adapter` subpath (`createFloatingPositioner`) for tooltip / popover / combobox / menu.
 - [`lite-observe`](https://www.npmjs.com/package/@zakkster/lite-observe) -- **optional peer**. Backs `hover-card`'s `autoUpdate`.
 - [`lite-table`](https://www.npmjs.com/package/@zakkster/lite-table) -- the sortable, virtualizable data grid. lite-headless is table-less on purpose; the grid lives here.
 - [`lite-query`](https://www.npmjs.com/package/@zakkster/lite-query) -- async data + cache; feed a combobox or command-palette listbox.

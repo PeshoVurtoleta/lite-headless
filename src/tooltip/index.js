@@ -30,9 +30,9 @@ import { bindEscape } from "../_overlay/dismiss.js";
 import { createPositioner } from "../_overlay/position.js";
 import { portal } from "../_overlay/portal.js";
 import { uniqueId, setAttr, toggleAttr, ensureId, addIdToken, removeIdToken } from "../_overlay/aria.js";
-import { checkOptions } from "../_validate.js";
+import { checkOptions, checkPositioner, checkPositionerHandle } from "../_validate.js";
 
-const OPTION_KEYS = "open|defaultOpen|onOpenChange|placement|offset|flip|shift|boundary|trigger|openDelay|closeDelay|closeOnEscape|container|transition|describesTrigger";
+const OPTION_KEYS = "open|defaultOpen|onOpenChange|placement|offset|flip|shift|boundary|trigger|openDelay|closeDelay|closeOnEscape|container|transition|describesTrigger|positioner";
 
 export function createTooltip(options = {}) {
     checkOptions("createTooltip", options, OPTION_KEYS);
@@ -56,7 +56,17 @@ export function createTooltip(options = {}) {
         transition = false,
 
         describesTrigger = true, // aria-describedby (default) vs aria-labelledby
+
+        positioner,
     } = options;
+
+    checkPositioner("createTooltip", positioner);
+    // Resolve the positioning engine ONCE, at construction: the default path
+    // keeps its exact code shape; the one addition is a per-open verify guard
+    // that short-circuits when no custom positioner is set. The per-tick path
+    // is unchanged.
+    const _positionerFactory = positioner || createPositioner;
+    let _positionerVerified = false;
 
     const triggers = String(triggerSpec).split(/\s+/).filter(Boolean);
     const usesHover = triggers.includes("hover");
@@ -137,10 +147,14 @@ export function createTooltip(options = {}) {
         }
         const a = _anchor || _trigger;
         if (a) {
-            _positioner = createPositioner({
+            _positioner = _positionerFactory({
                 anchor: a, content: _content, arrow: _arrow,
                 placement, offset, flip, shift, boundary,
             });
+            if (positioner && !_positionerVerified) {
+                checkPositionerHandle("createTooltip", _positioner);
+                _positionerVerified = true;
+            }
             _positioner.update();
             _stopAutoUpdate = _positioner.autoUpdate();
         }

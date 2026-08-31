@@ -23,6 +23,10 @@ that need to retain focus while a separate "active" cursor moves.
 - flip: boolean = true
 - shift: boolean = true
 - boundary: 'clipping'|'viewport'|HTMLElement = 'clipping'
+- positioner: (spec) -> {update, autoUpdate, destroy} = built-in engine
+                        -- pluggable placement engine; applies to BOTH the
+                        -- trigger-anchored open and the context-menu re-anchor
+                        -- path. See @zakkster/lite-headless/floating-adapter
 
 - typeahead: boolean = true
 - typeaheadTimeout: number = 500       -- ms before buffer resets

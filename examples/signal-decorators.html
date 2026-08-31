@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>lite-headless - a signal view-model drives three handles</title>
+<style>
+    :root {
+        --bg: #0a0e14;
+        --bg-oklch: oklch(0.17 0.02 250);
+        --panel: #11161e;
+        --line: #1f2733;
+        --text: #e6edf3;
+        --text-dim: #8b96a3;
+        --cyan: #00c8ff;
+        --cyan-oklch: oklch(0.78 0.14 220);
+        --amber: #ffb400;
+        --ok: #3fb950;
+        --radius: 0.375rem;
+    }
+    * { box-sizing: border-box; }
+    body {
+        background: #0a0e14;
+        background: var(--bg-oklch);
+        color: var(--text);
+        font-family: 'SF Mono', 'Monaco', Menlo, monospace;
+        font-size: 0.875rem;
+        margin: 0;
+        padding: 2rem;
+        line-height: 1.5;
+    }
+    .container { max-width: 40rem; margin: 0 auto; display: grid; gap: 1.5rem; }
+    h1 {
+        font-size: 1.15rem;
+        color: #00c8ff;
+        color: var(--cyan-oklch);
+        margin: 0 0 0.25rem;
+        letter-spacing: 0.03em;
+    }
+    .subtitle { color: var(--text-dim); margin: 0 0 1rem; }
+    .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 1rem;
+    }
+    button {
+        font: inherit;
+        color: var(--text);
+        background: #1a222e;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 0.4rem 0.8rem;
+        cursor: pointer;
+    }
+    @media (hover: hover) {
+        button:hover { border-color: var(--cyan); }
+    }
+    button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+
+    /* dialog */
+    [data-dialog-content] {
+        position: fixed;
+        inset: 0;
+        margin: auto;
+        width: min(30rem, 92vw);
+        height: max-content;
+        max-height: 80dvh;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 1.25rem;
+        color: var(--text);
+    }
+    [data-dialog-content][aria-hidden="true"] { display: none; }
+    [data-dialog-content]::backdrop { background: #000000aa; }
+
+    /* tabs */
+    [data-tablist] { display: flex; gap: 0.25rem; border-bottom: 1px solid var(--line); margin-bottom: 0.75rem; }
+    [data-tab] {
+        background: transparent;
+        border: 0;
+        border-bottom: 2px solid transparent;
+        border-radius: 0;
+        color: var(--text-dim);
+        padding: 0.4rem 0.7rem;
+    }
+    [data-tab][data-selected] { color: var(--cyan); border-bottom-color: var(--cyan); }
+    [data-panel][hidden] { display: none; }
+
+    /* tooltip */
+    [data-status] { color: var(--ok); }
+    [role="tooltip"] {
+        background: #1a222e;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 0.3rem 0.55rem;
+        font-size: 0.8rem;
+        max-width: 16rem;
+    }
+    [role="tooltip"][aria-hidden="true"] { display: none; }
+
+    .row { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; }
+    label.check { display: inline-flex; gap: 0.4rem; align-items: center; color: var(--text-dim); }
+    .readout { color: var(--text-dim); }
+    .readout b { color: var(--text); font-weight: 600; }
+    .actions { margin-top: 1rem; }
+    h2 { margin-top: 0; }
+</style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>One signal view-model, three lite-headless handles</h1>
+        <p class="subtitle">
+            A dialog, a tabs group, and a tooltip all read and write the SAME
+            plain lite-signal view-model. No framework, no build step.
+        </p>
+    </header>
+
+    <div class="panel">
+        <div class="row">
+            <button id="open-btn" type="button">Open settings</button>
+            <button id="help-btn" type="button" aria-label="About this demo">?</button>
+            <span class="readout">status: <b id="status-out" data-status>idle</b></span>
+        </div>
+        <div id="help-tip" role="tooltip">
+            Every control here is driven by lite-signal reads. Flip a tab or the
+            checkbox and watch the readout recompute.
+        </div>
+    </div>
+
+    <dialog id="dialog" data-dialog-content aria-labelledby="dialog-title">
+        <h2 id="dialog-title">Settings</h2>
+        <div id="tablist" data-tablist>
+            <button data-tab id="tab-general" type="button">General</button>
+            <button data-tab id="tab-notify" type="button">Notifications</button>
+            <button data-tab id="tab-about" type="button">About</button>
+        </div>
+        <section data-panel id="panel-general">
+            <p class="readout">Active tab: <b id="active-out">general</b></p>
+        </section>
+        <section data-panel id="panel-notify">
+            <label class="check">
+                <input type="checkbox" id="notify-check"> Email notifications
+            </label>
+        </section>
+        <section data-panel id="panel-about">
+            <p class="readout">lite-headless example - buildless ESM.</p>
+        </section>
+        <div class="row actions">
+            <button id="close-btn" type="button">Close</button>
+            <span class="readout"><b id="summary-out">-</b></span>
+        </div>
+    </dialog>
+</div>
+
+<script type="importmap">
+{
+    "imports": {
+        "@zakkster/lite-signal": "/node_modules/@zakkster/lite-signal/Signal.js"
+    }
+}
+</script>
+<script type="module">
+// The view-model is expressed with PLAIN lite-signal (signal / computed /
+// effect). @zakkster/lite-signal-decorators' defineReactive is the buildless
+// twin that would wrap this exact shape in a class; it is intentionally NOT
+// used here because it is not a dependency of lite-headless, and wiring a
+// second package to the SAME lite-signal instance buildless is out of scope
+// for a self-contained example. The equivalent decorators spec is shown at the
+// bottom of this file in a comment. Both front doors drive the same lite-signal
+// graph, so the lite-headless handles below behave identically either way.
+import { signal, computed, effect } from "@zakkster/lite-signal";
+import { createDialog } from "/src/dialog/index.js";
+import { createTabs } from "/src/tabs/index.js";
+import { createTooltip } from "/src/tooltip/index.js";
+
+// ----- the view-model: three signals + one derived readout -----------------
+const vm = {
+    activeTab: signal("general"),
+    notify: signal(false),
+    saves: signal(0),
+};
+vm.summary = computed(() =>
+    "tab=" + vm.activeTab() +
+    " notify=" + (vm.notify() ? "on" : "off") +
+    " saves=" + vm.saves()
+);
+
+// ----- cache DOM once (hot-path law: no per-event query) --------------------
+const $status = document.getElementById("status-out");
+const $active = document.getElementById("active-out");
+const $summary = document.getElementById("summary-out");
+const $notify = document.getElementById("notify-check");
+
+// Hook initial UI from the signal's current value, never hardcoded in HTML.
+$notify.checked = vm.notify.peek();
+
+// ----- lite-headless handles ------------------------------------------------
+const dialog = createDialog({ modal: true });
+dialog.attachTrigger(document.getElementById("open-btn"));
+dialog.attachContent(document.getElementById("dialog"));
+dialog.attachClose(document.getElementById("close-btn"));
+
+const tabs = createTabs({
+    defaultValue: "general",
+    onValueChange: (key) => vm.activeTab.set(key),
+});
+tabs.attachTablist(document.getElementById("tablist"));
+tabs.attachTab(document.getElementById("tab-general"), "general");
+tabs.attachTab(document.getElementById("tab-notify"), "notify");
+tabs.attachTab(document.getElementById("tab-about"), "about");
+tabs.attachPanel(document.getElementById("panel-general"), "general");
+tabs.attachPanel(document.getElementById("panel-notify"), "notify");
+tabs.attachPanel(document.getElementById("panel-about"), "about");
+
+const help = createTooltip({ placement: "bottom" });
+help.attachTrigger(document.getElementById("help-btn"));
+help.attachContent(document.getElementById("help-tip"));
+
+// ----- bind the checkbox to the view-model both ways ------------------------
+$notify.addEventListener("change", () => vm.notify.set($notify.checked));
+
+// ----- everything downstream is a signal read -------------------------------
+effect(() => { $active.textContent = vm.activeTab(); });
+effect(() => { $notify.checked = vm.notify(); });
+effect(() => { $summary.textContent = vm.summary(); });
+effect(() => {
+    $status.textContent = dialog.open() ? "editing" : "idle";
+});
+
+// A save bumps the saves counter, which the derived summary recomputes.
+document.getElementById("close-btn").addEventListener("click", () => {
+    vm.saves.set(vm.saves.peek() + 1);
+});
+
+/*
+ * defineReactive equivalent (decorators buildless twin), for reference only:
+ *
+ *   import { defineReactive, disposeReactive } from "@zakkster/lite-signal-decorators";
+ *   class SettingsVM {}
+ *   defineReactive(SettingsVM, {
+ *       signals: { activeTab: "general", notify: false, saves: 0 },
+ *       deriveds: {
+ *           summary: (self) =>
+ *               "tab=" + self.activeTab +
+ *               " notify=" + (self.notify ? "on" : "off") +
+ *               " saves=" + self.saves,
+ *       },
+ *   });
+ *   const vm2 = new SettingsVM();
+ *   // vm2.activeTab = "notify";  vm2.summary; ... disposeReactive(vm2);
+ *
+ * The accessors read/write the same lite-signal boxes this example builds by
+ * hand, so the createDialog / createTabs / createTooltip wiring is unchanged.
+ */
+</script>
+</body>
+</html>

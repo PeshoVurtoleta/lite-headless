@@ -21,6 +21,9 @@ attribute names the highlighted item's id).
 - flip: boolean = true
 - shift: boolean = true
 - boundary: 'clipping'|'viewport'|HTMLElement = 'clipping'
+- positioner: (spec) -> {update, autoUpdate, destroy} = built-in engine
+                        -- pluggable placement engine; see popover llms and
+                        -- @zakkster/lite-headless/floating-adapter
 
 - typeahead: boolean = true
 - typeaheadTimeout: number = 500        -- ms before typeahead buffer resets
