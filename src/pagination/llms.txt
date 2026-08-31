@@ -32,7 +32,7 @@ function render() {
     for (const item of pg.items()) {
         const li = document.createElement("li");
         if (item.type === "ellipsis") {
-            li.textContent = "…";
+            li.textContent = "...";
         } else {
             const btn = document.createElement("button");
             btn.textContent = String(item.page);
@@ -72,13 +72,13 @@ ranges with single-page-gap merging:
 | Configuration                            | items()                            |
 | ---------------------------------------- | ---------------------------------- |
 | 5 pages, sibling=1, boundary=1, p=3      | `1 2 [3] 4 5`                      |
-| 20 pages, sibling=1, boundary=1, p=1     | `[1] 2 … 20`                       |
-| 20 pages, sibling=1, boundary=1, p=10    | `1 … 9 [10] 11 … 20`               |
-| 20 pages, sibling=1, boundary=1, p=20    | `1 … 19 [20]`                      |
-| 10 pages, sibling=1, boundary=1, p=4     | `1 2 3 [4] 5 … 10`                 |
-| 20 pages, sibling=1, boundary=2, p=10    | `1 2 … 9 [10] 11 … 19 20`          |
+| 20 pages, sibling=1, boundary=1, p=1     | `[1] 2 ... 20`                       |
+| 20 pages, sibling=1, boundary=1, p=10    | `1 ... 9 [10] 11 ... 20`               |
+| 20 pages, sibling=1, boundary=1, p=20    | `1 ... 19 [20]`                      |
+| 10 pages, sibling=1, boundary=1, p=4     | `1 2 3 [4] 5 ... 10`                 |
+| 20 pages, sibling=1, boundary=2, p=10    | `1 2 ... 9 [10] 11 ... 19 20`          |
 | 10 pages, sibling=1, boundary=0, p=5     | `4 [5] 6`                          |
-| 50 pages, sibling=3, boundary=2, p=25    | `1 2 … 22 23 24 [25] 26 27 28 … 49 50` |
+| 50 pages, sibling=3, boundary=2, p=25    | `1 2 ... 22 23 24 [25] 26 27 28 ... 49 50` |
 
 Item shape:
 
@@ -99,14 +99,14 @@ page).
 | Method                 | Effect                                                               |
 | ---------------------- | -------------------------------------------------------------------- |
 | `attachRoot(el)`       | role=navigation, aria-label="Pagination" (unless overridden)         |
-| `attachPrev(el)`       | data-disabled at page 1; click → prev()                              |
-| `attachNext(el)`       | data-disabled at last page; click → next()                           |
-| `attachFirst(el)`      | data-disabled at page 1; click → first()                             |
-| `attachLast(el)`       | data-disabled at last page; click → last()                           |
+| `attachPrev(el)`       | data-disabled at page 1; click -> prev()                              |
+| `attachNext(el)`       | data-disabled at last page; click -> next()                           |
+| `attachFirst(el)`      | data-disabled at page 1; click -> first()                             |
+| `attachLast(el)`       | data-disabled at last page; click -> last()                           |
 | `attachPageList(el)`   | role=list; container for the dynamically-rendered page buttons      |
 | `markPage(el, page)`   | wires click + aria-current paint; returns OFF cleanup function       |
 
-`markPage` returns a cleanup function — the wrapper calls it to
+`markPage` returns a cleanup function -- the wrapper calls it to
 detach the previous page buttons before re-rendering. If you
 manage the render yourself, save the cleanup from each `markPage`
 and call them all before rebuilding the list.
@@ -119,7 +119,7 @@ and call them all before rebuilding the list.
 | Nav buttons | `aria-label="Go to {previous/next/first/last} page"`, `aria-disabled`, real `disabled` (when target is a `<button>`) |
 | Page list   | `role="list"`                                               |
 | Page button | `aria-current="page"` when current; `aria-label="Go to page N"` (unless overridden); `data-current="true"` for CSS |
-| Ellipsis    | `<span aria-hidden="true">…</span>` (wrapper-rendered)      |
+| Ellipsis    | `<span aria-hidden="true">...</span>` (wrapper-rendered)      |
 
 ## Imperative API
 
@@ -140,17 +140,17 @@ pg.destroy()
 
 ```html
 <lite-pagination page-count="50" page="1" sibling-count="1" boundary-count="1">
-    <button data-pgn-first>«</button>
-    <button data-pgn-prev>‹</button>
+    <button data-pgn-first><<</button>
+    <button data-pgn-prev><</button>
     <ol data-pgn-list></ol>
-    <button data-pgn-next>›</button>
-    <button data-pgn-last>»</button>
+    <button data-pgn-next>></button>
+    <button data-pgn-last>>></button>
 </lite-pagination>
 ```
 
 The wrapper renders `<li>` items into `[data-pgn-list]` automatically
 on every page or pageCount change. Each rendered `<li>` contains
-either a `<button data-pgn-page="N">` or a `<span aria-hidden>…</span>`.
+either a `<button data-pgn-page="N">` or a `<span aria-hidden>...</span>`.
 
 ### Attributes
 
@@ -174,8 +174,8 @@ host.items        // read-only Item[]
 
 ### Dispatched events
 
-- `change` — `{ detail: { page, reason } }`
-- `itemschange` — `{ detail: { items } }`
+- `change` -- `{ detail: { page, reason } }`
+- `itemschange` -- `{ detail: { items } }`
 
 ## CSS contract
 
@@ -206,7 +206,7 @@ host.items        // read-only Item[]
   navigation. For infinite scroll, use intersection observer
   patterns directly.
 - **Tab-style page switcher** (a fixed small N, e.g., 3-5 pages):
-  use the `tabs` primitive — it has roving tabindex and the right
+  use the `tabs` primitive -- it has roving tabindex and the right
   ARIA pattern for that case.
 - **Form pagination wizards** (step 1 of 5): use `stepper` instead;
   it has step validation and is semantically closer to "wizard"

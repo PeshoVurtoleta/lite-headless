@@ -85,7 +85,7 @@ const file = createMenu({ placement: "bottom-start" });
 file.attachTrigger(fileBtn);
 file.attachMenu(fileMenuEl);
 file.attachItem(newItem,    { onSelect: () => doNew() });
-file.attachItem(recentItem, { label: "Recent…" });
+file.attachItem(recentItem, { label: "Recent..." });
 
 const recent = createMenu({ placement: "right-start", isSubmenu: true });
 recent.attachMenu(recentMenuEl);

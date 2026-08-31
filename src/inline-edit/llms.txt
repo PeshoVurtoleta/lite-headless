@@ -121,9 +121,9 @@ ie.destroy()
 
 | Element  | Painted attributes                                                       |
 | -------- | ------------------------------------------------------------------------ |
-| Root     | `data-inline-edit-root` · `data-mode="display\|edit"` · `data-invalid="true"` (when applicable) · `aria-label` (if provided) |
-| Display  | `data-inline-edit-display` · `hidden` (when editing) · textContent mirrors `value()` |
-| Input    | `data-inline-edit-input` · `hidden` (when displaying) · value mirrors `draftValue()` · `placeholder` (if option set) |
+| Root     | `data-inline-edit-root` - `data-mode="display\|edit"` - `data-invalid="true"` (when applicable) - `aria-label` (if provided) |
+| Display  | `data-inline-edit-display` - `hidden` (when editing) - textContent mirrors `value()` |
+| Input    | `data-inline-edit-input` - `hidden` (when displaying) - value mirrors `draftValue()` - `placeholder` (if option set) |
 | Trigger  | `data-inline-edit-trigger` (optional)                                    |
 
 For keyboard accessibility, give the display element `tabindex="0"` if you want users to be able to tab into it and press Enter/Space to start editing. Without `tabindex`, click is the only way to start.
@@ -135,7 +135,7 @@ For keyboard accessibility, give the display element `tabindex="0"` if you want 
 ```js
 const title = createInlineEdit({
     initialValue: card.title,
-    placeholder: "Title…",
+    placeholder: "Title...",
     validate: (next) => next.length >= 3 || "Min 3 characters",
     onCommit: (next) => api.updateCard(card.id, { title: next }),
 });

@@ -53,7 +53,7 @@ banner.setKind(k)
 
 - Sets `type="button"` if not present
 - Sets `aria-label="Dismiss"`
-- Wires click → `dismiss()`
+- Wires click -> `dismiss()`
 
 ## Escape dismiss
 

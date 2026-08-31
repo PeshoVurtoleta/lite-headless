@@ -16,8 +16,8 @@ const b = createBadge({
 b.attachRoot(badgeEl);
 
 b.setCount(5);        // reactive
-b.increment();        // → 6
-b.reset();            // → 0; hides (data-hidden) unless showZero: true
+b.increment();        // -> 6
+b.reset();            // -> 0; hides (data-hidden) unless showZero: true
 ```
 
 Dot mode:
@@ -58,12 +58,12 @@ createBadge({ dot: true, intent: "success" });
 
 ## Painted attributes
 
-- `data-badge-root` — slot marker
-- `data-intent="..."` — intent color
-- `data-dot` — boolean, dot mode
-- `data-count="<displayed>"` — count mode only; shows e.g. "3" or "99+"
-- `data-hidden` + `hidden` — when count === 0 and `showZero === false`
-- `aria-label` — auto-generated ("3 items", "Indicator") only if not pre-set
+- `data-badge-root` -- slot marker
+- `data-intent="..."` -- intent color
+- `data-dot` -- boolean, dot mode
+- `data-count="<displayed>"` -- count mode only; shows e.g. "3" or "99+"
+- `data-hidden` + `hidden` -- when count === 0 and `showZero === false`
+- `aria-label` -- auto-generated ("3 items", "Indicator") only if not pre-set
 
 ## Wrapper (`<lite-badge>`)
 
@@ -83,7 +83,7 @@ the corner of a parent element.
 
 ```html
 <button class="bell-wrap">
-    🔔
+    bell
     <lite-badge count="3" intent="danger" class="bell-badge">3</lite-badge>
 </button>
 ```

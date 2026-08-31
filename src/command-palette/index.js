@@ -250,7 +250,7 @@ export function createCommandPalette(options = {}) {
             const cmd = _commands.get(id);
             if (!cmd) continue;
             if (cmd.disabled) continue;
-            // Filter callback (consumer-provided) — return false to hide
+            // Filter callback (consumer-provided) -- return false to hide
             if (cmd.when && cmd.when() === false) continue;
             const m = scoreCommand(cmd, q, fuzzyEnabled);
             if (!m) continue;

@@ -26,9 +26,9 @@ es.setVariant("error");
 Three canonical kinds. The variant is painted as `data-variant="<v>"`
 on the root; consumer CSS branches off it.
 
-- `"empty"` — list/container has no items (the typical case)
-- `"error"` — async load failed
-- `"loading"` — pre-data placeholder (a step beyond skeleton — when
+- `"empty"` -- list/container has no items (the typical case)
+- `"error"` -- async load failed
+- `"loading"` -- pre-data placeholder (a step beyond skeleton -- when
   you have copy explaining what's coming)
 
 Custom variant strings are allowed; they just become the painted enum.
@@ -37,14 +37,14 @@ Custom variant strings are allowed; they just become the painted enum.
 
 Root (`[data-empty-state-root]`):
 - `role="status"` + `aria-live="polite"` (live region; new content is announced)
-- `aria-labelledby` → title id (when title attached)
-- `aria-describedby` → description id (when description attached)
+- `aria-labelledby` -> title id (when title attached)
+- `aria-describedby` -> description id (when description attached)
 - `data-variant="empty|error|loading|..."`
 - `data-empty` (boolean; for variant-agnostic CSS)
 
 Title (`[data-empty-title]`):
 - Falls back to `role="heading"` + `aria-level="2"` if the element is
-  not already an `<h1>`–`<h4>`. Use a real `<h2>` or `<h3>` and the
+  not already an `<h1>`-`<h4>`. Use a real `<h2>` or `<h3>` and the
   primitive leaves it alone.
 - Gets a generated id if it doesn't have one (for the labelledby link).
 
@@ -61,7 +61,7 @@ Actions (`[data-empty-actions]`):
 
 ```html
 <lite-empty-state variant="empty">
-    <div data-empty-icon>📭</div>
+    <div data-empty-icon>empty</div>
     <h3 data-empty-title>No projects yet</h3>
     <p data-empty-description>Create one to start tracking work.</p>
     <div data-empty-actions>
@@ -72,7 +72,7 @@ Actions (`[data-empty-actions]`):
 ```
 
 Reactive attributes:
-- `variant="empty|error|loading|..."` — bidirectional; external
+- `variant="empty|error|loading|..."` -- bidirectional; external
   setAttribute("variant", "error") flows through `setVariant`.
 
 Host accessors:

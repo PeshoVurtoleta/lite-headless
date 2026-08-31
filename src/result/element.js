@@ -1,7 +1,7 @@
 // @zakkster/lite-headless / result / element.js
 //
 // <lite-result status="404">
-//     <div data-result-icon>📭</div>
+//     <div data-result-icon>empty</div>
 //     <h2 data-result-title>Page not found</h2>
 //     <p data-result-subtitle>The page you're looking for doesn't exist.</p>
 //     <div data-result-actions>

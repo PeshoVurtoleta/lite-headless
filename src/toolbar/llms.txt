@@ -43,7 +43,7 @@ Painted on items:
 Painted on separators:
 - `role="separator"`
 - `data-toolbar-separator`
-- `aria-orientation` PERPENDICULAR to the toolbar (vertical toolbar →
+- `aria-orientation` PERPENDICULAR to the toolbar (vertical toolbar ->
   horizontal separator, and vice versa, per WAI-ARIA APG)
 
 Painted on groups:
@@ -52,10 +52,10 @@ Painted on groups:
 
 ## Keyboard
 
-- **ArrowRight** / **ArrowDown** (matching orientation) — move to next non-disabled item
-- **ArrowLeft** / **ArrowUp** — move to previous non-disabled item
-- **Home** — first non-disabled item
-- **End** — last non-disabled item
+- **ArrowRight** / **ArrowDown** (matching orientation) -- move to next non-disabled item
+- **ArrowLeft** / **ArrowUp** -- move to previous non-disabled item
+- **Home** -- first non-disabled item
+- **End** -- last non-disabled item
 
 Disabled items are skipped during arrow nav (per ARIA APG). Loop is
 on by default; pass `loop: false` to stop at the ends.

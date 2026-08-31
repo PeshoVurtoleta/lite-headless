@@ -1,9 +1,9 @@
-# CSS Contract — Per-Primitive Appendix
+# CSS Contract -- Per-Primitive Appendix
 
 > AUTO-GENERATED from `src/**/*.js` on each release. Do not hand-edit.
 > Run `npm run gen:appendix` to regenerate.
 
-**Coverage:** 58 primitives · 201 distinct `data-*` · 31 distinct `aria-*` · 23 distinct CSS custom properties.
+**Coverage:** 58 primitives - 201 distinct `data-*` - 31 distinct `aria-*` - 23 distinct CSS custom properties.
 
 ## `lite-accordion`
 
@@ -39,7 +39,7 @@
 
 ## `lite-alert-dialog`
 
-_(no painted attributes — primitive operates purely on JS API)_
+_(no painted attributes -- primitive operates purely on JS API)_
 
 
 ## `lite-anchor`
@@ -140,7 +140,7 @@ _(no painted attributes — primitive operates purely on JS API)_
 
 **Other attributes set:** `role`
 
-**Slot markers read (Class 4 — consumer-provided):**
+**Slot markers read (Class 4 -- consumer-provided):**
 
 - `data-bc-item`
 - `data-bc-sep`
@@ -315,7 +315,7 @@ _(no painted attributes — primitive operates purely on JS API)_
 
 **Other attributes set:** `hidden`, `role`
 
-**Slot markers read (Class 4 — consumer-provided):**
+**Slot markers read (Class 4 -- consumer-provided):**
 
 - `data-command-item`
 
@@ -352,7 +352,7 @@ _(no painted attributes — primitive operates purely on JS API)_
 
 **Other attributes set:** `role`, `tabindex`
 
-**Slot markers read (Class 4 — consumer-provided):**
+**Slot markers read (Class 4 -- consumer-provided):**
 
 - `data-day`
 
@@ -372,7 +372,7 @@ _(no painted attributes — primitive operates purely on JS API)_
 
 **Other attributes set:** `role`
 
-**Slot markers read (Class 4 — consumer-provided):**
+**Slot markers read (Class 4 -- consumer-provided):**
 
 - `data-desc-label`
 - `data-desc-value`
@@ -524,7 +524,7 @@ _(no painted attributes — primitive operates purely on JS API)_
 
 **Other attributes set:** `role`, `tabindex`
 
-**Slot markers read (Class 4 — consumer-provided):**
+**Slot markers read (Class 4 -- consumer-provided):**
 
 - `data-kanban-card-id`
 - `data-kanban-cards`
@@ -553,7 +553,7 @@ _(no painted attributes — primitive operates purely on JS API)_
 
 **Other attributes set:** `role`, `tabindex`
 
-**Slot markers read (Class 4 — consumer-provided):**
+**Slot markers read (Class 4 -- consumer-provided):**
 
 - `data-item`
 
@@ -884,7 +884,7 @@ _(no painted attributes — primitive operates purely on JS API)_
 
 - `--lh-panel-`
 
-**Slot markers read (Class 4 — consumer-provided):**
+**Slot markers read (Class 4 -- consumer-provided):**
 
 - `data-handle`
 - `data-panel`
@@ -1034,7 +1034,7 @@ _(no painted attributes — primitive operates purely on JS API)_
 
 **Other attributes set:** `role`
 
-**Slot markers read (Class 4 — consumer-provided):**
+**Slot markers read (Class 4 -- consumer-provided):**
 
 - `data-timeline-marker`
 
@@ -1061,7 +1061,7 @@ _(no painted attributes — primitive operates purely on JS API)_
 - `--lh-toast-swipe-x`
 - `--lh-toast-swipe-y`
 
-**Slot markers read (Class 4 — consumer-provided):**
+**Slot markers read (Class 4 -- consumer-provided):**
 
 - `data-toast-close`
 
@@ -1082,7 +1082,7 @@ _(no painted attributes — primitive operates purely on JS API)_
 
 **Other attributes set:** `role`, `tabindex`, `type`
 
-**Slot markers read (Class 4 — consumer-provided):**
+**Slot markers read (Class 4 -- consumer-provided):**
 
 - `data-tg-item`
 
@@ -1134,7 +1134,7 @@ _(no painted attributes — primitive operates purely on JS API)_
 
 **Other attributes set:** `hidden`, `role`, `tabindex`
 
-**Slot markers read (Class 4 — consumer-provided):**
+**Slot markers read (Class 4 -- consumer-provided):**
 
 - `data-tour-step`
 

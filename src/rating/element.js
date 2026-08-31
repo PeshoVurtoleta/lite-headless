@@ -1,11 +1,11 @@
 // @zakkster/lite-headless / rating / element.js
 //
 // <lite-rating value="3" max="5" step="1">
-//     <button data-rating-item="1">★</button>
-//     <button data-rating-item="2">★</button>
-//     <button data-rating-item="3">★</button>
-//     <button data-rating-item="4">★</button>
-//     <button data-rating-item="5">★</button>
+//     <button data-rating-item="1">*</button>
+//     <button data-rating-item="2">*</button>
+//     <button data-rating-item="3">*</button>
+//     <button data-rating-item="4">*</button>
+//     <button data-rating-item="5">*</button>
 // </lite-rating>
 
 import { define } from "@zakkster/lite-element";

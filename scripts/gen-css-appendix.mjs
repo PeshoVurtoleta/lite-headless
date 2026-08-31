@@ -46,7 +46,7 @@ const prims = readdirSync(SRC).filter(d => {
 }).sort();
 
 const lines = [];
-lines.push("# CSS Contract — Per-Primitive Appendix\n");
+lines.push("# CSS Contract -- Per-Primitive Appendix\n");
 lines.push("> AUTO-GENERATED from `src/**/*.js` on each release. Do not hand-edit.");
 lines.push("> Run `npm run gen:appendix` to regenerate.\n");
 
@@ -65,11 +65,11 @@ for (const p of prims) {
     if (data.length) { lines.push("**`data-*` attributes painted:**\n"); data.forEach(a => lines.push(`- \`${a}\``)); lines.push(""); }
     if (other.length) lines.push("**Other attributes set:** " + other.map(a => `\`${a}\``).join(", ") + "\n");
     if (props.size)  { lines.push("**CSS custom properties painted:**\n"); [...props].sort().forEach(p => lines.push(`- \`${p}\``)); lines.push(""); }
-    if (slots.size)  { lines.push("**Slot markers read (Class 4 — consumer-provided):**\n"); [...slots].sort().forEach(s => lines.push(`- \`${s}\``)); lines.push(""); }
-    if (!aria.length && !data.length && !other.length && !props.size && !slots.size) lines.push("_(no painted attributes — primitive operates purely on JS API)_\n");
+    if (slots.size)  { lines.push("**Slot markers read (Class 4 -- consumer-provided):**\n"); [...slots].sort().forEach(s => lines.push(`- \`${s}\``)); lines.push(""); }
+    if (!aria.length && !data.length && !other.length && !props.size && !slots.size) lines.push("_(no painted attributes -- primitive operates purely on JS API)_\n");
     lines.push("");
 }
-lines.splice(3, 0, `**Coverage:** ${prims.length} primitives · ${totalData.size} distinct \`data-*\` · ${totalAria.size} distinct \`aria-*\` · ${totalProps.size} distinct CSS custom properties.\n`);
+lines.splice(3, 0, `**Coverage:** ${prims.length} primitives - ${totalData.size} distinct \`data-*\` - ${totalAria.size} distinct \`aria-*\` - ${totalProps.size} distinct CSS custom properties.\n`);
 
 writeFileSync(join(ROOT, "docs", "CSS_CONTRACT_APPENDIX.md"), lines.join("\n"));
 console.log(`Wrote docs/CSS_CONTRACT_APPENDIX.md (${prims.length} primitives).`);

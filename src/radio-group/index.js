@@ -77,7 +77,7 @@ export function createRadioGroup(opts = {}) {
     // the group focuses the right radio but doesn't change selection).
     let _suppressIndexChange = false;
 
-    // ─── selection ───────────────────────────────────────────────────
+    // --- selection ---------------------------------------------------
 
     function setValue(v, reason) {
         if (_destroyed.v) return;
@@ -103,7 +103,7 @@ export function createRadioGroup(opts = {}) {
         _disabled.set(!!b);
     }
 
-    // ─── attach: root ────────────────────────────────────────────────
+    // --- attach: root ------------------------------------------------
 
     function attachRoot(el) {
         if (!el || _destroyed.v) return noop;
@@ -216,7 +216,7 @@ export function createRadioGroup(opts = {}) {
         return off;
     }
 
-    // ─── attach: item ────────────────────────────────────────────────
+    // --- attach: item ------------------------------------------------
 
     function attachItem(el, key, opts2) {
         if (!el || _destroyed.v) return noop;
@@ -317,7 +317,7 @@ export function createRadioGroup(opts = {}) {
         if (disabled && _value() === entry.key) setValue(null, "disabled");
     }
 
-    // ─── destroy ─────────────────────────────────────────────────────
+    // --- destroy -----------------------------------------------------
 
     function destroy() {
         if (_destroyed.v) return;

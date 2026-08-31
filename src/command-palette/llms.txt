@@ -3,7 +3,7 @@
 Headless command palette: a registry of invocable commands with
 fuzzy filtering, ARIA combobox keyboard nav, and a global Cmd+K /
 Ctrl+K binding to toggle visibility. Designed to **compose with
-a dialog** — the palette doesn't duplicate modal / focus-trap
+a dialog** -- the palette doesn't duplicate modal / focus-trap
 work; the consumer wires the open/close events to their dialog
 primitive.
 
@@ -50,7 +50,7 @@ palette.results();  // -> [{ id, cmd, score, matches }, ...]
 | `onClose`         | -                     | `(reason) => ?`                                              |
 | `onOpenChange`    | -                     | `(isOpen, reason) => ?`                                      |
 | `onQueryChange`   | -                     | `(query) => ?`                                               |
-| `onResultsChange` | -                     | `(results) => ?` — fires whenever the filtered list changes |
+| `onResultsChange` | -                     | `(results) => ?` -- fires whenever the filtered list changes |
 | `onActiveIndexChange` | -                 | `(index) => ?`                                               |
 
 `source` values for invoke: `"click"`, `"keyboard"`, `"invoke"` (default).
@@ -133,7 +133,7 @@ Within a tier, earlier match position scores slightly higher
 (`startOfWordMatch` at idx 2 beats `startOfWordMatch` at idx 10).
 
 `recentBoost` adds up to 5 points to recently-invoked commands.
-Because the boost is small relative to tier gaps (95 → 50 is 45
+Because the boost is small relative to tier gaps (95 -> 50 is 45
 points), recents rise within their tier but don't escalate above
 higher tiers. Exact matches always win.
 
@@ -160,7 +160,7 @@ palette.addEventListener("resultschange", (e) => {
 | `attachInput(el)`     | role=combobox, aria-expanded follows open state, aria-controls=list |
 | `attachList(el)`      | role=listbox; delegates click + hover                              |
 | `attachEmpty(el)`     | toggles `[hidden]` based on result count                            |
-| `markItem(el, id, i)` | wrapper helper — call for each rendered <li>; sets role=option, etc |
+| `markItem(el, id, i)` | wrapper helper -- call for each rendered <li>; sets role=option, etc |
 
 ## Imperative API
 
@@ -211,7 +211,7 @@ Global (anywhere on the page):
 | ------------------ | --------------------------------------- |
 | triggerKey         | toggle palette open/closed              |
 
-The global keybind is INPUT-CONTEXT AWARE — pressing Cmd+K while
+The global keybind is INPUT-CONTEXT AWARE -- pressing Cmd+K while
 focus is in another `<input>`, `<textarea>`, `<select>`, or
 contenteditable does NOT open the palette. (Exception: the
 palette's own input gets the keybind because it's already the
@@ -271,19 +271,19 @@ To disable the global keybind, pass `triggerKey: null` (or attribute
 
 ### Dispatched events
 
-- `openchange`    — `{ detail: { open, reason } }`
-- `select`        — `{ detail: { command, source } }`
-- `querychange`   — `{ detail: { query } }`
-- `resultschange` — `{ detail: { results } }`
-- `activeindexchange` — `{ detail: { index } }`
+- `openchange`    -- `{ detail: { open, reason } }`
+- `select`        -- `{ detail: { command, source } }`
+- `querychange`   -- `{ detail: { query } }`
+- `resultschange` -- `{ detail: { results } }`
+- `activeindexchange` -- `{ detail: { index } }`
 
 ## When NOT to use
 
-- **Form select / autocomplete** — use the `combobox` primitive,
+- **Form select / autocomplete** -- use the `combobox` primitive,
   which is designed for picking a single value into a form field.
-- **Single-trigger menu** — use the `menu` primitive (right-click
+- **Single-trigger menu** -- use the `menu` primitive (right-click
   menus, dropdown menus from a button).
-- **Just a fuzzy filter input** — if you don't need invocation,
+- **Just a fuzzy filter input** -- if you don't need invocation,
   global keybinding, or recent-boost, a plain `<input>` + filtered
   list will do.
 

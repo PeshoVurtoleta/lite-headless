@@ -39,7 +39,7 @@ export function createToolbar(opts = {}) {
     const _cleanups = [];
     function addCleanup(fn) { _cleanups.push(fn); }
 
-    // ─── roving focus ────────────────────────────────────────────────
+    // --- roving focus ------------------------------------------------
 
     const roving = createRovingFocus({
         getItems: () => _items,
@@ -50,7 +50,7 @@ export function createToolbar(opts = {}) {
         typeahead: false,
     });
 
-    // ─── root attach (binds the keyboard handler) ────────────────────
+    // --- root attach (binds the keyboard handler) --------------------
 
     function attachRoot(el) {
         if (!el || _destroyed.v) return noop;
@@ -117,7 +117,7 @@ export function createToolbar(opts = {}) {
         return off;
     }
 
-    // ─── item attach ─────────────────────────────────────────────────
+    // --- item attach -------------------------------------------------
 
     function attachItem(el) {
         if (!el || _destroyed.v) return noop;
@@ -171,7 +171,7 @@ export function createToolbar(opts = {}) {
         return off;
     }
 
-    // ─── per-item disabled state ─────────────────────────────────────
+    // --- per-item disabled state -------------------------------------
 
     function setItemDisabled(el, disabled) {
         if (_destroyed.v) return;
@@ -186,7 +186,7 @@ export function createToolbar(opts = {}) {
         }
     }
 
-    // ─── programmatic focus ──────────────────────────────────────────
+    // --- programmatic focus ------------------------------------------
 
     function focusFirst() { roving.first(); }
     function focusLast()  { roving.last(); }

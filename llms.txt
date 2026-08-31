@@ -1,15 +1,15 @@
 # @zakkster/lite-headless
 
-VERSION 1.1.0
+VERSION 1.1.1
 
 58 headless UI primitives on signal-based reactivity (@zakkster/lite-signal).
 Zero styling. Tree-shakable via per-primitive subpath exports. Framework-
 agnostic. Every primitive ships an optional `<lite-*>` custom element.
 
 The catalog spans overlays (dialog, alert-dialog, popover, tooltip, hover-card,
-menu, combobox, command-palette, toast, drawer, tour), form controls (slider,
-switch, rating, pin-input, tag-input, file-upload, color-picker, date-picker,
-stepper, inline-edit, form-field, password-input), data/display (tabs,
+menu, combobox, command-palette, toast, drawer, tour), form controls (button,
+slider, switch, rating, pin-input, tag-input, file-upload, color-picker,
+date-picker, stepper, inline-edit, form-field, password-input), data/display (tabs,
 accordion, tree, table-less primitives, pagination, carousel, calendar, kanban,
 sortable, timeline, descriptions, stat, meter, progress, skeleton, breadcrumb,
 badge, tag, avatar, card, banner, result, empty-state, separator, clipboard,
@@ -80,7 +80,7 @@ Newest additions: separator, clipboard, password-input, alert-dialog, hover-card
 - node:test (NOT vitest)
 - happy-dom devDep (pinned ^15.11.0)
 - Per-test setupDOM/teardownDOM; teardown calls window.happyDOM.close()
-- 1562 tests; `tsc --noEmit` type-checks the full public surface
+- 1564 tests; `tsc --noEmit` type-checks the full public surface
 
 ## License
 

@@ -129,7 +129,7 @@ The primitive writes the following attributes via reactive effects:
 
 | Element | Attributes painted                                                  |
 | ------- | ------------------------------------------------------------------- |
-| Root    | `role="group"` · `aria-label` · `data-tag-root` · `data-tag-count="N"` · `data-tag-active="i\|-"` |
+| Root    | `role="group"` - `aria-label` - `data-tag-root` - `data-tag-count="N"` - `data-tag-active="i\|-"` |
 | Input   | `data-tag-input-field`                                              |
 
 For the tag chips, the consumer paints `data-tag-index="i"` and `data-tag-active="true"` when `activeIndex() === i`. The wrapper element (`<lite-tag-input>`) does this automatically.

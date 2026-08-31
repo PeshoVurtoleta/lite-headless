@@ -105,7 +105,7 @@ Handles are auto-wired with `role="separator"`, `aria-orientation`,
 
 ### aria-orientation per the W3C spec
 
-Per [WAI-ARIA 1.2 § separator](https://www.w3.org/TR/wai-aria-1.2/#separator)
+Per [WAI-ARIA 1.2 section separator](https://www.w3.org/TR/wai-aria-1.2/#separator)
 and the [WAI-ARIA APG window-splitter pattern](https://www.w3.org/WAI/ARIA/apg/patterns/windowsplitter/),
 `aria-orientation` describes **the separator line itself**, which is
 **perpendicular** to the panel arrangement axis:
@@ -122,8 +122,8 @@ about it. (This was previously inverted -- fixed in v0.7.16.)
 
 Each focused handle responds to:
 
-- ArrowLeft / ArrowRight (horizontal orientation only) -- ±`keyboardStep`%
-- ArrowUp / ArrowDown (vertical orientation only) -- ±`keyboardStep`%
+- ArrowLeft / ArrowRight (horizontal orientation only) -- +-`keyboardStep`%
+- ArrowUp / ArrowDown (vertical orientation only) -- +-`keyboardStep`%
 - Home -- collapse the left/upper panel to its min
 - End -- expand the left/upper panel to its max
 

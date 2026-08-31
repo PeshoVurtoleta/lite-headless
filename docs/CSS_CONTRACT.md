@@ -11,13 +11,13 @@ the outside. This document is the canonical set of those attributes.
 
 The taxonomy splits into four classes:
 
-1. **ARIA attributes** — semantic state (W3C-compliant). Always present
+1. **ARIA attributes** -- semantic state (W3C-compliant). Always present
    where a W3C role expects it. Drives screen readers + assistive tech.
-2. **Boolean data-attributes** — layout hooks. Present when true, absent
+2. **Boolean data-attributes** -- layout hooks. Present when true, absent
    when false. Drives `[data-x] { ... }` CSS targeting.
-3. **Enum data-attributes** — multi-state hooks with a small, fixed value
+3. **Enum data-attributes** -- multi-state hooks with a small, fixed value
    space. `[data-x="foo"]` style targeting.
-4. **Slot markers** — declarative role identification, set by the
+4. **Slot markers** -- declarative role identification, set by the
    consumer's markup, read by the wrapper to auto-discover elements.
    Format: `data-<primitive>-<role>`. Examples: `data-drawer-content`,
    `data-bc-item`. These are inputs to the wrapper, not outputs.
@@ -47,7 +47,7 @@ accessibility contract. **Both are always present together.**
 | `aria-live`           | (n/a)                  | banner, toast, notification-center          |
 | `aria-modal`          | (n/a; pair with `data-open`) | modal dialog, modal drawer                   |
 | `aria-haspopup`       | (n/a)                  | trigger that opens a popover/menu/dialog    |
-| `aria-controls`       | (n/a)                  | trigger ↔ panel pairing                     |
+| `aria-controls`       | (n/a)                  | trigger <-> panel pairing                   |
 | `aria-labelledby`     | (n/a)                  | dialog/drawer title binding                 |
 | `aria-describedby`    | (n/a)                  | form field helper + error chain             |
 
@@ -127,7 +127,7 @@ consumers that want to animate enter/exit separately.
 /* steady state */
 lite-dialog [data-dialog-content][data-open] { opacity: 1; transform: scale(1); }
 
-/* mid-transition (open ↔ close) */
+/* mid-transition (open <-> close) */
 lite-dialog [data-dialog-content][data-status="opening"] { transition-duration: 200ms; }
 lite-dialog [data-dialog-content][data-status="closing"] { transition-duration: 150ms; }
 ```
@@ -159,13 +159,13 @@ data-rating-item / -rail
 
 When a wrapper exposes state on the host element, use these conventions:
 
-1. **Booleans → `is`-prefix**: `host.isOpen`, `host.isDisabled`,
+1. **Booleans -> `is`-prefix**: `host.isOpen`, `host.isDisabled`,
    `host.isValid`, `host.isReadOnly`, `host.isComplete`.
-2. **Values → no prefix**: `host.value`, `host.index`, `host.side`,
+2. **Values -> no prefix**: `host.value`, `host.index`, `host.side`,
    `host.status`, `host.label`.
-3. **Mutations → verb-form**: `host.setValue(v)`, `host.show()`,
+3. **Mutations -> verb-form**: `host.setValue(v)`, `host.show()`,
    `host.hide()`, `host.reset()`.
-4. **Underlying instance → `_<primitive>Instance`**: e.g.
+4. **Underlying instance -> `_<primitive>Instance`**: e.g.
    `host._drawerInstance`, `host._stepsInstance`. Hidden by the
    leading underscore convention; available for power-user access to
    the headless API.
@@ -220,7 +220,7 @@ and consumer CSS should not rely on them:
   creates at the cursor position for `contextmenu` mode.
 
 
-## Migration notes (v0.10.x → v0.11.0)
+## Migration notes (v0.10.x -> v0.11.0)
 
 The taxonomy above is canonical as of v0.11.0. Pre-v0.11.0, the
 following attributes were used inconsistently and have been replaced:

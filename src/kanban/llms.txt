@@ -37,7 +37,7 @@ const kb = createKanban({
 ```
 
 `id` is required and must be unique. `meta` fields are preserved
-verbatim — consumers can stash arbitrary data (priority, assignees,
+verbatim -- consumers can stash arbitrary data (priority, assignees,
 labels, etc.).
 
 ## Reactive accessors
@@ -80,7 +80,7 @@ kb.attachDraggable(cardEl, cardId)   // optional: HTML5-DnD draggable=true setup
 kb.attachDropZone(columnEl, colId)   // optional: HTML5-DnD drop target for cross-column moves
 ```
 
-`attachCard` must be called AFTER `attachColumn` for the same column —
+`attachCard` must be called AFTER `attachColumn` for the same column --
 the card hooks into the column's sortable instance.
 
 ## Cross-column drag-and-drop
@@ -130,13 +130,13 @@ by sortable, and mixing modes leads to UX bugs.
 
 ## Painted attributes
 
-### Columns (via attachColumn → sortable.attachRoot)
+### Columns (via attachColumn -> sortable.attachRoot)
 - `role="listbox"` (sortable's choice; kanban accepts the listbox
   semantics because cards are keyboard-focusable + pickable)
 - `data-kanban-column-id="<colId>"`
 - (HTML5 DnD only) `data-kanban-drop-active` while pointer is over
 
-### Cards (via attachCard → sortable.attachItem)
+### Cards (via attachCard -> sortable.attachItem)
 - `role="option"`
 - `tabindex="0"`
 - `data-kanban-card-id="<cardId>"`

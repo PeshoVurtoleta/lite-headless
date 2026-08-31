@@ -88,7 +88,7 @@ export function createAffix(opts = {}) {
 
         // IntersectionObserver with negative top-margin: the sentinel
         // is considered "out of view" before it actually leaves the
-        // viewport edge. When out → pin.
+        // viewport edge. When out -> pin.
         // Only set up if IO is available (browser); in non-browser
         // test environments, the test can call _setPinnedForTest().
         let localObserver = null;

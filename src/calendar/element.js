@@ -4,9 +4,9 @@
 //
 //   <lite-calendar view="2026-06-01">
 //       <header>
-//           <button data-cal-prev>‹</button>
+//           <button data-cal-prev><</button>
 //           <span  data-cal-label></span>
-//           <button data-cal-next>›</button>
+//           <button data-cal-next>></button>
 //       </header>
 //       <div data-cal-grid>
 //           <!-- consumer renders day cells; the wrapper does NOT build

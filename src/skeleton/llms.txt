@@ -7,7 +7,7 @@ elements (with their own shimmer animation) and content elements; the
 primitive paints `data-loading` + `aria-busy` so consumer CSS can swap which is
 visible.
 
-## Quick example — single state
+## Quick example -- single state
 
 ```js
 import { createSkeleton } from "@zakkster/lite-headless/skeleton";
@@ -61,7 +61,7 @@ sk.reveal();
 }
 ```
 
-## Quick example — multi-source coordination
+## Quick example -- multi-source coordination
 
 When the page has several independent data sources (user profile, recent
 posts, follower count), you want all placeholders to reveal at once when
@@ -103,9 +103,9 @@ the right behavior for "one-shot" loads.
 
 | Element       | Painted attributes                                                       |
 | ------------- | ------------------------------------------------------------------------ |
-| Root          | `role="status"` · `aria-live="polite"` · `aria-busy="true\|false"` · `data-skeleton-root` · `data-X="loading\|ready"` |
-| Placeholder   | `data-skeleton` · `data-loading` · `aria-hidden="true"` (when ready)       |
-| Content       | `data-skeleton-content` · `data-loading` · `aria-hidden="true"` (when loading) |
+| Root          | `role="status"` - `aria-live="polite"` - `aria-busy="true\|false"` - `data-skeleton-root` - `data-X="loading\|ready"` |
+| Placeholder   | `data-skeleton` - `data-loading` - `aria-hidden="true"` (when ready)       |
+| Content       | `data-skeleton-content` - `data-loading` - `aria-hidden="true"` (when loading) |
 
 `role="status"` + `aria-live="polite"` on the root means a screen reader will
 announce the content the moment the skeleton flips to ready. The polite
@@ -116,23 +116,23 @@ of interrupting it.
 
 ```
                       construct
-                          │
-                          ▼
-                  ┌──────────────┐
-       conceal()  │   loading    │
-       reset()    │ aria-busy=t  │  ◀───────────┐
-       ◀──────────┤              │              │
-                  └──────┬───────┘              │
-                         │                      │
-                         │  setReady(true)      │
-                         │  or all resolved     │
-                         │  (after minVisible)  │
-                         ▼                      │
-                  ┌──────────────┐              │
-                  │    ready     │              │
-                  │ aria-busy=f  ├──────────────┘
-                  │              │   conceal()
-                  └──────────────┘   reset()
+                          |
+                          v
+                  +--------------+
+       conceal()  |   loading    |
+       reset()    | aria-busy=t  |  <-----------+
+       <----------+              |              |
+                  +------+-------+              |
+                         |                      |
+                         |  setReady(true)      |
+                         |  or all resolved     |
+                         |  (after minVisible)  |
+                         v                      |
+                  +--------------+              |
+                  |    ready     |              |
+                  | aria-busy=f  +--------------+
+                  |              |   conceal()
+                  +--------------+   reset()
 ```
 
 ## API
@@ -233,7 +233,7 @@ stream.on("end", () => sk.reveal());   // progress will be at 100% by then
 const sk = document.querySelector("lite-skeleton");
 sk.resolve("user");
 sk.resolve("posts");
-// → fires CustomEvent "reveal" on the host
+// -> fires CustomEvent "reveal" on the host
 ```
 
 ### Reactive attributes
@@ -261,13 +261,13 @@ host.addEventListener("conceal", () => ...);
 
 ## When NOT to use
 
-- **A single inline spinner with no content swap** — a CSS-only spinner
+- **A single inline spinner with no content swap** -- a CSS-only spinner
   is lighter. Use this primitive only when you have placeholder shapes
   that need to coordinate with real content visibility.
-- **Per-row loading indicators in a list** — those are better handled by
+- **Per-row loading indicators in a list** -- those are better handled by
   the consumer's render loop directly; the skeleton is for "whole panel"
   loading shells.
-- **Optimistic UI mutations** — when you're mutating something the user
+- **Optimistic UI mutations** -- when you're mutating something the user
   already sees, you don't want to revert to skeleton. Use a smaller
   "saving..." badge or progress primitive instead.
 

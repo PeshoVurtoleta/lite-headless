@@ -292,7 +292,7 @@ export function createNotificationCenter(options = {}) {
 
     // ----- attach helpers ------------------------------------------------
     //
-    // The primitive doesn't build a panel — consumer renders rows
+    // The primitive doesn't build a panel -- consumer renders rows
     // however they like. The attach helpers paint state attributes on
     // consumer-provided elements:
     //

@@ -30,7 +30,7 @@ define("lite-radio-group", (host, scope) => {
     const offRoot = rg.attachRoot(host);
 
     function wire(node) {
-        // scanAndMount calls wire(host) too — the host has a `value`
+        // scanAndMount calls wire(host) too -- the host has a `value`
         // attribute (the initial SELECTED value), which is not an item
         // key. Only proceed if this node is actually a radio item.
         if (!node.hasAttribute("data-radio-item")) return null;

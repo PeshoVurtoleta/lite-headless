@@ -158,7 +158,7 @@ host._notificationCenterInstance
 - `maxItems` is enforced on every `add()` and `setNotifications()` call.
   When the cap is hit, the OLDEST entries are evicted. To trim the
   newer end instead, manage the list yourself with `setNotifications`.
-- The primitive doesn't fire its own toast — pairing with `createToaster`
+- The primitive doesn't fire its own toast -- pairing with `createToaster`
   is the consumer's job. Typical pattern: a thin `notify()` helper
   calls both `nc.add(payload)` and `toaster.show(payload)`.
 

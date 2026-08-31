@@ -116,7 +116,7 @@ define("lite-command-palette", (host, scope) => {
         },
     });
 
-    // Role observer — when children with data-cmd-input / data-cmd-list /
+    // Role observer -- when children with data-cmd-input / data-cmd-list /
     // data-cmd-empty appear (initial render OR re-render), attach them.
     // scopedQuery prevents an outer command-palette from claiming an
     // inner one's slots.

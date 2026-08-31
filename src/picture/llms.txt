@@ -7,7 +7,7 @@ container-query-driven source selection, and error retry.
 The HTML stays declarative -- `<picture>` + `<source>` + `<img>`.
 Native `loading="lazy"` is set as a safety net; the primitive's
 IntersectionObserver controls actual src assignment so consumers
-get a clean `idle` → `loading` → `loaded` sequence for CSS
+get a clean `idle` -> `loading` -> `loaded` sequence for CSS
 transitions (placeholder/skeleton swap, blur-up crossfade).
 
 ## Quick example
@@ -55,25 +55,25 @@ pic.attachImg(imgEl);          // primitive controls src
 
 ```
    construct
-       │
-       ▼
-   ┌─────┐
-   │idle │  lazy mode, not yet in viewport
-   └──┬──┘
-      │ intersects (or eager mode)
-      ▼
-   ┌──────────┐
-   │ loading  │  src assigned, awaiting load event
-   └─────┬────┘
-         │
-   ┌─────┴──────────┐
-   │                │
+       |
+       v
+   +-----+
+   |idle |  lazy mode, not yet in viewport
+   +--+--+
+      | intersects (or eager mode)
+      v
+   +----------+
+   | loading  |  src assigned, awaiting load event
+   +-----+----+
+         |
+   +-----+----------+
+   |                |
  onLoad          onError
-   │                │
-   ▼                ▼
-┌──────┐    retry < max ─→ back to loading (with backoff)
-│loaded│    retry exhaust ─→ error
-└──────┘
+   |                |
+   v                v
++------+    retry < max -> back to loading (with backoff)
+|loaded|    retry exhaust -> error
++------+
 ```
 
 The state is mirrored to `data-img-state` on both the root element
@@ -101,7 +101,7 @@ and full image:
 }
 ```
 
-## containerSources — element-driven art direction
+## containerSources -- element-driven art direction
 
 Native `<picture>` selects sources based on the viewport (via
 `media="..."` on `<source>` tags). When you want sources selected

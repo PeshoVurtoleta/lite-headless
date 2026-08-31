@@ -1,5 +1,52 @@
 # Changelog
 
+## 1.1.1 -- 2026-08-31
+
+### Fixed
+
+- demo import map: added the missing `@zakkster/lite-cleanup` entry.
+  `@zakkster/lite-floating` and `@zakkster/lite-observe` (their shared
+  `src/_finalize.js`) import the bare specifier `@zakkster/lite-cleanup`
+  transitively; without a mapping the browser failed the whole demo module
+  graph with `Failed to resolve module specifier "@zakkster/lite-cleanup"`.
+
+### Added
+
+- ASCII law gate: `test/ascii-law.test.js` walks the shipped file set
+  (`src/` recursively, `types.d.ts`, `docs/`, `llms.txt`, `README.md`,
+  `package.json`, `LICENSE`; `CHANGELOG.md` excluded as a historical
+  record) and fails on any codepoint outside
+  printable ASCII plus `\n`, `\t`, `U+00D7`, and `U+00B5`, reporting
+  `file:line:col:U+XXXX`. The same file pins the README section order to the
+  suite blueprint spine.
+- `engines.node` set to `>=20.10.0`.
+- `prepublishOnly` script wired to `npm run verify` (test + types + torture).
+- Gates at release: 1564/1564 node:test; `tsc --noEmit` clean;
+  `GATE leak=size 0/0 findings=0 warnings=3 | gc major=0 minor=22 | ok`;
+  control variant exits 1. No runtime behavior change in this release: the
+  src diff is comment-only (verified by comment-stripped byte comparison).
+
+### Changed
+
+- README rebuilt on the suite blueprint spine (826 -> 405 lines).
+- ASCII sweep to 0 violations across `src/` (comments only, behavior inert),
+  `src/*/llms.txt` (box-drawing replaced 1:1 with ASCII equivalents),
+  `docs/` (`CSS_CONTRACT_APPENDIX.md` regenerated via the fixed
+  `scripts/gen-css-appendix.mjs`; `CSS_CONTRACT.md` swept by hand), and
+  `types.d.ts`.
+- `package.json` description: em-dash replaced.
+- `.gitignore` updated; `test-results/` no longer tracked.
+- Root `llms.txt` catalog: added `button` to the form-controls group (the
+  catalog listed 57 primitives while claiming 58).
+- Test totals and other counts synced to 1564 at `README.md:3`/`:359`/`:362`,
+  `llms.txt:83`, `demo/index.html:3955`/`:11080`.
+
+### Removed
+
+- README staleness note ("the detailed prose further down ... predates the
+  catalog expansion") and the stale counts it guarded ("305 tests",
+  "53 primitives", "five primitives", the demo-tier table).
+
 ## 1.1.0 -- 2026-08-31
 
 ### Changed

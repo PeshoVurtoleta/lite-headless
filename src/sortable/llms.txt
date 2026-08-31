@@ -27,7 +27,7 @@ sortable.attachHandle(handleEl, "task-1");
 
 **Framework mode (default)**: the primitive emits `onReorder` events
 but never moves DOM nodes. Your framework (React, Vue, Svelte, etc.)
-already owns the rendering of the list — when the event fires, you
+already owns the rendering of the list -- when the event fires, you
 update your state and the framework re-renders. No DOM thrash, no
 double-update.
 
@@ -115,8 +115,8 @@ drag because the consumer typically blocks layout shifts).
 2. **Space** (or **Enter**) picks up the item. `aria-grabbed="true"`
    is set; the screen reader announces "Picked up item 3. Use arrows
    to move, Space to drop, Escape to cancel."
-3. **Arrow ↑/↓** (vertical) or **←/→** (horizontal) moves the picked-
-   up item by one slot. Each move commits — `onReorder` fires with
+3. **Arrow ^/v** (vertical) or **<-/->** (horizontal) moves the picked-
+   up item by one slot. Each move commits -- `onReorder` fires with
    `info.reason: "keyboard"`.
 4. **Home / End** jump to first / last position.
 5. **Space** (or **Enter**) drops. `aria-grabbed` is removed.
@@ -145,7 +145,7 @@ for announcements during keyboard pickup ("Picked up item 3",
 <lite-sortable label="Reorder tasks">
     <ul>
         <li data-sortable-item="task-1">
-            <span data-sortable-handle>⋮⋮</span>
+            <span data-sortable-handle>::</span>
             Buy milk
         </li>
         <li data-sortable-item="task-2">Walk dog</li>
@@ -163,7 +163,7 @@ for announcements during keyboard pickup ("Picked up item 3",
 
 Reactive attributes:
 
-- `disabled` — toggles the whole list
+- `disabled` -- toggles the whole list
 
 Read-once attributes:
 
@@ -171,14 +171,14 @@ Read-once attributes:
 
 Dispatched events:
 
-- `reorder` — `{ detail: { order, info } }`
-- `dragstart` — `{ detail: { key } }`
-- `dragend` — `{ detail: { key, committed } }`
+- `reorder` -- `{ detail: { order, info } }`
+- `dragstart` -- `{ detail: { key } }`
+- `dragend` -- `{ detail: { key, committed } }`
 
 ## Pairing with `@zakkster/lite-store` and `@zakkster/lite-crdt`
 
-For non-trivial state — multi-tab sync, multi-user collaboration,
-optimistic updates with a server — pair sortable with the store /
+For non-trivial state -- multi-tab sync, multi-user collaboration,
+optimistic updates with a server -- pair sortable with the store /
 CRDT layer:
 
 ```js
@@ -198,7 +198,7 @@ const sortable = createSortable({
 For multi-user reorder over BroadcastChannel / WebSocket, the same
 pattern wraps `ORSet` with a per-op sequencer for stable
 convergence. The sortable primitive itself remains transport-
-agnostic — it just emits events.
+agnostic -- it just emits events.
 
 ## Recommended CSS
 
@@ -219,7 +219,7 @@ suspenders.
 
 ## Animating reorders (FLIP recipe)
 
-Reorder events are point-in-time — the dragged item teleports from
+Reorder events are point-in-time -- the dragged item teleports from
 its old slot to its new one. For a smoother UX, layer a FLIP
 animation on top: capture rects BEFORE the commit, do the commit,
 read NEW rects AFTER, translate items back to where they were, then
@@ -285,7 +285,7 @@ sortable.addEventListener("reorder", () => {
 });
 ```
 
-Same FLIP technique works for any reorder source — `move`, `swap`,
+Same FLIP technique works for any reorder source -- `move`, `swap`,
 `setOrder`, shuffle buttons. Wrap your mutation in the
 before/after pattern. The dragstart/dragend events only fire for
 pointer + keyboard pickup, so for imperative API calls, capture
@@ -301,7 +301,7 @@ function withFlip(mutate) {
 withFlip(() => sortable.setOrder(shuffled));
 ```
 
-Kept out of the primitive intentionally — animation timing,
+Kept out of the primitive intentionally -- animation timing,
 easing, and stagger are an aesthetic choice the consumer should
 own.
 

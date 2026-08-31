@@ -1,7 +1,7 @@
 // @zakkster/lite-headless / backtop / element.js
 //
 // <lite-backtop threshold="200">
-//     <button data-backtop-button aria-label="Back to top">↑</button>
+//     <button data-backtop-button aria-label="Back to top">^</button>
 // </lite-backtop>
 //
 // Or with explicit scroll-target attribute pointing at a container:

@@ -28,26 +28,26 @@ cp.attachSwatch(swatchBtn, "#ff5500"); // preset color
 
 ## Reads (call-style accessors)
 
-- `cp.hue()`         → 0..360
-- `cp.saturation()`  → 0..1
-- `cp.brightness()`  → 0..1 (the V in HSV)
-- `cp.alpha()`       → 0..1
-- `cp.hsv()`         → `{ h, s, v, a }`
-- `cp.rgb()`         → `{ r, g, b, a }` (r/g/b are 0..255 integers)
-- `cp.hex()`         → `"#rrggbb"` or `"#rrggbbaa"` if alpha < 1
-- `cp.hsl()`         → `{ h, s, l, a }`
-- `cp.oklch()`       → `{ l, c, h, a }` (l ~ 0..1, c ~ 0..0.4, h 0..360)
+- `cp.hue()`         -> 0..360
+- `cp.saturation()`  -> 0..1
+- `cp.brightness()`  -> 0..1 (the V in HSV)
+- `cp.alpha()`       -> 0..1
+- `cp.hsv()`         -> `{ h, s, v, a }`
+- `cp.rgb()`         -> `{ r, g, b, a }` (r/g/b are 0..255 integers)
+- `cp.hex()`         -> `"#rrggbb"` or `"#rrggbbaa"` if alpha < 1
+- `cp.hsl()`         -> `{ h, s, l, a }`
+- `cp.oklch()`       -> `{ l, c, h, a }` (l ~ 0..1, c ~ 0..0.4, h 0..360)
 
 ## Writes (mutations)
 
-- `cp.setHue(n, reason?)`         — 0..360 with wraparound
-- `cp.setSaturation(n, reason?)`  — clamped to [0, 1]
-- `cp.setBrightness(n, reason?)`  — clamped to [0, 1]
-- `cp.setAlpha(n, reason?)`       — clamped to [0, 1]
-- `cp.setHsv({h,s,v,a}, reason?)` — partial fields allowed
-- `cp.setRgb({r,g,b,a}, reason?)` — r/g/b in 0..255
-- `cp.setHex(s, reason?)`         — returns `true` on success, `false` on parse error
-- `cp.setOklch({l,c,h,a}, reason?)` — out-of-gamut silently clamped
+- `cp.setHue(n, reason?)`         -- 0..360 with wraparound
+- `cp.setSaturation(n, reason?)`  -- clamped to [0, 1]
+- `cp.setBrightness(n, reason?)`  -- clamped to [0, 1]
+- `cp.setAlpha(n, reason?)`       -- clamped to [0, 1]
+- `cp.setHsv({h,s,v,a}, reason?)` -- partial fields allowed
+- `cp.setRgb({r,g,b,a}, reason?)` -- r/g/b in 0..255
+- `cp.setHex(s, reason?)`         -- returns `true` on success, `false` on parse error
+- `cp.setOklch({l,c,h,a}, reason?)` -- out-of-gamut silently clamped
 
 Every setter calls `onValueChange` if and only if the underlying signal
 actually changed (no-op writes are filtered). The `reason` channel
@@ -62,28 +62,28 @@ state lives in data-attributes; positions and color values live in
 custom properties.
 
 **Root** (`[data-color-picker-root]`):
-- `--color-hex`         — current hex (e.g. `#7dd3fc`)
-- `--color-h`           — hue 0..360
-- `--color-s`           — saturation 0..1
-- `--color-v`           — brightness 0..1
-- `--color-r/g/b`       — sRGB channels 0..255
-- `--color-a`           — alpha 0..1
+- `--color-hex`         -- current hex (e.g. `#7dd3fc`)
+- `--color-h`           -- hue 0..360
+- `--color-s`           -- saturation 0..1
+- `--color-v`           -- brightness 0..1
+- `--color-r/g/b`       -- sRGB channels 0..255
+- `--color-a`           -- alpha 0..1
 
 **Area** (`[data-color-area]`):
-- `--color-h`           — hue of the area background
-- `--saturation`        — 0..1 (current x position)
-- `--brightness`        — 0..1 (current y position; 1 = top)
+- `--color-h`           -- hue of the area background
+- `--saturation`        -- 0..1 (current x position)
+- `--brightness`        -- 0..1 (current y position; 1 = top)
 
 **Area handle** (`[data-color-area-handle]`):
-- `--x`                 — saturation, 0..1 (left-to-right)
-- `--y`                 — 1 - brightness, 0..1 (top-to-bottom)
+- `--x`                 -- saturation, 0..1 (left-to-right)
+- `--y`                 -- 1 - brightness, 0..1 (top-to-bottom)
 
 **Hue rail** (`[data-color-hue-slider]` and `[data-color-hue-handle]`):
-- `--hue-pct`           — 0..1 (hue / 360)
+- `--hue-pct`           -- 0..1 (hue / 360)
 
 **Alpha rail** (`[data-color-alpha-slider]` and `[data-color-alpha-handle]`):
-- `--color-hex`         — solid color behind the alpha rail
-- `--alpha`             — 0..1
+- `--color-hex`         -- solid color behind the alpha rail
+- `--alpha`             -- 0..1
 
 ## Wrapper (`<lite-color-picker>`)
 
@@ -104,8 +104,8 @@ custom properties.
 ```
 
 Reactive attributes:
-- `value="#rrggbb"` — bidirectional; external `setAttribute("value", ...)` flows in via `setHex`.
-- `alpha="false"`   — disable the alpha channel; alpha attach helpers no-op.
+- `value="#rrggbb"` -- bidirectional; external `setAttribute("value", ...)` flows in via `setHex`.
+- `alpha="false"`   -- disable the alpha channel; alpha attach helpers no-op.
 
 Host accessors (canonical):
 - `host.hex`, `host.rgb`, `host.hsv`, `host.hsl`, `host.oklch`  (read; pure objects)
@@ -114,8 +114,8 @@ Host accessors (canonical):
 - `host._colorPickerInstance` (advanced)
 
 Events (bubbles up from host):
-- `valuechange` — `{ detail: { hsv, hex, rgb, oklch, reason } }`
-- `commit`      — same shape, on drag-end / swatch click
+- `valuechange` -- `{ detail: { hsv, hex, rgb, oklch, reason } }`
+- `commit`      -- same shape, on drag-end / swatch click
 
 ## OKLCH first-class
 

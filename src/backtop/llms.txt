@@ -46,9 +46,9 @@ bt.attachButton(buttonEl);
 
 ### Button (`[data-backtop]`)
 
-- `data-visible` — boolean, true when scrolled past threshold
-- `hidden` — when not visible (for SR + non-CSS)
-- `aria-label="Back to top"` — only if not pre-set
+- `data-visible` -- boolean, true when scrolled past threshold
+- `hidden` -- when not visible (for SR + non-CSS)
+- `aria-label="Back to top"` -- only if not pre-set
 
 ## Scroll-target semantics
 
@@ -57,34 +57,34 @@ bt.attachButton(buttonEl);
 `scrollTop` instead. `null` is equivalent to window.
 
 Scroll listener uses `{ passive: true }` and throttles paint via
-`requestAnimationFrame` — never reads layout during the scroll
+`requestAnimationFrame` -- never reads layout during the scroll
 event itself, so it's safe to attach on long pages.
 
 ## Wrapper (`<lite-backtop>`)
 
 ```html
 <lite-backtop threshold="300">
-    <button data-backtop-button class="fab" type="button">↑</button>
+    <button data-backtop-button class="fab" type="button">^</button>
 </lite-backtop>
 
 <!-- Or scoped to a scroll container -->
 <div id="article" style="overflow:auto; height: 600px;">
     <article>...</article>
     <lite-backtop target="#article" threshold="200">
-        <button data-backtop-button>↑</button>
+        <button data-backtop-button>^</button>
     </lite-backtop>
 </div>
 ```
 
 Attributes:
-- `threshold` — px (default 200)
-- `smooth` — set to `"false"` for instant jump
-- `target` — CSS selector for the scroll container; defaults to window
+- `threshold` -- px (default 200)
+- `smooth` -- set to `"false"` for instant jump
+- `target` -- CSS selector for the scroll container; defaults to window
 
 Host methods: `scrollToTop(reason)`.
 Host accessors: `isVisible`, `threshold`, `_backtopInstance`.
 
-Event: `backtop` — `{ detail: { reason } }`.
+Event: `backtop` -- `{ detail: { reason } }`.
 
 ## CSS contract
 

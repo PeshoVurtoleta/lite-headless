@@ -3,7 +3,7 @@
 // <lite-card collapsible dismissible label="Recent orders">
 //     <div data-card-header>
 //         Title
-//         <button data-card-collapse-trigger>−</button>
+//         <button data-card-collapse-trigger>-</button>
 //         <button data-card-dismiss>×</button>
 //     </div>
 //     <div data-card-body>...</div>

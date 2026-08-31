@@ -62,24 +62,24 @@ card.attachDismissButton(xButton);
 
 ### Root (`[data-card-root]`)
 
-- `role="region"` + `aria-label="<label>"` — when `label` provided
-- `data-open` — boolean, while collapsed (Class-2 boolean CSS hook)
-- `data-hidden` — boolean, while dismissed
-- `hidden` — when dismissed (for SR + non-CSS contexts)
+- `role="region"` + `aria-label="<label>"` -- when `label` provided
+- `data-open` -- boolean, while collapsed (Class-2 boolean CSS hook)
+- `data-hidden` -- boolean, while dismissed
+- `hidden` -- when dismissed (for SR + non-CSS contexts)
 
 ### Body (`[data-card-body]`)
 
-- `id` — auto-generated for `aria-controls` linkage (when collapsible)
-- `hidden` — when collapsed
+- `id` -- auto-generated for `aria-controls` linkage (when collapsible)
+- `hidden` -- when collapsed
 
 ### Collapse trigger
 
-- `aria-expanded="true|false"` — flipped on toggle
-- `aria-controls=<body-id>` — wires to the body for SR navigation
+- `aria-expanded="true|false"` -- flipped on toggle
+- `aria-controls=<body-id>` -- wires to the body for SR navigation
 
 ### Dismiss button (`[data-card-dismiss]`)
 
-- `aria-label="Dismiss"` — only if not pre-set
+- `aria-label="Dismiss"` -- only if not pre-set
 
 ## Wrapper (`<lite-card>`)
 
@@ -87,7 +87,7 @@ card.attachDismissButton(xButton);
 <lite-card collapsible dismissible label="Sales Q3">
     <div data-card-header>
         Sales Q3
-        <button data-card-collapse-trigger aria-label="Toggle">−</button>
+        <button data-card-collapse-trigger aria-label="Toggle">-</button>
         <button data-card-dismiss>×</button>
     </div>
     <div data-card-body>
@@ -100,26 +100,26 @@ card.attachDismissButton(xButton);
 ```
 
 Attributes:
-- `collapsible` — boolean; enables the state machine
-- `dismissible` — boolean
-- `collapsed` — boolean; reactive (host attribute mirrors internal state)
-- `dismissed` — boolean
-- `label` — sets `aria-label`
+- `collapsible` -- boolean; enables the state machine
+- `dismissible` -- boolean
+- `collapsed` -- boolean; reactive (host attribute mirrors internal state)
+- `dismissed` -- boolean
+- `label` -- sets `aria-label`
 
 Slots (auto-discovered):
-- `[data-card-header]` — visual header. If `collapsible` and no explicit
+- `[data-card-header]` -- visual header. If `collapsible` and no explicit
   `[data-card-collapse-trigger]`, the header itself becomes the toggle.
-- `[data-card-body]` — content
-- `[data-card-footer]` — actions area
-- `[data-card-collapse-trigger]` — explicit toggle (optional; falls back to header)
-- `[data-card-dismiss]` — dismiss button
+- `[data-card-body]` -- content
+- `[data-card-footer]` -- actions area
+- `[data-card-collapse-trigger]` -- explicit toggle (optional; falls back to header)
+- `[data-card-dismiss]` -- dismiss button
 
 Host methods: `toggle()`, `collapse()`, `expand()`, `dismiss()`, `reopen()`.
 Host accessors: `isCollapsed`, `isDismissed`, `_cardInstance`.
 
 Events:
-- `collapsechange` — `{ detail: { collapsed, reason } }`
-- `dismiss` — `{ detail: { reason } }`
+- `collapsechange` -- `{ detail: { collapsed, reason } }`
+- `dismiss` -- `{ detail: { reason } }`
 
 ## CSS contract
 
@@ -137,7 +137,7 @@ Card composes naturally with other primitives:
     <div data-card-header>
         <lite-avatar name="Alice" class="av-sm"><img data-avatar-img><span data-avatar-fallback></span></lite-avatar>
         Recent activity
-        <button data-card-collapse-trigger>−</button>
+        <button data-card-collapse-trigger>-</button>
     </div>
     <div data-card-body>
         <lite-timeline>...</lite-timeline>

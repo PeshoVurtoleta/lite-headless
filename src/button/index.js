@@ -64,7 +64,7 @@ export function createButton(opts = {}) {
     const _cleanups = [];
     function addCleanup(fn) { _cleanups.push(fn); }
 
-    // ─── mutations ───────────────────────────────────────────────────
+    // --- mutations ---------------------------------------------------
 
     function setPressed(b) {
         if (_destroyed.v) return;
@@ -105,7 +105,7 @@ export function createButton(opts = {}) {
         }
     }
 
-    // ─── attach ──────────────────────────────────────────────────────
+    // --- attach ------------------------------------------------------
 
     function attachRoot(el) {
         if (!el || _destroyed.v) return noop;

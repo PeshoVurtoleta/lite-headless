@@ -71,7 +71,7 @@ define("lite-accordion", (host, scope) => {
     // lite-signal's effect-queue propagation, calling
     // host.setAttribute(...) INSIDE onValueChange (which runs INSIDE
     // _value.set's flush chain) causes the useAttr effect to fire
-    // TWICE — once before the attribute has actually settled to the
+    // TWICE -- once before the attribute has actually settled to the
     // new value (signal-side traces show this is a real re-entrance,
     // not a stale read: valueAttr(), attrSig.peek(), and
     // host.getAttribute() all agree at each run, but the signal

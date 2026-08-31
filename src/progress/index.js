@@ -73,7 +73,7 @@
 //   /* linear example */
 //   [data-progress-bar] { width: calc(var(--progress) * 100%); }
 //
-//   /* circular example -- SVG ring, circumference = 2πr */
+//   /* circular example -- SVG ring, circumference = 2pir */
 //   [data-progress-indicator] {
 //       stroke-dasharray: var(--circumference);
 //       stroke-dashoffset: calc(var(--circumference) * (1 - var(--progress)));

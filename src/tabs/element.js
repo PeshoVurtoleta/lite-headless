@@ -15,7 +15,7 @@
 // [data-panel="<key>"] children via createRoleObserver so dynamically-
 // added tabs + panels wire automatically (e.g. when a route loads).
 //
-// Attribute → option mapping:
+// Attribute -> option mapping:
 //   value         -> reactive sync via useAttr (setAttribute drives the active tab)
 //   orientation   -> "horizontal" | "vertical"  (default horizontal)
 //   activation    -> "automatic" | "manual"     (default automatic)
@@ -48,7 +48,7 @@ define("lite-tabs", (host, scope) => {
 
     // v0.7.12: re-entrance guard (see accordion/element.js for the full
     // explanation). The `reason !== "attribute"` mirror guard alone is
-    // not enough — calling host.setAttribute INSIDE onValueChange
+    // not enough -- calling host.setAttribute INSIDE onValueChange
     // (which runs inside _value.set's flush) re-enters the useAttr
     // effect twice in chromium under lite-signal. Final value is
     // correct but extra "valuechange" CustomEvents fire with stale

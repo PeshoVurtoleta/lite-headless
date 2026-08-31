@@ -95,7 +95,7 @@ Example consumer CSS:
 On a focused thumb:
   ArrowRight / ArrowUp        +step
   ArrowLeft / ArrowDown       -step
-  Shift+Arrow                 ±largeStep
+  Shift+Arrow                 +-largeStep
   PageUp                      +largeStep
   PageDown                    -largeStep
   Home                        snap to min

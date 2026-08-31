@@ -68,7 +68,7 @@ When CLOSED:
 
 - [data-trigger]              -- the button (gets aria-haspopup="listbox")
 - [data-listbox]              -- the ul/ol (gets role="listbox")
-- [data-item][data-value="…"] -- each option (gets role="option", aria-selected)
+- [data-item][data-value="..."] -- each option (gets role="option", aria-selected)
 
 ## <lite-combobox> attributes
 

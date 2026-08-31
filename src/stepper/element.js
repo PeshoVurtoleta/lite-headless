@@ -1,7 +1,7 @@
 // @zakkster/lite-headless / stepper / element.js
 //
 // <lite-stepper min="0" max="100" step="1" value="50" large-step="10">
-//   <button data-decrement>−</button>
+//   <button data-decrement>-</button>
 //   <input data-input>
 //   <button data-increment>+</button>
 // </lite-stepper>
@@ -9,7 +9,7 @@
 // Or display-only:
 //
 // <lite-stepper min="0" max="9" step="1" value="3">
-//   <button data-decrement>−</button>
+//   <button data-decrement>-</button>
 //   <output data-readout></output>
 //   <button data-increment>+</button>
 // </lite-stepper>

@@ -73,7 +73,7 @@ export function createTour(opts = {}) {
         return -1;
     }
 
-    // ─── step registry ───────────────────────────────────────────────
+    // --- step registry -----------------------------------------------
 
     function addStep(step) {
         if (_destroyed.v || !step) return null;
@@ -117,7 +117,7 @@ export function createTour(opts = {}) {
     function isFirst() { return _index() === 0; }
     function isLast()  { return _index() >= 0 && _index() === _steps.length - 1; }
 
-    // ─── navigation ──────────────────────────────────────────────────
+    // --- navigation --------------------------------------------------
 
     function start() {
         if (_destroyed.v || _steps.length === 0) return;
@@ -169,7 +169,7 @@ export function createTour(opts = {}) {
         if (onComplete) try { onComplete(); } catch {}
     }
 
-    // ─── paint effect ────────────────────────────────────────────────
+    // --- paint effect ------------------------------------------------
 
     let _activeTargetEl = null;
     let _activeContentEl = null;
@@ -230,7 +230,7 @@ export function createTour(opts = {}) {
     });
     addCleanup(stopPaint);
 
-    // ─── attach ──────────────────────────────────────────────────────
+    // --- attach ------------------------------------------------------
 
     function attachRoot(el) {
         if (!el || _destroyed.v) return noop;

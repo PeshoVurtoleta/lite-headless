@@ -1,7 +1,7 @@
 # @zakkster/lite-headless / descriptions
 
 Key-value layout for admin detail views. Each item has a label + value;
-items are arranged in a grid of 1–4 columns. Optionally bordered.
+items are arranged in a grid of 1-4 columns. Optionally bordered.
 
 This is primarily a layout + ARIA primitive. The visual styling
 (borders, padding, separator lines) is consumer-driven via CSS.
@@ -24,7 +24,7 @@ d.attachItem(item2);
 
 | Option | Default | Notes |
 |---|---|---|
-| `columns` | `1` | Grid column count (1–4) |
+| `columns` | `1` | Grid column count (1-4) |
 | `bordered` | `false` | Paints `data-bordered` for CSS borders |
 
 ## API
@@ -46,7 +46,7 @@ d.attachItem(item2);
 ### Root (`[data-descriptions-root]`)
 
 - `data-columns="<1|2|3|4>"`
-- `data-bordered` — boolean, when `bordered: true`
+- `data-bordered` -- boolean, when `bordered: true`
 
 ### Items (`[data-desc-item]`)
 
@@ -54,8 +54,8 @@ d.attachItem(item2);
 
 ### Label + Value (consumer-authored slots)
 
-- `[data-desc-label]` — gets an auto-generated `id`
-- `[data-desc-value]` — gets `aria-labelledby="<label-id>"` for SR association
+- `[data-desc-label]` -- gets an auto-generated `id`
+- `[data-desc-value]` -- gets `aria-labelledby="<label-id>"` for SR association
 
 ## Wrapper (`<lite-descriptions>`)
 
