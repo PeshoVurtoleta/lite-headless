@@ -33,6 +33,7 @@
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { uniqueId, setAttr, ensureId } from "../_overlay/aria.js";
+import { sealSignal } from "../_overlay/seal.js";
 
 export function createSlider(options = {}) {
     const {
@@ -80,8 +81,12 @@ export function createSlider(options = {}) {
     // Each value clamped + snapped on init
     const _initialClamped = initial.map((v) => clampSnap(v, min, max, step));
 
-    // The value signal -- external if provided, else internal
-    const _value = externalValue || makeSignal(_initialClamped);
+    // The value signal -- external if provided, else internal.
+    // `let`: destroy() seals this when we own it (H-12) -- the pooled node
+    // goes back to the registry, reads freeze at the final value. Accessors
+    // resolve the binding at call time, so the swap costs the live paths
+    // nothing. Never seal a consumer-supplied signal.
+    let _value = externalValue || makeSignal(_initialClamped);
     if (!externalValue) {
         // ensure initial passes through snap+clamp
         _value.set(_initialClamped);
@@ -524,6 +529,10 @@ export function createSlider(options = {}) {
         }
         _cleanups.length = 0;
         _destroyed = true;
+        // return the pooled signal node after every effect stopped; reads
+        // freeze at the final value (H-12). Only when we own it -- a
+        // consumer-supplied signal is theirs.
+        if (!externalValue) _value = sealSignal(_value);
     }
 
     return {

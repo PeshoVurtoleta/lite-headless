@@ -69,6 +69,7 @@
 // its left/upper neighbor to min, or to max, respectively).
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
+import { sealSignal } from "../_overlay/seal.js";
 
 const noop = () => {};
 
@@ -96,7 +97,11 @@ export function createSplitPanels(options = {}) {
     // every change (signal semantics). External controlled-mode supported
     // via the `layout` option; uncontrolled mode falls back to
     // `defaultLayout`, then to even split when panels register.
-    const _layout = layoutSignal || makeSignal(defaultLayout ? defaultLayout.slice() : []);
+    // `let`: destroy() seals this (H-12) when we own it -- the pooled node
+    // goes back to the registry, reads freeze at the final value. The
+    // accessor resolves the binding at call time, so the swap costs the
+    // live paths nothing.
+    let _layout = layoutSignal || makeSignal(defaultLayout ? defaultLayout.slice() : []);
     let _container = null;
     let _destroyed = false;
 
@@ -629,6 +634,10 @@ export function createSplitPanels(options = {}) {
         // attach* teardowns are returned to the consumer; we don't track
         // them centrally. Destroy is idempotent and just stops the reactive
         // paint + flags the engine.
+        // return the pooled signal node after the paint effect stopped; reads
+        // freeze at the final value (H-12).
+        // layoutSignal is the consumer's in controlled mode -- never ours.
+        if (!layoutSignal) _layout = sealSignal(_layout);
     }
 
     return {

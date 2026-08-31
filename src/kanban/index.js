@@ -34,11 +34,26 @@
 //
 // All mutations go through onCardMove if provided.
 
-import { signal as makeSignal, effect } from "@zakkster/lite-signal";
+import { signal as makeSignal, effect, dispose } from "@zakkster/lite-signal";
+import { sealSignal } from "../_overlay/seal.js";
 import { setAttr, toggleAttr, ensureId } from "../_overlay/aria.js";
 import { createSortable } from "../sortable/index.js";
 
 function noop() {}
+
+// Frozen empty order stand-in handed out by ensureColumnOrderSig after
+// destroy() (H-12): signal-shaped, answers a shared empty array, accepts and
+// ignores writes, subscribe fires once and never again. Module-scope -- one
+// per process, no per-board cost.
+const _EMPTY_ORDER = [];
+const _SEALED_EMPTY_ORDER = () => _EMPTY_ORDER;
+_SEALED_EMPTY_ORDER.peek = _SEALED_EMPTY_ORDER;
+_SEALED_EMPTY_ORDER.set = noop;
+_SEALED_EMPTY_ORDER.update = noop;
+_SEALED_EMPTY_ORDER.subscribe = (cb) => {
+    try { cb(_EMPTY_ORDER); } catch { /* swallow */ }
+    return noop;
+};
 
 export function createKanban(options = {}) {
     const {
@@ -75,8 +90,11 @@ export function createKanban(options = {}) {
     // _columnOrder[colId] is an array of cardId[] giving the ordered
     // contents of that column.
 
-    const _columns = makeSignal(initialColumns.slice());
-    const _cards = makeSignal(initialCards.slice());
+    // `let`: destroy() seals these (H-12) -- pooled nodes return to the
+    // registry, reads freeze at the final board state. Accessors resolve
+    // the bindings at call time, so live paths pay nothing for the swap.
+    let _columns = makeSignal(initialColumns.slice());
+    let _cards = makeSignal(initialCards.slice());
     const _columnOrder = new Map();    // colId -> string[] of cardIds
 
     // Seed initial column order from initialCards.
@@ -89,6 +107,11 @@ export function createKanban(options = {}) {
     // Reactive accessor for the order of a column (used by sortable).
     const _columnOrderSig = new Map();   // colId -> signal of cardId[]
     function ensureColumnOrderSig(colId) {
+        // Post-destroy mint guard (H-12): a straggling consumer effect that
+        // still asks for a column's order must not mint a fresh pool node in
+        // a destroyed board -- nothing would ever return it. Hand out the
+        // frozen empty stand-in instead.
+        if (_destroyed) return _SEALED_EMPTY_ORDER;
         let sig = _columnOrderSig.get(colId);
         if (!sig) {
             sig = makeSignal(_columnOrder.get(colId) ? _columnOrder.get(colId).slice() : []);
@@ -157,6 +180,7 @@ export function createKanban(options = {}) {
         if (idx === -1) return;
         // Remove all cards in this column.
         const orphans = _columnOrder.get(colId) || [];
+        const orderSig = _columnOrderSig.get(colId) || null;
         _columnOrder.delete(colId);
         _columnOrderSig.delete(colId);
         const next = cur.slice();
@@ -172,6 +196,10 @@ export function createKanban(options = {}) {
             try { attached.off(); } catch {}
             _columnAttached.delete(colId);
         }
+        // Dropped map entry -> return the pooled order-signal node (H-12).
+        // Last, so every write above flushed against a live signal and the
+        // column's sortable teardown already ran.
+        if (orderSig) dispose(orderSig);
         if (onColumnRemove) onColumnRemove(colId);
     }
 
@@ -564,7 +592,14 @@ export function createKanban(options = {}) {
         _columnAttached.clear();
         _cardAttached.clear();
         _columnOrder.clear();
+        // return every pooled node after all effects stopped (H-12). The
+        // per-column order signals are internal-only (ensureColumnOrderSig
+        // short-circuits post-destroy), so a plain dispose suffices; the
+        // public list signals seal so reads freeze at the final board state.
+        for (const sig of _columnOrderSig.values()) dispose(sig);
         _columnOrderSig.clear();
+        _columns = sealSignal(_columns);
+        _cards = sealSignal(_cards);
     }
 
     return {

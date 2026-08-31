@@ -105,6 +105,7 @@
 //                  (the string is forwarded; users can inspect it)
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
+import { sealSignal } from "../_overlay/seal.js";
 
 const noop = () => {};
 const DEFAULT_DELIMITERS = ["Enter", "Tab", ","];
@@ -195,9 +196,12 @@ export function createTagInput(options = {}) {
         if (_initial.length >= maxItems) break;
     }
 
-    const _tags = makeSignal(_initial);
-    const _activeIndex = makeSignal(-1);
-    const _inputValue = makeSignal("");
+    // `let`: destroy() seals these (H-12) -- pooled nodes go back to the
+    // registry, reads freeze at the final value. Accessors resolve the
+    // binding at call time, so the swap costs the live paths nothing.
+    let _tags = makeSignal(_initial);
+    let _activeIndex = makeSignal(-1);
+    let _inputValue = makeSignal("");
 
     let _rootEl = null;
     let _inputEl = null;
@@ -527,6 +531,11 @@ export function createTagInput(options = {}) {
         }
         _rootEl = null;
         _inputEl = null;
+        // return the pooled signal nodes after the paint effect stopped; reads
+        // freeze at the final value (H-12)
+        _tags = sealSignal(_tags);
+        _activeIndex = sealSignal(_activeIndex);
+        _inputValue = sealSignal(_inputValue);
     }
 
     return {

@@ -40,6 +40,7 @@
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { setAttr, toggleAttr } from "../_overlay/aria.js";
+import { sealSignal } from "../_overlay/seal.js";
 
 function noop() {}
 function removeAttr(el, name) { el.removeAttribute(name); }
@@ -50,9 +51,12 @@ export function createButton(opts = {}) {
     // gets painted). If `pressed` is provided as a boolean at
     // construction, toggle is implied true.
     const isToggle = (o.toggle === true) || (typeof o.pressed === "boolean");
-    const _pressed   = makeSignal(!!o.pressed);
-    const _loading   = makeSignal(!!o.loading);
-    const _disabled  = makeSignal(!!o.disabled);
+    // `let`: destroy() seals these (H-12) -- pooled nodes go back to the
+    // registry, reads freeze at the final value. Accessors resolve the
+    // binding at call time, so the swap costs the live paths nothing.
+    let _pressed   = makeSignal(!!o.pressed);
+    let _loading   = makeSignal(!!o.loading);
+    let _disabled  = makeSignal(!!o.disabled);
     const onPress    = typeof o.onPress === "function" ? o.onPress : null;
     const _destroyed = { v: false };
 
@@ -192,6 +196,11 @@ export function createButton(opts = {}) {
         }
         _cleanups.length = 0;
         _rootEl = null;
+        // return the pooled signal nodes after every effect stopped; reads
+        // freeze at the final value (H-12)
+        _pressed = sealSignal(_pressed);
+        _loading = sealSignal(_loading);
+        _disabled = sealSignal(_disabled);
     }
 
     return {

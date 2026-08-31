@@ -18,6 +18,7 @@
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { setAttr, toggleAttr } from "../_overlay/aria.js";
+import { sealSignal } from "../_overlay/seal.js";
 
 function noop() {}
 function removeAttr(el, name) { el.removeAttribute(name); }
@@ -30,7 +31,10 @@ export function createBackTop(opts = {}) {
     const onActivate = typeof o.onActivate === "function" ? o.onActivate : null;
     let _target = null;          // scroll container; null = window
     let _scrollEl = null;        // resolved element used for getting scrollTop
-    const _visible = makeSignal(false);
+    // `let`: destroy() seals this (H-12) -- pooled nodes go back to the
+    // registry, reads freeze at the final value. Accessors resolve the
+    // binding at call time, so the swap costs the live paths nothing.
+    let _visible = makeSignal(false);
     const _destroyed = { v: false };
 
     let _scrollHandler = null;
@@ -154,6 +158,9 @@ export function createBackTop(opts = {}) {
             try { _cleanups[i](); } catch {}
         }
         _cleanups.length = 0;
+        // return the pooled signal node after every effect stopped; reads
+        // freeze at the final value (H-12)
+        _visible = sealSignal(_visible);
     }
 
     return {

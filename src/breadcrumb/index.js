@@ -58,6 +58,7 @@
 // We support both. Consumers can mix and match.
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
+import { sealSignal } from "../_overlay/seal.js";
 
 const noop = () => {};
 function setAttr(el, name, value) {
@@ -79,12 +80,15 @@ export function createBreadcrumb(options = {}) {
     // items in order of attachment; current is whichever has current:true
     // (or the last attached if none marked)
     const _items = [];       // { el, key, off, label }
-    const _currentKey = makeSignal(null);
+    // `let`: destroy() seals these (H-12) -- pooled nodes go back to the
+    // registry, reads freeze at the final value. Accessors resolve the
+    // binding at call time, so the swap costs the live paths nothing.
+    let _currentKey = makeSignal(null);
     // Tick counter: bumped whenever the items list mutates. The paint
     // effect tracks this so it re-runs even when _currentKey's value
     // doesn't change between attaches (e.g., still null -> null but
     // the LAST-item resolution result differs).
-    const _itemsTick = makeSignal(0);
+    let _itemsTick = makeSignal(0);
     const _separators = new Set();
 
     function _resolveCurrentKey() {
@@ -239,6 +243,10 @@ export function createBreadcrumb(options = {}) {
         _separators.clear();
         _rootEl = null;
         _listEl = null;
+        // return the pooled signal nodes after the paint effect stopped; reads
+        // freeze at the final value (H-12)
+        _currentKey = sealSignal(_currentKey);
+        _itemsTick = sealSignal(_itemsTick);
     }
 
     return {

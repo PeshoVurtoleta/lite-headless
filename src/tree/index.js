@@ -59,6 +59,7 @@ import { uniqueId, setAttr, toggleAttr } from "../_overlay/aria.js";
 import {
     createRovingFocus, STRATEGY_DOM_FOCUS
 } from "../_overlay/roving-focus.js";
+import { sealSignal } from "../_overlay/seal.js";
 
 const noop = () => {};
 
@@ -90,8 +91,11 @@ export function createTree(options = {}) {
     if (selectionMode === "multiple") initialSelected = asArr(defaultSelected);
     else initialSelected = (Array.isArray(defaultSelected) ? defaultSelected[0] : defaultSelected) ?? null;
 
-    const _selected = makeSignal(initialSelected);
-    const _expanded = makeSignal(new Set(asArr(defaultExpanded)));
+    // `let`: destroy() seals these (H-12) -- pooled nodes go back to the
+    // registry, reads freeze at the final value. Accessors resolve the
+    // binding at call time, so the swap costs the live paths nothing.
+    let _selected = makeSignal(initialSelected);
+    let _expanded = makeSignal(new Set(asArr(defaultExpanded)));
 
     let _destroyed = false;
     let _rootEl = null;
@@ -671,6 +675,10 @@ export function createTree(options = {}) {
         _destroyed = true;
         stopPaint();
         rover.destroy();
+        // return the pooled signal nodes after every effect stopped; reads
+        // freeze at the final value (H-12)
+        _selected = sealSignal(_selected);
+        _expanded = sealSignal(_expanded);
     }
 
     return {

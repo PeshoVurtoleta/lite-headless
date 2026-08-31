@@ -84,6 +84,7 @@
 // in the constructor options.
 
 import { signal as makeSignal, effect, untrack } from "@zakkster/lite-signal";
+import { sealSignal } from "../_overlay/seal.js";
 
 const noop = () => {};
 
@@ -139,9 +140,12 @@ export function createPinInput(options = {}) {
         return out;
     }
 
-    const _value = makeSignal(_filter(initialValue));
-    const _position = makeSignal(0);
-    const _isComplete = makeSignal(_value().length === length);
+    // `let`: destroy() seals these (H-12) -- pooled nodes go back to the
+    // registry, reads freeze at the final value. Accessors resolve the
+    // binding at call time, so the swap costs the live paths nothing.
+    let _value = makeSignal(_filter(initialValue));
+    let _position = makeSignal(0);
+    let _isComplete = makeSignal(_value().length === length);
 
     let _rootEl = null;
     const _inputs = new Map();      // index -> { el, off }
@@ -520,6 +524,11 @@ export function createPinInput(options = {}) {
             removeAttr(_rootEl, "data-pin-value-length");
         }
         _rootEl = null;
+        // return the pooled signal nodes after every effect stopped; reads
+        // freeze at the final value (H-12)
+        _value = sealSignal(_value);
+        _position = sealSignal(_position);
+        _isComplete = sealSignal(_isComplete);
     }
 
     return {

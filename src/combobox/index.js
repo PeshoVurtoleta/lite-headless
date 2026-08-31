@@ -42,6 +42,7 @@
 //   combo.open, status, setOpen, toggle, destroy
 
 import { signal, effect } from "@zakkster/lite-signal";
+import { sealSignal } from "../_overlay/seal.js";
 import { createOverlayCore } from "../_overlay/core.js";
 import { bindEscape, bindOutsideClick } from "../_overlay/dismiss.js";
 import { createPositioner } from "../_overlay/position.js";
@@ -79,7 +80,9 @@ export function createCombobox(options = {}) {
     // Mirror the pattern from core for `open`: if the caller passed a signal,
     // use it; otherwise keep an internal one. This lets React/Svelte/vanilla
     // bring their own state.
-    const _internalValue = signal(defaultValue);
+    // `let`: destroy() seals it (H-12); readValue resolves the binding at
+    // call time, so an uncontrolled combobox keeps answering its final value.
+    let _internalValue = signal(defaultValue);
     const _externalValue = valueOpt || null;
     const readValue = () => _externalValue ? _externalValue() : _internalValue();
     const writeValue = (v, reason) => {
@@ -394,6 +397,11 @@ export function createCombobox(options = {}) {
         if (_restorePortal) { _restorePortal(); _restorePortal = null; }
         roving.destroy();
         core.destroy();
+        // return the pooled value node, freezing reads at the final value
+        // (H-12). Always ours: the internal signal is constructed even in
+        // controlled mode (readValue falls back to it), and the consumer's
+        // external signal is never touched.
+        _internalValue = sealSignal(_internalValue);
     }
 
     return {

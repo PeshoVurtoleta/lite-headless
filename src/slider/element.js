@@ -45,7 +45,7 @@
 // we swallow rather than break the page on an ill-formed external attribute.
 
 import { define } from "@zakkster/lite-element";
-import { effect, signal as makeSignal } from "@zakkster/lite-signal";
+import { effect, signal as makeSignal, dispose } from "@zakkster/lite-signal";
 import { createSlider } from "./index.js";
 import { createRoleObserver } from "../_overlay/element-roles.js";
 
@@ -148,5 +148,7 @@ define("lite-slider", (host, scope) => {
         stopDisabledSync();
         roles.disconnect();
         slider.destroy();
+        // element owns valueSig (passed in controlled); return it last (H-12)
+        dispose(valueSig);
     });
 }, { observedAttributes: ["value", "disabled"] });

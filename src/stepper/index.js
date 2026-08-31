@@ -58,6 +58,7 @@
 // pointercancel stops the repeat.
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
+import { sealSignal } from "../_overlay/seal.js";
 
 const noop = () => {};
 
@@ -199,7 +200,11 @@ export function createStepper(options = {}) {
 
     // ----- value signal ------------------------------------------------
     const _initial = normalize(defaultValue);
-    const _value = valueSignal || makeSignal(_initial != null ? _initial : 0);
+    // `let`: destroy() seals this when we own it (H-12) -- the pooled node
+    // goes back to the registry, reads freeze at the final value. Accessors
+    // resolve the binding at call time, so the swap costs the live paths
+    // nothing. Never seal a consumer-supplied signal.
+    let _value = valueSignal || makeSignal(_initial != null ? _initial : 0);
 
     // ----- DOM scratch -------------------------------------------------
     let _input = null;
@@ -564,6 +569,10 @@ export function createStepper(options = {}) {
         if (_destroyed) return;
         _destroyed = true;
         stopSync();
+        // return the pooled signal node after the sync effect stopped; reads
+        // freeze at the final value (H-12). Only when we own it -- a
+        // consumer-supplied signal is theirs.
+        if (!valueSignal) _value = sealSignal(_value);
     }
 
     return {

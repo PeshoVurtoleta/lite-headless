@@ -21,6 +21,7 @@
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { setAttr, toggleAttr } from "../_overlay/aria.js";
+import { sealSignal } from "../_overlay/seal.js";
 
 function noop() {}
 function removeAttr(el, name) { el.removeAttribute(name); }
@@ -30,8 +31,11 @@ const VALID_INTENTS = new Set(["default", "primary", "success", "info", "warning
 export function createTag(opts = {}) {
     const o = opts || {};
     const closable = !!o.closable;
-    const _intent  = makeSignal(VALID_INTENTS.has(o.intent) ? o.intent : "default");
-    const _removed = makeSignal(false);
+    // `let`: destroy() seals these (H-12) -- pooled nodes go back to the
+    // registry, reads freeze at the final value. Accessors resolve the
+    // binding at call time, so the swap costs the live paths nothing.
+    let _intent  = makeSignal(VALID_INTENTS.has(o.intent) ? o.intent : "default");
+    let _removed = makeSignal(false);
     const onClose  = typeof o.onClose === "function" ? o.onClose : null;
     const _destroyed = { v: false };
 
@@ -109,6 +113,10 @@ export function createTag(opts = {}) {
         }
         _cleanups.length = 0;
         _rootEl = null;
+        // return the pooled signal nodes after every effect stopped; reads
+        // freeze at the final value (H-12)
+        _intent = sealSignal(_intent);
+        _removed = sealSignal(_removed);
     }
 
     return {

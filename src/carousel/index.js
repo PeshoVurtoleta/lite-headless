@@ -29,6 +29,7 @@
 
 import { signal as makeSignal, effect, untrack } from "@zakkster/lite-signal";
 import { toggleAttr } from "../_overlay/aria.js";
+import { sealSignal } from "../_overlay/seal.js";
 
 const noop = () => {};
 let _idCounter = 0;
@@ -73,10 +74,13 @@ export function createCarousel(options = {}) {
     const effectiveAutoplay = (respectReducedMotion && REDUCED_MOTION) ? null : autoplay;
 
     // ----- state ------------------------------------------------------
-    const _index = makeSignal(defaultIndex | 0);
-    const _playing = makeSignal(effectiveAutoplay != null);
-    const _isHover = makeSignal(false);
-    const _isFocus = makeSignal(false);
+    // `let`: destroy() seals these (H-12) -- pooled nodes go back to the
+    // registry, reads freeze at the final value. Accessors resolve the
+    // binding at call time, so the swap costs the live paths nothing.
+    let _index = makeSignal(defaultIndex | 0);
+    let _playing = makeSignal(effectiveAutoplay != null);
+    let _isHover = makeSignal(false);
+    let _isFocus = makeSignal(false);
     let _manualPaused = false;              // sticky once user clicks pause
     let _destroyed = false;
 
@@ -612,6 +616,12 @@ export function createCarousel(options = {}) {
         _indicators.clear();
         _rootEl = null;
         _viewportEl = null;
+        // return the pooled signal nodes after every effect stopped; reads
+        // freeze at the final value (H-12)
+        _index = sealSignal(_index);
+        _playing = sealSignal(_playing);
+        _isHover = sealSignal(_isHover);
+        _isFocus = sealSignal(_isFocus);
     }
 
     return {

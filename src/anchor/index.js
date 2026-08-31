@@ -24,6 +24,7 @@
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { setAttr, toggleAttr } from "../_overlay/aria.js";
+import { sealSignal } from "../_overlay/seal.js";
 
 function noop() {}
 function removeAttr(el, name) { el.removeAttribute(name); }
@@ -36,7 +37,10 @@ export function createAnchor(opts = {}) {
     const smooth = o.smooth !== false;    // smooth scroll on link click
     const onChange = typeof o.onChange === "function" ? o.onChange : null;
 
-    const _activeKey = makeSignal(null);   // identifier of currently-active link
+    // `let`: destroy() seals this (H-12) -- pooled node goes back to the
+    // registry, reads freeze at the final value. Accessors resolve the
+    // binding at call time, so the swap costs the live paths nothing.
+    let _activeKey = makeSignal(null);   // identifier of currently-active link
     const _destroyed = { v: false };
 
     // Track sections + links by key. Each link has a target (the
@@ -187,6 +191,9 @@ export function createAnchor(opts = {}) {
         _cleanups.length = 0;
         _links.clear();
         _intersectingKeys.clear();
+        // return the pooled signal node after every effect stopped; reads
+        // freeze at the final value (H-12)
+        _activeKey = sealSignal(_activeKey);
     }
 
     return {

@@ -22,6 +22,7 @@
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { setAttr, toggleAttr, ensureId } from "../_overlay/aria.js";
+import { sealSignal } from "../_overlay/seal.js";
 
 function noop() {}
 function removeAttr(el, name) { el.removeAttribute(name); }
@@ -30,7 +31,10 @@ export function createPasswordInput(opts = {}) {
     const o = opts || {};
     const onVisibilityChange = (typeof o.onVisibilityChange === "function") ? o.onVisibilityChange : null;
 
-    const _visible = makeSignal(!!o.visible);
+    // `let`: destroy() seals this (H-12) -- pooled node goes back to the
+    // registry, reads freeze at the final value. Accessors resolve the
+    // binding at call time, so the swap costs the live paths nothing.
+    let _visible = makeSignal(!!o.visible);
     const _destroyed = { v: false };
 
     let _inputEl = null;
@@ -136,6 +140,9 @@ export function createPasswordInput(opts = {}) {
         _cleanups.length = 0;
         _inputEl = null;
         _toggleEl = null;
+        // return the pooled signal node after every effect stopped; reads
+        // freeze at the final value (H-12)
+        _visible = sealSignal(_visible);
     }
 
     return {

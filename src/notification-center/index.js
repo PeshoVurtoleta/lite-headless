@@ -40,6 +40,7 @@
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { setAttr, toggleAttr, ensureId } from "../_overlay/aria.js";
+import { sealSignal } from "../_overlay/seal.js";
 
 function noop() {}
 
@@ -67,8 +68,11 @@ export function createNotificationCenter(options = {}) {
     // matches what users expect to see in the panel.
     const _normalized = defaultNotifications.map(normalizeNotification);
     sortByTimestamp(_normalized);
-    const _items = makeSignal(_normalized);
-    const _filter = makeSignal(defaultFilter ? Object.assign({}, defaultFilter) : null);
+    // `let`: destroy() seals these (H-12) -- pooled nodes go back to the
+    // registry, reads freeze at the final value. Accessors resolve the
+    // binding at call time, so the swap costs the live paths nothing.
+    let _items = makeSignal(_normalized);
+    let _filter = makeSignal(defaultFilter ? Object.assign({}, defaultFilter) : null);
 
     function normalizeNotification(n) {
         if (!n) return null;
@@ -448,6 +452,10 @@ export function createNotificationCenter(options = {}) {
         _itemEls.clear();
         _root = null;
         _badge = null;
+        // return the pooled signal nodes after every effect stopped; reads
+        // freeze at the final value (H-12)
+        _items = sealSignal(_items);
+        _filter = sealSignal(_filter);
     }
 
     return {

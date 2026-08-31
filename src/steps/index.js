@@ -28,6 +28,7 @@
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { setAttr, toggleAttr, ensureId } from "../_overlay/aria.js";
+import { sealSignal } from "../_overlay/seal.js";
 
 function noop() {}
 
@@ -50,10 +51,13 @@ export function createSteps(options = {}) {
 
     // ----- state ----------------------------------------------------------
 
+    // `let`: destroy() seals these (H-12) -- pooled nodes go back to the
+    // registry, reads freeze at the final value. Accessors resolve the
+    // binding at call time, so the swap costs the live paths nothing.
     // _steps: StepDef[] = { id, title, ...meta }
-    const _steps = makeSignal(initialSteps.slice());
+    let _steps = makeSignal(initialSteps.slice());
     // _current: index of the active step (0..steps.length-1; -1 if no steps)
-    const _current = makeSignal(
+    let _current = makeSignal(
         initialSteps.length > 0
             ? Math.max(0, Math.min(defaultCurrent, initialSteps.length - 1))
             : -1
@@ -63,7 +67,7 @@ export function createSteps(options = {}) {
     const _stepStatusOverrides = new Map();
     // signal that re-fires when overrides change (Map identity doesn't
     // notify; we bump a counter instead).
-    const _overrideVersion = makeSignal(0);
+    let _overrideVersion = makeSignal(0);
 
     // ----- query helpers --------------------------------------------------
 
@@ -154,6 +158,7 @@ export function createSteps(options = {}) {
     }
 
     function next(reason) {
+        if (_destroyed) return;
         const cur = _current();
         const len = _steps().length;
         if (cur >= len) return;        // already complete
@@ -374,6 +379,11 @@ export function createSteps(options = {}) {
         _stepEls.clear();
         _stepStatusOverrides.clear();
         _root = null;
+        // return the pooled signal nodes after every effect stopped; reads
+        // freeze at the final value (H-12)
+        _steps = sealSignal(_steps);
+        _current = sealSignal(_current);
+        _overrideVersion = sealSignal(_overrideVersion);
     }
 
     return {

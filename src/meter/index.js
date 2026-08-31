@@ -34,6 +34,7 @@
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { setAttr } from "../_overlay/aria.js";
+import { sealSignal } from "../_overlay/seal.js";
 
 function noop() {}
 function removeAttr(el, name) { el.removeAttribute(name); }
@@ -86,14 +87,17 @@ function computeState(v, min, max, low, high, optimum) {
 
 export function createMeter(opts = {}) {
     const o = opts || {};
-    const _value    = makeSignal(typeof o.value === "number" ? o.value : 0);
+    // `let`: destroy() seals these (H-12) -- pooled nodes go back to the
+    // registry, reads freeze at the final value. Accessors resolve the
+    // binding at call time, so the swap costs the live paths nothing.
+    let _value    = makeSignal(typeof o.value === "number" ? o.value : 0);
     const _min      = typeof o.min === "number" ? o.min : 0;
     const _max      = typeof o.max === "number" ? o.max : 1;
     const _low      = typeof o.low      === "number" ? o.low      : null;
     const _high     = typeof o.high     === "number" ? o.high     : null;
     const _optimum  = typeof o.optimum  === "number" ? o.optimum  : null;
     const label     = typeof o.label === "string" ? o.label : null;
-    const _valueText = makeSignal(typeof o.valueText === "string" ? o.valueText : null);
+    let _valueText = makeSignal(typeof o.valueText === "string" ? o.valueText : null);
     const _destroyed = { v: false };
 
     if (_max <= _min) {
@@ -202,6 +206,10 @@ export function createMeter(opts = {}) {
         _cleanups.length = 0;
         _fills.clear();
         _rootEl = null;
+        // return the pooled signal nodes after every effect stopped; reads
+        // freeze at the final value (H-12)
+        _value = sealSignal(_value);
+        _valueText = sealSignal(_valueText);
     }
 
     return {

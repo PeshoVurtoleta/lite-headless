@@ -28,6 +28,7 @@
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { setAttr, toggleAttr, ensureId } from "../_overlay/aria.js";
+import { sealSignal } from "../_overlay/seal.js";
 
 function noop() {}
 
@@ -57,8 +58,11 @@ export function createBanner(options = {}) {
     const _cleanups = [];
     function addCleanup(fn) { if (fn) _cleanups.push(fn); }
 
-    const _open = makeSignal(!!defaultOpen);
-    const _kind = makeSignal(normalizeKind(defaultKind));
+    // `let`: destroy() seals these (H-12) -- pooled nodes go back to the
+    // registry, reads freeze at the final value. Accessors resolve the
+    // binding at call time, so the swap costs the live paths nothing.
+    let _open = makeSignal(!!defaultOpen);
+    let _kind = makeSignal(normalizeKind(defaultKind));
 
     // ----- accessors -----------------------------------------------------
 
@@ -181,6 +185,10 @@ export function createBanner(options = {}) {
         }
         _cleanups.length = 0;
         _root = null;
+        // return the pooled signal nodes after every effect stopped; reads
+        // freeze at the final value (H-12)
+        _open = sealSignal(_open);
+        _kind = sealSignal(_kind);
     }
 
     return {

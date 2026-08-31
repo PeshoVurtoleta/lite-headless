@@ -41,6 +41,7 @@
 // so recently-used items rise to the top of equal-scoring results.
 
 import { signal as makeSignal, effect, untrack } from "@zakkster/lite-signal";
+import { sealSignal } from "../_overlay/seal.js";
 
 const noop = () => {};
 let _idCounter = 0;
@@ -174,9 +175,12 @@ export function createCommandPalette(options = {}) {
     } = options;
 
     // ----- state -----------------------------------------------------
-    const _open       = makeSignal(false);
-    const _query      = makeSignal("");
-    const _activeIdx  = makeSignal(-1);     // -1 = no active item
+    // `let`: destroy() seals these (H-12) -- pooled nodes go back to the
+    // registry, reads freeze at the final value. Accessors resolve the
+    // binding at call time, so the swap costs the live paths nothing.
+    let _open       = makeSignal(false);
+    let _query      = makeSignal("");
+    let _activeIdx  = makeSignal(-1);     // -1 = no active item
     const _commands   = new Map();          // id -> cmd
     const _commandOrder = [];               // insertion order (stable for tie-breaks)
     const _recent     = [];                 // ids, most recent first
@@ -620,6 +624,11 @@ export function createCommandPalette(options = {}) {
         _recent.length = 0;
         _results = [];
         _inputEl = null; _listEl = null; _emptyEl = null;
+        // return the pooled signal nodes after every effect stopped; reads
+        // freeze at the final value (H-12)
+        _open = sealSignal(_open);
+        _query = sealSignal(_query);
+        _activeIdx = sealSignal(_activeIdx);
     }
 
     return {

@@ -42,6 +42,7 @@
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { setAttr, toggleAttr, ensureId } from "../_overlay/aria.js";
+import { sealSignal } from "../_overlay/seal.js";
 
 function noop() {}
 function removeAttr(el, name) { el.removeAttribute(name); }
@@ -54,7 +55,10 @@ export function createTour(opts = {}) {
     const loop         = !!o.loop;     // default false; tours usually don't wrap
 
     // -1 = not started. 0..steps.length-1 = visible step.
-    const _index = makeSignal(-1);
+    // `let`: destroy() seals this (H-12) -- pooled node goes back to the
+    // registry, reads freeze at the final value. Accessors resolve the
+    // binding at call time, so the swap costs the live paths nothing.
+    let _index = makeSignal(-1);
     const _destroyed = { v: false };
     const _steps = [];        // [{ id, target, contentEl: null, off: null }]
     let _rootEl = null;
@@ -296,6 +300,9 @@ export function createTour(opts = {}) {
         }
         _cleanups.length = 0;
         _steps.length = 0;
+        // return the pooled signal node after every effect stopped; reads
+        // freeze at the final value (H-12)
+        _index = sealSignal(_index);
     }
 
     return {

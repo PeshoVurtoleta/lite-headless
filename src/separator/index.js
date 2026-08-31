@@ -19,6 +19,7 @@
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { setAttr } from "../_overlay/aria.js";
+import { sealSignal } from "../_overlay/seal.js";
 
 function noop() {}
 function removeAttr(el, name) { el.removeAttribute(name); }
@@ -28,7 +29,10 @@ const VALID_ORIENTATIONS = new Set(["horizontal", "vertical"]);
 export function createSeparator(opts = {}) {
     const o = opts || {};
     const decorative = !!o.decorative;
-    const _orientation = makeSignal(
+    // `let`: destroy() seals this (H-12) -- the pooled node goes back to the
+    // registry, reads freeze at the final value. Accessors resolve the
+    // binding at call time, so the swap costs the live paths nothing.
+    let _orientation = makeSignal(
         VALID_ORIENTATIONS.has(o.orientation) ? o.orientation : "horizontal"
     );
     const _destroyed = { v: false };
@@ -90,6 +94,9 @@ export function createSeparator(opts = {}) {
         }
         _cleanups.length = 0;
         _rootEl = null;
+        // return the pooled signal node after every effect stopped; reads
+        // freeze at the final value (H-12)
+        _orientation = sealSignal(_orientation);
     }
 
     return {

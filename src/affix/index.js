@@ -24,6 +24,7 @@
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { setAttr, toggleAttr } from "../_overlay/aria.js";
+import { sealSignal } from "../_overlay/seal.js";
 
 function noop() {}
 function removeAttr(el, name) { el.removeAttribute(name); }
@@ -35,7 +36,10 @@ export function createAffix(opts = {}) {
     const root = o.root || null;  // scroll container; null = viewport
     const onChange = typeof o.onChange === "function" ? o.onChange : null;
 
-    const _pinned = makeSignal(false);
+    // `let`: destroy() seals this (H-12) -- pooled nodes go back to the
+    // registry, reads freeze at the final value. Accessors resolve the
+    // binding at call time, so the swap costs the live paths nothing.
+    let _pinned = makeSignal(false);
     const _destroyed = { v: false };
     let _targetEl = null;
     let _sentinelEl = null;
@@ -133,6 +137,9 @@ export function createAffix(opts = {}) {
             try { _cleanups[i](); } catch {}
         }
         _cleanups.length = 0;
+        // return the pooled signal node after every effect stopped; reads
+        // freeze at the final value (H-12)
+        _pinned = sealSignal(_pinned);
     }
 
     return {

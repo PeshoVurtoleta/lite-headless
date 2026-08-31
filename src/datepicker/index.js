@@ -32,6 +32,7 @@
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { uniqueId, setAttr, toggleAttr, ensureId, addIdToken, removeIdToken } from "../_overlay/aria.js";
+import { sealSignal } from "../_overlay/seal.js";
 
 // Module-scoped Intl.DateTimeFormat. Construction is non-trivial (locale
 // resolution + options parsing); doing it on every effect run in the
@@ -205,7 +206,11 @@ export function createDatePicker(options = {}) {
     const _initial = externalValue
         ? normalizeValue(externalValue(), mode)
         : normalizeValue(defaultValue, mode);
-    const _value = externalValue || makeSignal(_initial);
+    // `let`: destroy() seals the owned signal (H-12) -- the pooled node goes
+    // back to the registry, reads freeze at the final value. Accessors
+    // resolve the binding at call time, so the swap costs the live paths
+    // nothing. externalValue is the consumer's -- never sealed.
+    let _value = externalValue || makeSignal(_initial);
     if (!externalValue) _value.set(_initial);
 
     // ----- "today" -------------------------------------------------------
@@ -219,12 +224,14 @@ export function createDatePicker(options = {}) {
     // focusedDate is where the keyboard cursor is.
     // viewMonth is the month being displayed (day=1).
     // Both are signals so consumers can re-render reactively.
-    const _focusedDate = makeSignal(initialFocused());
-    const _viewMonth   = makeSignal(startOfMonth(_focusedDate()));
+    // `let`: destroy() seals these (H-12) -- pooled nodes go back to the
+    // registry, reads freeze at the final value.
+    let _focusedDate = makeSignal(initialFocused());
+    let _viewMonth   = makeSignal(startOfMonth(_focusedDate()));
 
     // hover preview for range mode (the cell the pointer is over while
     // start is set but end is not)
-    const _hoverDate = makeSignal(null);
+    let _hoverDate = makeSignal(null);
 
     function initialFocused() {
         const v = _value();
@@ -250,7 +257,9 @@ export function createDatePicker(options = {}) {
     // v0.7: view signal. "days" (default) | "months" | "years". Drives
     // both the label formatter and the keyboard nav. Click month label to
     // cycle up; click a month/year cell to drill back down.
-    const _view = makeSignal("days");
+    // `let`: destroy() seals this (H-12) -- pooled node goes back to the
+    // registry, reads freeze at the final value.
+    let _view = makeSignal("days");
     // The "anchor year" for the months view (which year's 12 months we show)
     // and for the years view (which decade we show, determined by anchor%10).
     // Driven by _viewMonth's getFullYear() but can be set explicitly via
@@ -1130,6 +1139,14 @@ export function createDatePicker(options = {}) {
         }
         _cleanups.length = 0;
         _destroyed = true;
+        // return the pooled signal nodes after every effect stopped; reads
+        // freeze at the final value (H-12).
+        // externalValue is the consumer's signal in controlled mode -- not ours.
+        if (!externalValue) _value = sealSignal(_value);
+        _focusedDate = sealSignal(_focusedDate);
+        _viewMonth = sealSignal(_viewMonth);
+        _hoverDate = sealSignal(_hoverDate);
+        _view = sealSignal(_view);
     }
 
     // value() returns a defensive deep-clone of the internal _value
@@ -1151,15 +1168,35 @@ export function createDatePicker(options = {}) {
         return _valueClone;
     }
 
+    // Read-only pass-through accessors for the view/focus signals. They
+    // resolve the swappable `let` bindings at call time -- the same single
+    // context-slot load a captured signal would cost -- so destroy()'s seal
+    // (H-12) reaches reads made through the handle: a raw `_viewMonth` on
+    // the returned object would keep pointing at the disposed pool node.
+    // Shape preserves the documented surface: call to read, .peek, and
+    // .subscribe. Writes stay internal (setView / goTo*).
+    const viewMonthRead = () => _viewMonth();
+    viewMonthRead.peek = () => _viewMonth.peek();
+    viewMonthRead.subscribe = (cb) => _viewMonth.subscribe(cb);
+    const focusedDateRead = () => _focusedDate();
+    focusedDateRead.peek = () => _focusedDate.peek();
+    focusedDateRead.subscribe = (cb) => _focusedDate.subscribe(cb);
+    const hoverDateRead = () => _hoverDate();
+    hoverDateRead.peek = () => _hoverDate.peek();
+    hoverDateRead.subscribe = (cb) => _hoverDate.subscribe(cb);
+    const viewRead = () => _view();
+    viewRead.peek = () => _view.peek();
+    viewRead.subscribe = (cb) => _view.subscribe(cb);
+
     return {
         // value access
         value:    valueAccessor,
         setValue,
-        // view + focus state (signals)
-        viewMonth:    _viewMonth,    // read via viewMonth(); subscribe via viewMonth.subscribe
-        focusedDate:  _focusedDate,
-        hoverDate:    _hoverDate,
-        view:         _view,         // v0.7: "days" | "months" | "years"
+        // view + focus state (read-only pass-throughs; see above)
+        viewMonth:    viewMonthRead, // read via viewMonth(); subscribe via viewMonth.subscribe
+        focusedDate:  focusedDateRead,
+        hoverDate:    hoverDateRead,
+        view:         viewRead,      // v0.7: "days" | "months" | "years"
         setView:      (v) => {
             if (v !== "days" && v !== "months" && v !== "years") {
                 throw new Error("[lite-headless datepicker] view must be 'days', 'months', or 'years'");

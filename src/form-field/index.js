@@ -26,6 +26,7 @@
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { setAttr, toggleAttr, ensureId, addIdToken, removeIdToken } from "../_overlay/aria.js";
+import { sealSignal } from "../_overlay/seal.js";
 
 function noop() {}
 
@@ -46,10 +47,13 @@ export function createFormField(options = {}) {
 
     // ----- state ---------------------------------------------------------
 
-    const _valid = makeSignal(!!defaultValid);
-    const _errorMessage = makeSignal(defaultErrorMessage);
-    const _required = makeSignal(!!defaultRequired);
-    const _touched = makeSignal(!!defaultTouched);
+    // `let`: destroy() seals these (H-12) -- pooled nodes go back to the
+    // registry, reads freeze at the final value. Accessors resolve the
+    // binding at call time, so the swap costs the live paths nothing.
+    let _valid = makeSignal(!!defaultValid);
+    let _errorMessage = makeSignal(defaultErrorMessage);
+    let _required = makeSignal(!!defaultRequired);
+    let _touched = makeSignal(!!defaultTouched);
 
     // ----- public accessors ----------------------------------------------
 
@@ -285,6 +289,12 @@ export function createFormField(options = {}) {
         _control = null;
         _helper = null;
         _errorEl = null;
+        // return the pooled signal nodes after every effect stopped; reads
+        // freeze at the final value (H-12)
+        _valid = sealSignal(_valid);
+        _errorMessage = sealSignal(_errorMessage);
+        _required = sealSignal(_required);
+        _touched = sealSignal(_touched);
     }
 
     return {

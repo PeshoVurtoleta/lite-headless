@@ -37,7 +37,7 @@
 // the host on every change.
 
 import { define } from "@zakkster/lite-element";
-import { effect, signal as makeSignal } from "@zakkster/lite-signal";
+import { effect, signal as makeSignal, dispose } from "@zakkster/lite-signal";
 import { createDatePicker } from "./index.js";
 import { createRoleObserver } from "../_overlay/element-roles.js";
 
@@ -209,6 +209,8 @@ define("lite-date-picker", (host, scope) => {
         stopAttrSync();
         roles.disconnect();
         picker.destroy();
+        // element owns valueSig (passed in controlled); return it last (H-12)
+        dispose(valueSig);
     });
 }, { observedAttributes: ["value", "disabled"] });
 

@@ -81,6 +81,7 @@
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { toggleAttr } from "../_overlay/aria.js";
+import { sealSignal } from "../_overlay/seal.js";
 
 const noop = () => {};
 function setAttr(el, name, value) {
@@ -120,11 +121,14 @@ export function createProgress(options = {}) {
         throw new Error(`createProgress: variant must be "linear" or "circular", got "${variant}"`);
     }
 
-    const _min    = makeSignal(initialMin);
-    const _max    = makeSignal(initialMax);
-    const _value  = makeSignal(clamp(initialValue, initialMin, initialMax));
-    const _indet  = makeSignal(initialIndeterminate);
-    const _valueText = makeSignal(initialValueText);
+    // `let`: destroy() seals these (H-12) -- pooled nodes go back to the
+    // registry, reads freeze at the final value. Accessors resolve the
+    // binding at call time, so the swap costs the live paths nothing.
+    let _min    = makeSignal(initialMin);
+    let _max    = makeSignal(initialMax);
+    let _value  = makeSignal(clamp(initialValue, initialMin, initialMax));
+    let _indet  = makeSignal(initialIndeterminate);
+    let _valueText = makeSignal(initialValueText);
 
     let _rootEl = null;
     let _barEl = null;
@@ -381,6 +385,13 @@ export function createProgress(options = {}) {
         _barEl = null;
         _indEl = null;
         _labelEl = null;
+        // return the pooled signal nodes after every effect stopped; reads
+        // freeze at the final value (H-12)
+        _min = sealSignal(_min);
+        _max = sealSignal(_max);
+        _value = sealSignal(_value);
+        _indet = sealSignal(_indet);
+        _valueText = sealSignal(_valueText);
     }
 
     return {

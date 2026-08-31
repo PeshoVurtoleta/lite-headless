@@ -84,6 +84,7 @@
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { toggleAttr } from "../_overlay/aria.js";
+import { sealSignal } from "../_overlay/seal.js";
 
 const noop = () => {};
 
@@ -115,12 +116,15 @@ export function createSkeleton(options = {}) {
     // so Object.is inequality notifies (mirroring lite-table's columnFilters).
     const initialMap = new Map();
     for (const s of declaredSources) initialMap.set(String(s), false);
-    const _sources = makeSignal(initialMap);
+    // `let`: destroy() seals these (H-12) -- pooled nodes go back to the
+    // registry, reads freeze at the final value. Accessors resolve the
+    // binding at call time, so the swap costs the live paths nothing.
+    let _sources = makeSignal(initialMap);
 
     // ready is the resolved boolean: true once setReady(true) has been
     // accepted (post minVisibleMs guard). Multi-source coordination feeds
     // setReady automatically via an effect below.
-    const _ready = makeSignal(initiallyReady === true);
+    let _ready = makeSignal(initiallyReady === true);
 
     // Pending reveal timer for the minVisibleMs guard.
     let _pendingRevealTimer = null;
@@ -366,6 +370,10 @@ export function createSkeleton(options = {}) {
         _rootEl = null;
         _placeholderEls.clear();
         _contentEls.clear();
+        // return the pooled signal nodes after every effect stopped; reads
+        // freeze at the final value (H-12)
+        _sources = sealSignal(_sources);
+        _ready = sealSignal(_ready);
     }
 
     return {

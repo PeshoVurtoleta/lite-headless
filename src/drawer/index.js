@@ -30,6 +30,7 @@ import { portal } from "../_overlay/portal.js";
 import { createFocusTrap } from "../_overlay/focus.js";
 import { lockScroll } from "../_overlay/scroll-lock.js";
 import { bindEscape, bindOutsideClick } from "../_overlay/dismiss.js";
+import { sealSignal } from "../_overlay/seal.js";
 
 function noop() {}
 
@@ -64,7 +65,10 @@ export function createDrawer(options = {}) {
         awaitTransitionEnd,
     });
 
-    const _side = makeSignal(normalizeSide(defaultSide));
+    // `let`: destroy() seals this (H-12) -- the pooled node goes back to the
+    // registry, reads freeze at the final value. Accessors resolve the
+    // binding at call time, so the swap costs the live paths nothing.
+    let _side = makeSignal(normalizeSide(defaultSide));
     let _destroyed = false;
 
     // Registered elements
@@ -372,6 +376,9 @@ export function createDrawer(options = {}) {
         // Close first to release scroll lock + focus trap if currently open.
         if (core.open()) doClose();
         core.destroy();
+        // return the pooled signal node after the core stopped; reads
+        // freeze at the final value (H-12)
+        _side = sealSignal(_side);
     }
 
     return {

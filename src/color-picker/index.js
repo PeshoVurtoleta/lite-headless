@@ -44,6 +44,7 @@
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { toggleAttr } from "../_overlay/aria.js";
+import { sealSignal } from "../_overlay/seal.js";
 
 function noop() {}
 
@@ -249,10 +250,13 @@ export function createColorPicker(opts = {}) {
         }
     }
 
-    const _hue   = makeSignal(_h0);
-    const _sat   = makeSignal(_s0);
-    const _val   = makeSignal(_v0);
-    const _alpha = makeSignal(_a0);
+    // `let`: destroy() seals these (H-12) -- pooled nodes go back to the
+    // registry, reads freeze at the final value. Accessors resolve the
+    // binding at call time, so the swap costs the live paths nothing.
+    let _hue   = makeSignal(_h0);
+    let _sat   = makeSignal(_s0);
+    let _val   = makeSignal(_v0);
+    let _alpha = makeSignal(_a0);
     const _destroyed = { v: false };
 
     // ─── reads (derived; converted on demand) ─────────────────────────
@@ -779,6 +783,12 @@ export function createColorPicker(opts = {}) {
         _attachedHueHandles.clear();
         _attachedAlphaSliders.clear();
         _attachedAlphaHandles.clear();
+        // return the pooled signal nodes after the paint effect stopped; reads
+        // freeze at the final value (H-12)
+        _hue = sealSignal(_hue);
+        _sat = sealSignal(_sat);
+        _val = sealSignal(_val);
+        _alpha = sealSignal(_alpha);
     }
 
     return {

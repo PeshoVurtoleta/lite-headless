@@ -43,6 +43,7 @@
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { createRovingFocus, STRATEGY_DOM_FOCUS } from "../_overlay/roving-focus.js";
 import { uniqueId, setAttr, toggleAttr } from "../_overlay/aria.js";
+import { sealSignal } from "../_overlay/seal.js";
 
 const noop = () => {};
 
@@ -64,7 +65,11 @@ export function createTabs(options = {}) {
         throw new Error(`createTabs: activation must be "automatic" or "manual", got "${activation}"`);
     }
 
-    const _value = valueSignal || makeSignal(defaultValue != null ? defaultValue : null);
+    // `let`: destroy() seals this (H-12) -- the pooled node goes back to the
+    // registry, reads freeze at the final value. Accessors resolve the
+    // binding at call time, so the swap costs the live paths nothing. Only
+    // an owned signal is sealed; a consumer-supplied `value` stays live.
+    let _value = valueSignal || makeSignal(defaultValue != null ? defaultValue : null);
     let _destroyed = false;
 
     // Tabs in document order. Each entry: { el, key, id, panelId, disabled }.
@@ -353,6 +358,9 @@ export function createTabs(options = {}) {
         _destroyed = true;
         stopValuePaint();
         roving.destroy();
+        // return the pooled signal node after every effect stopped; reads
+        // freeze at the final value (H-12)
+        if (!valueSignal) _value = sealSignal(_value);
     }
 
     return {

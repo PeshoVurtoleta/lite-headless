@@ -48,6 +48,7 @@
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { uniqueId, setAttr, toggleAttr, ensureId } from "../_overlay/aria.js";
+import { sealSignal } from "../_overlay/seal.js";
 import {
     startOfDay, startOfMonth, addDays, addMonths,
     isSameDay, isSameMonth, isBefore, isAfter,
@@ -94,9 +95,12 @@ export function createCalendar(options = {}) {
 
     // ----- state ----------------------------------------------------------
     let _destroyed = false;
-    const _view = makeSignal(startOfMonth(defaultView || new Date()));
-    const _events = makeSignal(defaultEvents.slice().sort(compareEvents));
-    const _selected = makeSignal(defaultSelectedDate);
+    // `let`: destroy() seals these (H-12) -- pooled nodes go back to the
+    // registry, reads freeze at the final value. Accessors resolve the
+    // binding at call time, so the swap costs the live paths nothing.
+    let _view = makeSignal(startOfMonth(defaultView || new Date()));
+    let _events = makeSignal(defaultEvents.slice().sort(compareEvents));
+    let _selected = makeSignal(defaultSelectedDate);
 
     // Element registries. Keyed by element identity (consumer DOM nodes).
     const _dayCells = new Map();     // el -> { date, off, paintCache }
@@ -469,6 +473,11 @@ export function createCalendar(options = {}) {
         _monthLabel = null;
         _prevBtn = null;
         _nextBtn = null;
+        // return the pooled signal nodes after every effect stopped; reads
+        // freeze at the final value (H-12)
+        _view = sealSignal(_view);
+        _events = sealSignal(_events);
+        _selected = sealSignal(_selected);
     }
 
     return {

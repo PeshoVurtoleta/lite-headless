@@ -59,6 +59,7 @@
 // loaded too late) still get native lazy behavior.
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
+import { sealSignal } from "../_overlay/seal.js";
 
 const noop = () => {};
 function setAttr(el, name, value) {
@@ -99,7 +100,10 @@ export function createPicture(options = {}) {
     //         "loading" (src assigned, awaiting load event)
     //         "loaded" (load event fired)
     //         "error" (after retries exhausted)
-    const _state = makeSignal((lazy && !eager) ? "idle" : "loading");
+    // `let`: destroy() seals this (H-12) -- pooled node goes back to the
+    // registry, reads freeze at the final value. Accessors resolve the
+    // binding at call time, so the swap costs the live paths nothing.
+    let _state = makeSignal((lazy && !eager) ? "idle" : "loading");
     let _destroyed = false;
     let _retries = 0;
 
@@ -325,6 +329,9 @@ export function createPicture(options = {}) {
         }
         _rootEl = null;
         _imgEl = null;
+        // return the pooled signal node after every effect stopped; reads
+        // freeze at the final value (H-12)
+        _state = sealSignal(_state);
     }
 
     return {

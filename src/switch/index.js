@@ -63,6 +63,7 @@
 //   "click", "keyboard", "set", "toggle", "label-click", "input-change"
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
+import { sealSignal } from "../_overlay/seal.js";
 
 const noop = () => {};
 let _idCounter = 0;
@@ -86,7 +87,10 @@ export function createSwitch(options = {}) {
     // ----- state -----------------------------------------------------
     // Controlled vs uncontrolled: if the consumer passes a signal
     // we read from it; otherwise we own one.
-    const _own = externalChecked ? null : makeSignal(!!defaultChecked);
+    // `let`: destroy() seals these (H-12) -- pooled nodes go back to the
+    // registry, reads freeze at the final value. Accessors resolve the
+    // binding at call time, so the swap costs the live paths nothing.
+    let _own = externalChecked ? null : makeSignal(!!defaultChecked);
     function _read() { return externalChecked ? !!externalChecked() : _own(); }
     function _write(v) {
         if (externalChecked) {
@@ -97,7 +101,7 @@ export function createSwitch(options = {}) {
         _own.set(!!v);
     }
 
-    const _disabled = makeSignal(!!initiallyDisabled);
+    let _disabled = makeSignal(!!initiallyDisabled);
     let _destroyed = false;
     let _rootEl = null, _labelEl = null, _thumbEl = null, _inputEl = null;
     const _detach = new Map();
@@ -319,6 +323,11 @@ export function createSwitch(options = {}) {
         for (const off of _detach.values()) { try { off(); } catch { /* swallow */ } }
         _detach.clear();
         _rootEl = null; _labelEl = null; _thumbEl = null; _inputEl = null;
+        // return the pooled signal nodes after every effect stopped; reads
+        // freeze at the final value (H-12)
+        // _own is null in controlled mode -- only the internal signal is ours
+        if (_own !== null) _own = sealSignal(_own);
+        _disabled = sealSignal(_disabled);
     }
 
     return {

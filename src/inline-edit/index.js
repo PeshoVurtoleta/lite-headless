@@ -93,6 +93,7 @@
 //   commits per commitOn.
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
+import { sealSignal } from "../_overlay/seal.js";
 
 const noop = () => {};
 
@@ -137,10 +138,13 @@ export function createInlineEdit(options = {}) {
     const _commitOnTab   = commitOn.includes("Tab");
     const _cancelOnEscape = cancelOn.includes("Escape");
 
-    const _value     = makeSignal(initialValue);
-    const _draft     = makeSignal(initialValue);
-    const _editing   = makeSignal(false);
-    const _invalid   = makeSignal(false);
+    // `let`: destroy() seals these (H-12) -- pooled nodes go back to the
+    // registry, reads freeze at the final value. Accessors resolve the
+    // binding at call time, so the swap costs the live paths nothing.
+    let _value     = makeSignal(initialValue);
+    let _draft     = makeSignal(initialValue);
+    let _editing   = makeSignal(false);
+    let _invalid   = makeSignal(false);
 
     let _rootEl     = null;
     let _displayEl  = null;
@@ -498,6 +502,12 @@ export function createInlineEdit(options = {}) {
         _displayEl = null;
         _inputEl = null;
         _triggerEl = null;
+        // return the pooled signal nodes after every effect stopped; reads
+        // freeze at the final value (H-12)
+        _value = sealSignal(_value);
+        _draft = sealSignal(_draft);
+        _editing = sealSignal(_editing);
+        _invalid = sealSignal(_invalid);
     }
 
     return {

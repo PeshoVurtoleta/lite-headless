@@ -91,6 +91,7 @@
 //   (or read in your own effect).
 
 import { signal as makeSignal, effect, computed } from "@zakkster/lite-signal";
+import { sealSignal } from "../_overlay/seal.js";
 
 const noop = () => {};
 
@@ -99,6 +100,17 @@ function setAttr(el, name, value) {
 }
 function removeAttr(el, name) {
     if (el.hasAttribute(name)) el.removeAttribute(name);
+}
+
+// Return one entry's pooled reactive nodes to lite-signal, swapping the
+// entry's properties to frozen stand-ins so a consumer still holding the
+// entry reads its final progress (H-12). ORDER MATTERS: progress first --
+// sealing peeks it, and that pull must still see a live bytesLoaded.
+// Idempotent per entry via the entry-object swap (a sealed stand-in has no
+// pooled node left to return).
+function _sealEntryNodes(e) {
+    e.progress = sealSignal(e.progress);
+    e.bytesLoaded = sealSignal(e.bytesLoaded);
 }
 
 function _genId() {
@@ -151,8 +163,11 @@ export function createFileUpload(options = {}) {
         ? accept.split(",").map(s => s.trim().toLowerCase()).filter(Boolean)
         : [];
 
-    const _entries = makeSignal([]);
-    const _isDragOver = makeSignal(false);
+    // `let`: destroy() seals these (H-12) -- pooled nodes return to the
+    // registry, reads freeze at the final value. Accessors resolve the
+    // bindings at call time, so live paths pay nothing for the swap.
+    let _entries = makeSignal([]);
+    let _isDragOver = makeSignal(false);
     let _destroyed = false;
     let _dropZoneEl = null;
     let _inputEl = null;
@@ -163,7 +178,7 @@ export function createFileUpload(options = {}) {
     // Aggregate totalProgress as a computed over per-entry bytesLoaded.
     // We use a memoized computed so subscribers (effects in the consumer)
     // only re-run when the aggregate changes.
-    const _totalProgress = computed(() => {
+    let _totalProgress = computed(() => {
         const list = _entries();
         let loaded = 0, total = 0;
         for (const e of list) {
@@ -175,7 +190,7 @@ export function createFileUpload(options = {}) {
         return loaded / total;
     });
 
-    const _pendingCount = computed(() => {
+    let _pendingCount = computed(() => {
         const list = _entries();
         let n = 0;
         for (const e of list) {
@@ -376,6 +391,11 @@ export function createFileUpload(options = {}) {
         const next = list.slice(0, idx).concat(list.slice(idx + 1));
         _entries.set(next);
         _notifyAllDoneIfApplicable();
+        // Return the entry's pooled nodes (H-12) AFTER the list write has
+        // flushed: aggregate computeds re-ran against the shrunk list, so
+        // nothing observes them any more. A removed entry's progress() /
+        // bytesLoaded() freeze at their final values.
+        _sealEntryNodes(entry);
         return true;
     }
 
@@ -403,6 +423,8 @@ export function createFileUpload(options = {}) {
             }
         }
         _entries.set([]);
+        // list write flushed; the dropped entries' nodes go back to the pool (H-12)
+        for (const e of list) _sealEntryNodes(e);
     }
 
     function abort(id) {
@@ -524,7 +546,8 @@ export function createFileUpload(options = {}) {
         if (_destroyed) return;
         _destroyed = true;
         // Abort any in-flight uploads.
-        for (const e of _entries.peek()) {
+        const finalEntries = _entries.peek();
+        for (const e of finalEntries) {
             if (e.status === "uploading" && e._ctrl) {
                 try { e._ctrl.abort(); } catch (_) {}
             }
@@ -536,6 +559,15 @@ export function createFileUpload(options = {}) {
         _inputOff = null;
         _dropZoneEl = null;
         _inputEl = null;
+        // Return every pooled node (H-12): per-entry nodes still on the list,
+        // then the aggregate computeds, then the list/drag signals. All
+        // effects reading them were stopped above; sealed reads freeze at
+        // the final values.
+        for (const e of finalEntries) _sealEntryNodes(e);
+        _totalProgress = sealSignal(_totalProgress);
+        _pendingCount = sealSignal(_pendingCount);
+        _entries = sealSignal(_entries);
+        _isDragOver = sealSignal(_isDragOver);
     }
 
     return {

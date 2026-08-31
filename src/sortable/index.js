@@ -39,6 +39,7 @@
 //   Escape    -> cancel pickup, revert
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
+import { sealSignal } from "../_overlay/seal.js";
 
 const noop = () => {};
 let _idCounter = 0;
@@ -69,10 +70,13 @@ export function createSortable(options = {}) {
     }
 
     // ----- state -----------------------------------------------------
-    const _order = makeSignal(Array.isArray(initialItems) ? initialItems.slice() : []);
-    const _dragKey = makeSignal(null);        // key currently being dragged (pointer or keyboard)
-    const _grabKey = makeSignal(null);        // key currently "picked up" via keyboard
-    const _dragMode = makeSignal(null);       // "pointer" | "keyboard" | null
+    // `let`: destroy() seals these (H-12) -- pooled nodes go back to the
+    // registry, reads freeze at the final value. Accessors resolve the
+    // binding at call time, so the swap costs the live paths nothing.
+    let _order = makeSignal(Array.isArray(initialItems) ? initialItems.slice() : []);
+    let _dragKey = makeSignal(null);        // key currently being dragged (pointer or keyboard)
+    let _grabKey = makeSignal(null);        // key currently "picked up" via keyboard
+    let _dragMode = makeSignal(null);       // "pointer" | "keyboard" | null
     let _disabled = !!disabled;
     let _destroyed = false;
 
@@ -630,6 +634,12 @@ export function createSortable(options = {}) {
         _items.clear();
         _rootEl = null;
         _liveRegionEl = null;
+        // return the pooled signal nodes after every effect stopped; reads
+        // freeze at the final value (H-12)
+        _order = sealSignal(_order);
+        _dragKey = sealSignal(_dragKey);
+        _grabKey = sealSignal(_grabKey);
+        _dragMode = sealSignal(_dragMode);
     }
 
     return {

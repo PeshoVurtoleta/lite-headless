@@ -35,13 +35,17 @@
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { setAttr, toggleAttr, ensureId } from "../_overlay/aria.js";
+import { sealSignal } from "../_overlay/seal.js";
 
 function noop() {}
 function removeAttr(el, name) { el.removeAttribute(name); }
 
 export function createEmptyState(opts = {}) {
     const o = opts || {};
-    const _variant = makeSignal(typeof o.variant === "string" ? o.variant : "empty");
+    // `let`: destroy() seals this (H-12) -- pooled node goes back to the
+    // registry, reads freeze at the final value. Accessors resolve the
+    // binding at call time, so the swap costs the live paths nothing.
+    let _variant = makeSignal(typeof o.variant === "string" ? o.variant : "empty");
     const _destroyed = { v: false };
 
     let _rootEl = null;
@@ -194,6 +198,9 @@ export function createEmptyState(opts = {}) {
             try { _cleanups[i](); } catch { /* swallow */ }
         }
         _cleanups.length = 0;
+        // return the pooled signal node after every effect stopped; reads
+        // freeze at the final value (H-12)
+        _variant = sealSignal(_variant);
     }
 
     return {

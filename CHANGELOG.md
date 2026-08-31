@@ -1,5 +1,60 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- H-12: `destroy()` now returns every factory-owned lite-signal node to the
+  registry pool via `dispose()`. Previously the cleanup ledger stopped effects
+  but never disposed the signals themselves, so churned create/destroy cycles
+  accumulated pool slots until lite-signal's default fixed 1024-node registry
+  threw `CapacityError`. This was pool-ledger accumulation, not object
+  retention -- FinalizationRegistry collected the handles and lite-leak
+  reported clean, which is why only the torture harness surfaced it. The fix
+  covers all 58 factories (overlay primitives via the shared `_overlay/core`),
+  the custom-element wrappers that own a value signal (datepicker, slider),
+  and nodes created after construction on their removal paths: kanban
+  per-column order signals (`removeColumn`), file-upload per-entry
+  `bytesLoaded`/`progress` (`removeEntry`/`clear`), radio-group per-item
+  disabled signals (item detach). The destroy contract is preserved by
+  SEALING rather than bare disposal: owned signals live in `let` bindings
+  that accessors resolve at call time, and `destroy()` swaps each for a
+  frozen stand-in (`src/_overlay/seal.js`) after returning the pooled node
+  -- so a destroyed handle keeps answering its final `open()`/`status()`/
+  `value()` (the contract the destroy tests pin, e.g. popover's "open state
+  frozen at destroy") while writes stay no-ops. Zero hot-path cost -- a
+  binding load costs the same for `let` and `const`, and the stand-in is
+  built once, on the cold destroy path; double destroy stays safe
+  (`dispose` is generation-guarded, sealing is idempotent).
+
+### Changed
+
+- `subscribe()` on a destroyed handle's accessor now fires the callback once
+  with the frozen final value and returns a no-op unsubscribe (previously it
+  subscribed to a live-but-inert node: same one fire, but the node lingered).
+  A consumer that captured a RAW per-item signal -- a file-upload entry's
+  `progress` destructured off the entry object before `removeEntry` -- reads
+  `undefined` after that entry is dropped; the entry OBJECT's
+  `progress`/`bytesLoaded` properties are re-pointed at frozen stand-ins, so
+  reading through the entry keeps answering the final values. Consumer-
+  supplied controlled signals are never disposed and keep working after
+  `destroy()`.
+
+### Added
+
+- Named regression H-12 (`test/signal-pool.test.js`): every barrel factory is
+  churned through more create/destroy cycles than a small fixed 256-node
+  registry has slots, asserting exact pool return after every destroy; plus
+  attach/open/close churn, the three dynamic per-item paths, the
+  controlled-signal survival contract, the frozen-read seal semantics
+  (including the datepicker handle's view/focus accessors), double-destroy,
+  and a control that proves the gate can fail.
+- The torture harness (`test/torture.mjs`) now runs on lite-signal's DEFAULT
+  fixed 1024-node registry: the 1<<20 grow-policy registry swap it used to
+  need was masking this exact disposal gap and has been removed, so a
+  disposal regression fails phase A fast with a `CapacityError`. Phase A
+  churn also grew from 8 to 20 factory recipes.
+
 ## 1.0.1 -- 2026-08-31
 
 ### Fixed

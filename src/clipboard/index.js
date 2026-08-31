@@ -19,6 +19,7 @@
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { setAttr, toggleAttr } from "../_overlay/aria.js";
+import { sealSignal } from "../_overlay/seal.js";
 
 function noop() {}
 function removeAttr(el, name) { el.removeAttribute(name); }
@@ -37,9 +38,12 @@ export function createClipboard(opts = {}) {
     const onCopy = (typeof o.onCopy === "function") ? o.onCopy : null;
     const onError = (typeof o.onError === "function") ? o.onError : null;
 
-    const _value = makeSignal(typeof o.value === "string" ? o.value : "");
-    const _copied = makeSignal(false);
-    const _error = makeSignal(false);
+    // `let`: destroy() seals these (H-12) -- pooled nodes go back to the
+    // registry, reads freeze at the final value. Accessors resolve the
+    // binding at call time, so the swap costs the live paths nothing.
+    let _value = makeSignal(typeof o.value === "string" ? o.value : "");
+    let _copied = makeSignal(false);
+    let _error = makeSignal(false);
     const _destroyed = { v: false };
 
     const _cleanups = [];
@@ -159,6 +163,11 @@ export function createClipboard(opts = {}) {
             try { _cleanups[i](); } catch {}
         }
         _cleanups.length = 0;
+        // return the pooled signal nodes after every effect stopped; reads
+        // freeze at the final value (H-12)
+        _value = sealSignal(_value);
+        _copied = sealSignal(_copied);
+        _error = sealSignal(_error);
     }
 
     return {

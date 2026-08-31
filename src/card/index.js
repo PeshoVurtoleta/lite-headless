@@ -35,6 +35,7 @@
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { setAttr, toggleAttr, ensureId } from "../_overlay/aria.js";
+import { sealSignal } from "../_overlay/seal.js";
 
 function noop() {}
 function removeAttr(el, name) { el.removeAttribute(name); }
@@ -47,8 +48,11 @@ export function createCard(opts = {}) {
     const onCollapseChange = typeof o.onCollapseChange === "function" ? o.onCollapseChange : null;
     const onDismiss        = typeof o.onDismiss        === "function" ? o.onDismiss        : null;
 
-    const _collapsed = makeSignal(!!o.collapsed);
-    const _dismissed = makeSignal(!!o.dismissed);
+    // `let`: destroy() seals these (H-12) -- pooled nodes go back to the
+    // registry, reads freeze at the final value. Accessors resolve the
+    // binding at call time, so the swap costs the live paths nothing.
+    let _collapsed = makeSignal(!!o.collapsed);
+    let _dismissed = makeSignal(!!o.dismissed);
     const _destroyed = { v: false };
 
     let _rootEl = null;
@@ -208,6 +212,10 @@ export function createCard(opts = {}) {
         }
         _cleanups.length = 0;
         _rootEl = null; _bodyEl = null; _triggerEl = null;
+        // return the pooled signal nodes after every effect stopped; reads
+        // freeze at the final value (H-12)
+        _collapsed = sealSignal(_collapsed);
+        _dismissed = sealSignal(_dismissed);
     }
 
     return {

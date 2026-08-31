@@ -70,6 +70,7 @@
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { toggleAttr } from "../_overlay/aria.js";
 import { createRovingFocus, STRATEGY_DOM_FOCUS } from "../_overlay/roving-focus.js";
+import { sealSignal } from "../_overlay/seal.js";
 
 const noop = () => {};
 let _idCounter = 0;
@@ -111,7 +112,11 @@ export function createToggleGroup(options = {}) {
         return Array.isArray(defaultValue) ? defaultValue.slice() : [];
     }
 
-    const _own = externalValue ? null : makeSignal(_normalizeInitial());
+    // `let`: destroy() seals owned signals (H-12) -- pooled nodes go back to
+    // the registry, reads freeze at the final value. Accessors resolve the
+    // binding at call time, so the swap costs the live paths nothing. `_own`
+    // is null in controlled mode and is never sealed.
+    let _own = externalValue ? null : makeSignal(_normalizeInitial());
     function _read() {
         if (externalValue) {
             const v = externalValue();
@@ -125,7 +130,7 @@ export function createToggleGroup(options = {}) {
         _own.set(v);
     }
 
-    const _disabled = makeSignal(!!initiallyDisabled);
+    let _disabled = makeSignal(!!initiallyDisabled);
 
     let _destroyed = false;
     let _rootEl = null;
@@ -412,6 +417,11 @@ export function createToggleGroup(options = {}) {
         }
         _items.length = 0;
         _rootEl = null;
+        // return the pooled signal nodes after every effect stopped; reads
+        // freeze at the final value (H-12). _own is null when the consumer
+        // supplied their own value signal.
+        if (_own !== null) _own = sealSignal(_own);
+        _disabled = sealSignal(_disabled);
     }
 
     return {

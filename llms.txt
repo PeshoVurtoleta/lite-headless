@@ -67,6 +67,14 @@ Newest additions: separator, clipboard, password-input, alert-dialog, hover-card
 - Teardown/callback throws are swallowed by design: destroy() runs every
   cleanup even if one throws, onOpenChange/finalize throws cannot corrupt the
   state machine, and addCleanup after destroy runs immediately.
+- destroy() returns every factory-owned lite-signal node to the registry pool
+  (H-12), including per-item nodes (kanban column order, file-upload entry
+  progress, radio-group item disabled) on their removal paths. Churned
+  create/destroy cycles therefore run indefinitely on lite-signal's default
+  fixed 1024-node registry. Owned signals are SEALED, not just disposed
+  (src/_overlay/seal.js): a destroyed handle's accessors keep answering the
+  frozen final value (writes stay no-ops; subscribe fires once with the final
+  value). Consumer-supplied controlled signals are never disposed.
 - Status is generation-guarded: a superseded finalize (same-tick open<->close
   toggle) never emits a stale status such as an illegal closing->open flash.
 - Escape dismisses the most-recently-OPENED overlay (global open-sequence
@@ -79,7 +87,7 @@ Newest additions: separator, clipboard, password-input, alert-dialog, hover-card
 - node:test (NOT vitest)
 - happy-dom devDep (pinned ^15.11.0)
 - Per-test setupDOM/teardownDOM; teardown calls window.happyDOM.close()
-- 1529 tests; `tsc --noEmit` type-checks the full public surface
+- 1538 tests; `tsc --noEmit` type-checks the full public surface
 
 ## License
 

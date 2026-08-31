@@ -52,6 +52,7 @@
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { toggleAttr } from "../_overlay/aria.js";
+import { sealSignal } from "../_overlay/seal.js";
 
 const noop = () => {};
 function setAttr(el, name, value) {
@@ -115,9 +116,12 @@ export function createAvatar(options = {}) {
         onError,
     } = options;
 
-    const _src   = makeSignal(initialSrc);
+    // `let`: destroy() seals these (H-12) -- pooled nodes go back to the
+    // registry, reads freeze at the final value. Accessors resolve the
+    // binding at call time, so the swap costs the live paths nothing.
+    let _src   = makeSignal(initialSrc);
     // state: "image" (img loaded ok) or "fallback" (no src OR load failed)
-    const _state = makeSignal(initialSrc ? "loading" : "fallback");
+    let _state = makeSignal(initialSrc ? "loading" : "fallback");
     let _destroyed = false;
     let _rootEl = null;
     let _imgEl = null;
@@ -288,6 +292,10 @@ export function createAvatar(options = {}) {
         _rootEl = null;
         _imgEl  = null;
         _fbEl   = null;
+        // return the pooled signal nodes after every effect stopped; reads
+        // freeze at the final value (H-12)
+        _src = sealSignal(_src);
+        _state = sealSignal(_state);
     }
 
     return {

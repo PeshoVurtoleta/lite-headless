@@ -71,6 +71,7 @@
 // 80% expired through the pause.
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
+import { sealSignal } from "../_overlay/seal.js";
 
 const noop = () => {};
 let _idCounter = 0;
@@ -130,8 +131,11 @@ export function createToast(options = {}) {
             sign: (swipeDirection === "right" || swipeDirection === "down") ? 1 : -1 };
 
     // ----- state -----------------------------------------------------
-    const _hovering = makeSignal(false);
-    const _focused  = makeSignal(false);
+    // `let`: destroy() seals these (H-12) -- pooled nodes go back to the
+    // registry, reads freeze at the final value. Accessors resolve the
+    // binding at call time, so the swap costs the live paths nothing.
+    let _hovering = makeSignal(false);
+    let _focused  = makeSignal(false);
     const _entries  = new Map();        // id -> entry
     const _entriesOrdered = [];         // insertion order, oldest first
     let _viewportEl = null;
@@ -509,6 +513,10 @@ export function createToast(options = {}) {
         clear("destroy");
         _viewportEl = null;
         _liveRegionEl = null;
+        // return the pooled signal nodes after every effect stopped; reads
+        // freeze at the final value (H-12)
+        _hovering = sealSignal(_hovering);
+        _focused = sealSignal(_focused);
     }
 
     return {

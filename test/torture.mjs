@@ -19,9 +19,16 @@
 // process must then exit non-zero. A gate that cannot fail is not a gate.
 //
 // happy-dom is set up ONCE (mirroring test/_setup.js's global exposure) and
-// closed at the end. lite-signal's node pool is swapped for a grow-policy
-// registry: churning thousands of primitives would exhaust the default fixed
-// 1024-node ledger, which is an unrelated capacity concern, not a leak.
+// closed at the end. The harness runs on lite-signal's DEFAULT fixed
+// 1024-node registry ON PURPOSE (H-12): destroy() seals every factory-owned
+// signal back into the pool, so thousands of create/destroy cycles never
+// exceed the concurrent-node ceiling. This file used to swap in a 1<<20
+// grow-policy registry to survive churn -- that swap was masking a real
+// disposal gap (signals were never returned on destroy), not an unrelated
+// capacity concern. If a factory regresses, phase A now fails fast with
+// lite-signal's CapacityError. The per-factory exact-return proof lives in
+// test/signal-pool.test.js (H-12), which churns every barrel factory on a
+// 256-node registry.
 
 import { GcProfiler, checkNoGc } from "@zakkster/lite-gc-profiler";
 import {
@@ -32,10 +39,7 @@ import {
     createObserverOrphanKernel,
     createAsyncRetentionKernel,
 } from "@zakkster/lite-leak";
-import { createRegistry, setDefaultRegistry, effect } from "@zakkster/lite-signal";
-
-// Grow-policy registry BEFORE any primitive constructs a signal (see header).
-setDefaultRegistry(createRegistry({ maxNodes: 1 << 20, onCapacityExceeded: "grow" }));
+import { effect } from "@zakkster/lite-signal";
 
 // ----- happy-dom setup (once) -- mirrors test/_setup.js global exposure ----
 import { Window } from "happy-dom";
@@ -66,6 +70,19 @@ import { createSlider } from "../src/slider/index.js";
 import { createTabs } from "../src/tabs/index.js";
 import { createTree } from "../src/tree/index.js";
 import { createPositioner } from "../src/_overlay/position.js";
+// signal-owning factories fixed for H-12 (destroy() must dispose owned signals)
+import { createAvatar } from "../src/avatar/index.js";
+import { createTour } from "../src/tour/index.js";
+import { createSwitch } from "../src/switch/index.js";
+import { createAnchor } from "../src/anchor/index.js";
+import { createSplitPanels } from "../src/split-panels/index.js";
+import { createTagInput } from "../src/tag-input/index.js";
+import { createBreadcrumb } from "../src/breadcrumb/index.js";
+import { createColorPicker } from "../src/color-picker/index.js";
+import { createMeter } from "../src/meter/index.js";
+import { createNotificationCenter } from "../src/notification-center/index.js";
+import { createTag } from "../src/tag/index.js";
+import { createDatePicker } from "../src/datepicker/index.js";
 
 const CONTROL = process.env.TORTURE_CONTROL === "1";
 const HOT = 200000;
@@ -153,6 +170,70 @@ churn(
     () => createTree(),
     (x) => { x.attachRoot(el("ul")); x.attachNode(el("li"), { key: "a" }); x.attachLabel(el("span")); },
     128,
+);
+// H-12 signal-owning factories: create/attach/exercise/destroy must return
+// every pooled signal node. Any signal the destroy() forgot to dispose would
+// surface here as a retained node (and, without the grow registry, exhaust the
+// default 1024-node ledger). 256 cycles each -- enough to blow a fixed pool.
+churn(
+    () => createAvatar({ src: "x.jpg", name: "Alice Lee" }),
+    (x) => { x.attachRoot(el("span")); x.attachImage(el("img")); x.attachFallback(el("span")); x.setSrc("y.jpg"); },
+    256,
+);
+churn(
+    () => createTour(),
+    (x) => { x.attachRoot(el("div")); x.addStep({ id: "a", target: el("div") }); x.attachStepContent("a", el("div")); x.start(); },
+    256,
+);
+churn(
+    () => createSwitch({ defaultChecked: false }),
+    (x) => { x.attachRoot(el("button")); x.attachThumb(el("span")); x.toggle(); x.setDisabled(true); },
+    256,
+);
+churn(
+    () => createAnchor(),
+    (x) => { x.attachRoot(el("nav")); x.attachLink(el("a"), el("section"), "a"); x._setActiveForTest("a"); },
+    256,
+);
+churn(
+    () => createSplitPanels({ orientation: "horizontal" }),
+    (x) => { x.attachContainer(el("div")); x.attachPanel(el("div"), 0, { defaultSize: 30 }); x.attachPanel(el("div"), 1, { defaultSize: 70 }); x.attachHandle(el("div"), 0); x.setLayout([40, 60]); },
+    256,
+);
+churn(
+    () => createTagInput({ initialValue: ["a"] }),
+    (x) => { x.attachRoot(el("div")); x.attachInput(el("input")); x.addTag("b"); x.removeLast(); },
+    256,
+);
+churn(
+    () => createBreadcrumb(),
+    (x) => { x.attachRoot(el("nav")); x.attachList(el("ol")); x.attachItem(el("li"), "home"); x.attachItem(el("li"), "here"); x.setCurrent("home"); },
+    256,
+);
+churn(
+    () => createColorPicker({ defaultHex: "#7dd3fc" }),
+    (x) => { x.attachRoot(el("div")); x.attachArea(el("div")); x.attachHueSlider(el("div")); x.setHue(120); x.setAlpha(0.5); },
+    256,
+);
+churn(
+    () => createMeter({ value: 0.5, low: 0.2, high: 0.8, optimum: 1 }),
+    (x) => { x.attachRoot(el("div")); x.attachFill(el("div")); x.setValue(0.7); x.setValueText("70%"); },
+    256,
+);
+churn(
+    () => createNotificationCenter(),
+    (x) => { x.attachRoot(el("div")); x.attachUnreadBadge(el("span")); x.add({ id: "1", title: "hi" }); x.attachItem(el("li"), "1"); x.markRead("1"); x.setFilter({ kind: "info" }); },
+    256,
+);
+churn(
+    () => createTag({ closable: true, intent: "primary" }),
+    (x) => { x.attachRoot(el("span")); x.attachCloseButton(el("button")); x.setIntent("success"); x.close(); },
+    256,
+);
+churn(
+    () => createDatePicker({ mode: "range" }),
+    (x) => { x.attachGrid(el("div")); x.attachMonthLabel(el("div")); x.attachDay(el("div"), new Date(2026, 0, 15)); x.setView("months"); x.setView("days"); },
+    256,
 );
 
 globalThis.gc?.();

@@ -25,6 +25,7 @@
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { setAttr, toggleAttr, ensureId } from "../_overlay/aria.js";
+import { sealSignal } from "../_overlay/seal.js";
 
 function noop() {}
 
@@ -69,11 +70,14 @@ export function createStat(options = {}) {
 
     // ----- state ---------------------------------------------------------
 
-    const _value = makeSignal(Number(defaultValue) || 0);
-    const _displayValue = makeSignal(Number(defaultValue) || 0);
-    const _label = makeSignal(String(defaultLabel || ""));
-    const _unit = makeSignal(String(defaultUnit || ""));
-    const _trend = makeSignal(normalizeTrend(defaultTrend));
+    // `let`: destroy() seals these (H-12) -- pooled nodes go back to the
+    // registry, reads freeze at the final value. Accessors resolve the
+    // binding at call time, so the swap costs the live paths nothing.
+    let _value = makeSignal(Number(defaultValue) || 0);
+    let _displayValue = makeSignal(Number(defaultValue) || 0);
+    let _label = makeSignal(String(defaultLabel || ""));
+    let _unit = makeSignal(String(defaultUnit || ""));
+    let _trend = makeSignal(normalizeTrend(defaultTrend));
 
     // Tween bookkeeping
     let _tweenFromValue = _value();
@@ -279,6 +283,13 @@ export function createStat(options = {}) {
             try { _cleanups[i](); } catch {}
         }
         _cleanups.length = 0;
+        // return the pooled signal nodes after every effect stopped; reads
+        // freeze at the final value (H-12)
+        _value = sealSignal(_value);
+        _displayValue = sealSignal(_displayValue);
+        _label = sealSignal(_label);
+        _unit = sealSignal(_unit);
+        _trend = sealSignal(_trend);
     }
 
     return {

@@ -69,6 +69,7 @@
 //             may set the `disabled` attribute on real <button>s)
 
 import { signal as makeSignal, effect, untrack } from "@zakkster/lite-signal";
+import { sealSignal } from "../_overlay/seal.js";
 
 const noop = () => {};
 let _idCounter = 0;
@@ -174,14 +175,19 @@ export function createPagination(options = {}) {
     }
 
     // ----- state -----------------------------------------------------
-    const _own = externalPage ? null : makeSignal(Math.max(1, Math.min(initialPageCount, defaultPage | 0)));
+    // `let`: destroy() seals these owned signals (H-12) -- pooled nodes go
+    // back to the registry, reads freeze at the final value. Accessors
+    // resolve the binding at call time, so the swap costs the live paths
+    // nothing. A consumer-supplied `page` signal is never sealed (_own is
+    // null in that controlled mode).
+    let _own = externalPage ? null : makeSignal(Math.max(1, Math.min(initialPageCount, defaultPage | 0)));
     function _read() { return externalPage ? Math.max(1, externalPage() | 0) : _own(); }
     function _write(v) {
         if (externalPage) return;
         _own.set(v);
     }
 
-    const _pageCount = makeSignal(initialPageCount);
+    let _pageCount = makeSignal(initialPageCount);
     let _destroyed = false;
     let _rootEl = null, _prevEl = null, _nextEl = null, _firstEl = null, _lastEl = null;
     let _pageListEl = null;
@@ -215,7 +221,7 @@ export function createPagination(options = {}) {
     // Recomputed whenever page or pageCount changes. We expose the
     // most-recent items array via a signal so the wrapper can
     // subscribe via effect().
-    const _items = makeSignal([]);
+    let _items = makeSignal([]);
     const stopItemsEffect = effect(() => {
         const p = _read();
         const total = _pageCount();
@@ -385,6 +391,11 @@ export function createPagination(options = {}) {
         _pageEls.clear();
         _rootEl = null; _prevEl = null; _nextEl = null;
         _firstEl = null; _lastEl = null; _pageListEl = null;
+        // return the pooled signal nodes after every effect stopped; reads
+        // freeze at the final value (H-12)
+        if (_own !== null) _own = sealSignal(_own);
+        _pageCount = sealSignal(_pageCount);
+        _items = sealSignal(_items);
     }
 
     return {

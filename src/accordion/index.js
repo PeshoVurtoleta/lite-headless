@@ -65,6 +65,7 @@
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { uniqueId, setAttr, toggleAttr } from "../_overlay/aria.js";
+import { sealSignal } from "../_overlay/seal.js";
 
 const noop = () => {};
 
@@ -95,7 +96,11 @@ export function createAccordion(options = {}) {
         initialValue = (Array.isArray(defaultValue) ? defaultValue[0] : defaultValue) ?? null;
     }
 
-    const _value = valueSignal || makeSignal(initialValue);
+    // `let`: destroy() seals this (H-12) -- the pooled node goes back to the
+    // registry, reads freeze at the final value. Accessors resolve the
+    // binding at call time, so the swap costs the live paths nothing. Only
+    // an owned signal is sealed; a consumer-supplied `value` stays live.
+    let _value = valueSignal || makeSignal(initialValue);
     let _destroyed = false;
 
     // items[i] = { el, key, id }
@@ -513,6 +518,9 @@ export function createAccordion(options = {}) {
         for (const tid of _transitionTimers.values()) clearTimeout(tid);
         _transitionTimers.clear();
         _transitioning.clear();
+        // return the pooled signal node after every effect stopped; reads
+        // freeze at the final value (H-12)
+        if (!valueSignal) _value = sealSignal(_value);
     }
 
     return {

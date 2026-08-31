@@ -52,6 +52,7 @@
 // most-recently-OPENED overlay on Escape (not the most-recently-BOUND).
 
 import { signal } from "@zakkster/lite-signal";
+import { sealSignal } from "./seal.js";
 
 // Module-scope monotonic open counter. Shared across ALL overlays so their
 // open events carry a single global ordering; dismiss.js reads `_openSeq` off
@@ -75,6 +76,14 @@ export function createOverlayCore(options = {}) {
     const internal = isControlled ? null : signal(!!defaultOpen);
     const openSig = isControlled ? controlled : internal;
     const status = signal(openSig() ? "open" : "closed");
+
+    // Public read targets. Swappable (`let`): destroy() seals them (H-12) so
+    // the pooled nodes go back to lite-signal's registry while a destroyed
+    // handle keeps answering its frozen final open/status. Internal state
+    // transitions keep using the consts above -- every internal touch sits
+    // behind a `destroyed` guard, so none can reach a disposed node.
+    let _openRead = openSig;
+    let _statusRead = status;
 
     // ----- cleanup ledger -------------------------------------------------
     const cleanups = [];
@@ -104,6 +113,16 @@ export function createOverlayCore(options = {}) {
             try { cleanups[i](); } catch { /* swallow */ }
         }
         cleanups.length = 0;
+        // SIGNAL-NODE POOL RETURN (H-12): lite-signal pools nodes in a
+        // fixed-capacity registry; a signal that is never disposed occupies a
+        // pool slot forever, so churned create/destroy cycles exhaust the
+        // ledger. Sealed AFTER the ledger drain (every effect reading them
+        // has been stopped): the nodes go back to the pool and the public
+        // read targets swap to frozen stand-ins, so a destroyed handle keeps
+        // answering its final open/status. `internal` only when uncontrolled
+        // -- a consumer-supplied `open` signal is theirs and stays live.
+        _statusRead = sealSignal(status);
+        if (internal !== null) _openRead = sealSignal(internal);
     }
 
     // ----- transition awaiting -------------------------------------------
@@ -229,10 +248,23 @@ export function createOverlayCore(options = {}) {
     // Kept as a same-shape numeric property -- not a getter -- so the handle
     // stays monomorphic and setOpen's stamp allocates nothing. dismiss.js
     // reads it to order Escape dismissal by open-recency (H-02).
+    // ----- public read surface -------------------------------------------
+    // Expose only the read interface; preserve the call signature so
+    // consumers can do `if (handle.open()) { ... }` and
+    // `handle.open.subscribe(fn)`. The closures resolve the swappable
+    // bindings at call time -- the same single context-slot load a captured
+    // signal would cost -- which is what lets destroy() seal them (H-12).
+    const openRead = () => _openRead();
+    openRead.peek = () => _openRead.peek();
+    openRead.subscribe = (cb) => _openRead.subscribe(cb);
+    const statusRead = () => _statusRead();
+    statusRead.peek = () => _statusRead.peek();
+    statusRead.subscribe = (cb) => _statusRead.subscribe(cb);
+
     handle = {
         // read-only state
-        open: readOnly(openSig),
-        status: readOnly(status),
+        open: openRead,
+        status: statusRead,
 
         // imperative
         setOpen,
@@ -257,13 +289,4 @@ export function createOverlayCore(options = {}) {
 
 function isSignal(v) {
     return v && typeof v === "function" && typeof v.set === "function" && typeof v.peek === "function";
-}
-
-function readOnly(sig) {
-    // expose only the read interface; preserve the call signature so consumers
-    // can do `if (handle.open()) { ... }` and `handle.open.subscribe(fn)`.
-    const fn = () => sig();
-    fn.peek = () => sig.peek();
-    fn.subscribe = (cb) => sig.subscribe(cb);
-    return fn;
 }

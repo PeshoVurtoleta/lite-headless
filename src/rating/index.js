@@ -15,6 +15,7 @@
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { setAttr, toggleAttr, ensureId } from "../_overlay/aria.js";
+import { sealSignal } from "../_overlay/seal.js";
 
 function noop() {}
 
@@ -45,9 +46,12 @@ export function createRating(options = {}) {
 
     // ----- state ---------------------------------------------------------
 
-    const _value = makeSignal(clamp(Number(defaultValue) || 0, 0, max));
-    const _hoverValue = makeSignal(null);    // null when not hovering
-    const _readOnly = makeSignal(!!readOnly);
+    // `let`: destroy() seals these (H-12) -- pooled nodes go back to the
+    // registry, reads freeze at the final value. Accessors resolve the
+    // binding at call time, so the swap costs the live paths nothing.
+    let _value = makeSignal(clamp(Number(defaultValue) || 0, 0, max));
+    let _hoverValue = makeSignal(null);    // null when not hovering
+    let _readOnly = makeSignal(!!readOnly);
 
     // ----- accessors -----------------------------------------------------
 
@@ -341,6 +345,11 @@ export function createRating(options = {}) {
         _cleanups.length = 0;
         _itemEls.clear();
         _root = null;
+        // return the pooled signal nodes after every effect stopped; reads
+        // freeze at the final value (H-12)
+        _value = sealSignal(_value);
+        _hoverValue = sealSignal(_hoverValue);
+        _readOnly = sealSignal(_readOnly);
     }
 
     return {

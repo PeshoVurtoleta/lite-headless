@@ -40,6 +40,7 @@
 //     data-disabled  (boolean; CSS hook)
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
+import { sealSignal } from "../_overlay/seal.js";
 import { setAttr, toggleAttr } from "../_overlay/aria.js";
 import { createRovingFocus, STRATEGY_DOM_FOCUS } from "../_overlay/roving-focus.js";
 
@@ -54,8 +55,10 @@ export function createRadioGroup(opts = {}) {
     const onChange = typeof o.onChange === "function" ? o.onChange : null;
 
     // Reactive selection. null = nothing selected.
-    const _value     = makeSignal(initialValue);
-    const _disabled  = makeSignal(!!o.disabled);
+    // `let`: destroy() seals these (H-12) -- pooled nodes return to the
+    // registry, reads freeze at the final value.
+    let _value     = makeSignal(initialValue);
+    let _disabled  = makeSignal(!!o.disabled);
     const _destroyed = { v: false };
 
     // Items registry. Each entry: { key, el, disabled }
@@ -226,7 +229,7 @@ export function createRadioGroup(opts = {}) {
         // Per-item disabled is a SIGNAL so the paint effect re-runs
         // when setItemDisabled flips it. Without this, changing
         // entry.disabled mutates a plain field that no effect watches.
-        const _itemDisabled = makeSignal(!!o2.disabled);
+        let _itemDisabled = makeSignal(!!o2.disabled); // sealed in off() (H-12)
         const entry = {
             key,
             el,
@@ -292,6 +295,12 @@ export function createRadioGroup(opts = {}) {
                 // If we removed the checked item, clear the value.
                 if (_value() === key) setValue(null, "remove");
             }
+            // Return this item's pooled disabled-signal node, freezing the
+            // entry's disabled getter at its final value (H-12). Last: the
+            // paint effect stopped above, and the setValue flush ran against
+            // live signals. dispose is gen-guarded, so the destroy-time
+            // ledger replay of an already-detached item is a no-op.
+            _itemDisabled = sealSignal(_itemDisabled);
         };
         addCleanup(off);
         return off;
@@ -326,6 +335,11 @@ export function createRadioGroup(opts = {}) {
         _byKey.clear();
         _rootEl = null;
         _roving = null;
+        // return the pooled group signals, freezing reads at the final
+        // values; per-item disabled signals went back in each item's off()
+        // during the ledger drain above (H-12)
+        _value = sealSignal(_value);
+        _disabled = sealSignal(_disabled);
     }
 
     return {
