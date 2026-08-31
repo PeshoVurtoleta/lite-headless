@@ -16,7 +16,11 @@ attribute names the highlighted item's id).
 - defaultValue: any = null
 - onValueChange(next, reason)           -- reason: 'select'|'api'
 
-- placement: string = 'bottom-start'    -- 12 placements; same as popover
+- placement: string = 'bottom-start'    -- 12 placements; same as popover.
+                        -- Built-in engine also accepts RTL aliases
+                        -- 'inline-start'/'inline-end' (-> left/right per anchor
+                        -- direction); a pluggable positioner/floating-adapter
+                        -- sees only the 12 physical placements (adapter throws).
 - offset: number = 4
 - flip: boolean = true
 - shift: boolean = true
@@ -36,6 +40,53 @@ attribute names the highlighted item's id).
 - container: HTMLElement|null = document.body
 - transition: boolean = false
 
+- multiple: boolean = false             -- construction-time; opt into
+                        -- multi-select. When true, item clicks and
+                        -- toggleValue() add/remove Set membership instead of
+                        -- writing a single scalar, chips render + remove the
+                        -- selection, and Backspace on an empty trigger
+                        -- deselects the last value. In multiple mode
+                        -- defaultValue must be an array (to seed the initial
+                        -- selection) or null/omitted (empty selection); any
+                        -- other shape throws TypeError
+                        -- 'createCombobox: defaultValue must be an array when
+                        -- multiple: true'. Single-select defaultValue is
+                        -- unchanged (a scalar).
+
+## Multi-select (multiple: true)
+
+R1 slice -- what ships now:
+
+- has(value): boolean                   -- Set membership test
+- toggleValue is multiple-only: called on a single-select combobox it throws
+  `TypeError('createCombobox: toggleValue requires multiple: true')` before any
+  write. has()/values() stay harmless in single mode -- has() reads false, and
+  values() reads a frozen-empty [] (the shadow Set is never written).
+- After destroy(), has() and values() AGREE: destroy() does not clear the
+  selection Set, so has(value) answers the frozen post-destroy membership,
+  matching the sealed values() snapshot (H-12 reads-freeze contract).
+- toggleValue(value, reason): void      -- add/remove membership; rebuilds the
+                        -- snapshot once, fires onValueChange(snapshotArray,
+                        -- reason), repaints items + trigger data-count
+- values(): any[]                       -- snapshot copy of selected values
+- multiple: boolean                     -- the resolved flag (introspection)
+- attachChip(el, value): off            -- wire a rendered chip so click /
+                        -- Enter / Space / Backspace / Delete deselect `value`
+- trigger paints data-count="<n>"       -- number of selected values
+- keyboard: Backspace on an EMPTY trigger deselects the last value (only when
+  multiple); onKey (single-select nav) is untouched -- this is a separate
+  listener. Chip removal clamps the roving highlight like attachItem's off.
+
+Storage model: ONE reused Set + a snapshot array rebuilt only on mutation
+(same allocation class as the existing per-mutation signal writes). Zero
+steady-state allocation per keystroke. In multiple mode value()/setValue()
+still operate on the single scalar seam (untouched); the multi surface is
+parallel.
+
+DEFERRED (NOT in this slice -- do not rely on them yet): filter, loading,
+onQueryChange, and any async/remote-options surface. attach items as they
+arrive (already supported). Editable input filtering is out of scope for R1.
+
 ## Returned
 
 {
@@ -45,6 +96,11 @@ attribute names the highlighted item's id).
     toggle(),
     value(): currentValue,
     setValue(value, reason),
+    multiple,                           -- resolved flag
+    values(): any[],                    -- multi-select snapshot (empty unless multiple)
+    has(value): boolean,                -- multi-select membership
+    toggleValue(value, reason),         -- multi-select add/remove
+    attachChip(el, value),              -- multi-select chip (no-op unless multiple)
     attachTrigger(buttonEl),
     attachListbox(ulEl),
     attachItem(liEl, { value, label }),

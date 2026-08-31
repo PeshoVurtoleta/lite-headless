@@ -14,7 +14,10 @@ Inherits positioning options from createPopover (including the pluggable
                                             -- this is the trigger->content gap grace period
 - describesTrigger: boolean = true       -- true: aria-describedby; false: aria-labelledby
 
-Default placement: 'top'. Default offset: 6.
+Default placement: 'top'. Default offset: 6. The built-in engine also accepts
+RTL logical aliases 'inline-start'/'inline-end' (resolved to left/right per the
+anchor's direction); with a pluggable `positioner`/floating-adapter use the 12
+physical placements only -- the adapter throws on an alias via lite-floating.
 
 No focus trap (tooltips never trap). closeOnEscape:true by default.
 

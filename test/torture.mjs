@@ -85,6 +85,7 @@ import { createMeter } from "../src/meter/index.js";
 import { createNotificationCenter } from "../src/notification-center/index.js";
 import { createTag } from "../src/tag/index.js";
 import { createDatePicker } from "../src/datepicker/index.js";
+import { createTimePicker } from "../src/time-picker/index.js";
 
 const CONTROL = process.env.TORTURE_CONTROL === "1";
 const HOT = 200000;
@@ -237,6 +238,34 @@ churn(
     (x) => { x.attachGrid(el("div")); x.attachMonthLabel(el("div")); x.attachDay(el("div"), new Date(2026, 0, 15)); x.setView("months"); x.setView("days"); },
     256,
 );
+// H7 G-01: multi-select combobox toggle churn. Each cycle attaches trigger +
+// listbox + items, toggles membership on and off (the reused-Set + snapshot
+// path), attaches + removes a chip, then destroys. destroy() seals the
+// multi-select bump signal back into the pool (H-12) alongside the value
+// signal; a regression would exhaust the fixed 1024-node registry here.
+churn(
+    () => createCombobox({ multiple: true }),
+    (x) => {
+        x.attachTrigger(el("input")); x.attachListbox(el("div"));
+        x.attachItem(el("div"), { value: "a" }); x.attachItem(el("div"), { value: "b" });
+        x.toggleValue("a"); x.toggleValue("b"); x.toggleValue("a");
+        const chip = el("span"); const off = x.attachChip(chip, "b"); off();
+        x.setOpen(true); x.setOpen(false);
+    },
+    256,
+);
+// H7 G-04: time-picker create/destroy churn. Attaches all three segments +
+// a listbox slot, spins, then destroys. destroy() seals the hour + minute
+// signals back into the pool (H-12).
+churn(
+    () => createTimePicker({ hour12: true, defaultValue: { hour: 9, minute: 5 } }),
+    (x) => {
+        x.attachHourSegment(el("span")); x.attachMinuteSegment(el("span")); x.attachMeridiem(el("span"));
+        x.attachSlotList(el("div")); x.attachSlot(el("div"), { hour: 10, minute: 30 });
+        x.spinHour(1); x.spinMinute(1); x.toggleMeridiem();
+    },
+    256,
+);
 
 // H5 floating-adapter retention sweep -- runs last in phase A, on the SAME
 // default fixed 1024-node registry as everything above. lite-floating >=1.1.0
@@ -293,6 +322,21 @@ for (let i = 0; i < HOT; i++) {
         _ctrlBuf[i] = [i, `alloc-${i}-${i * 3}-payload`, new Array(64).fill(i)];
         if ((i % 16384) === 0) globalThis.gc?.();
     }
+    if ((i & 8191) === 0) gc.sampleHeap(performance.now(), process.memoryUsage().heapUsed);
+}
+
+// (i.b) time-picker segment spin hot path. The instance is built OUTSIDE the
+// loop with its segments attached; spinMinute/spinHour run the reflection
+// effect + dirty-checked setAttr each step. hour12 was resolved ONCE at
+// construction, so no per-spin Intl call is made and the typeahead buffer is a
+// single reused object -- a steady-state spin must be allocation-free.
+const _tp = createTimePicker({ hour12: true, defaultValue: { hour: 0, minute: 0 } });
+_tp.attachHourSegment(el("span"));
+_tp.attachMinuteSegment(el("span"));
+_tp.attachMeridiem(el("span"));
+for (let i = 0; i < HOT; i++) {
+    _tp.spinMinute(1);
+    if ((i & 15) === 0) _tp.spinHour(1);
     if ((i & 8191) === 0) gc.sampleHeap(performance.now(), process.memoryUsage().heapUsed);
 }
 

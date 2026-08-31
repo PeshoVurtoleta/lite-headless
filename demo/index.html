@@ -46,6 +46,7 @@
     <link rel="modulepreload" href="../src/password-input/element.js">
     <link rel="modulepreload" href="../src/alert-dialog/element.js">
     <link rel="modulepreload" href="../src/hover-card/element.js">
+    <link rel="modulepreload" href="../src/time-picker/element.js">
     <link rel="modulepreload" href="../src/dialog/element.js">
     <link rel="modulepreload" href="../src/popover/element.js">
     <link rel="modulepreload" href="../src/tooltip/element.js">
@@ -3182,6 +3183,76 @@
             min-block-size: 1.5rem;
         }
         /* ──────────────────────────────────────────────────────────
+           time-picker scene (63)
+           ────────────────────────────────────────────────────────── */
+        .tp-stage {
+            padding: clamp(1rem, 2vw, 2rem);
+            overflow-y: auto;
+            max-block-size: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: clamp(1rem, 1.5vw, 1.5rem);
+        }
+        .tp-block {
+            background: #12161d;
+            background: var(--bg-2);
+            border: 1px solid var(--line);
+            border-radius: 0.5rem;
+            padding: 1rem 1.25rem;
+        }
+        .tp-block h3 {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.875rem;
+            color: var(--text);
+            margin: 0 0 0.75rem;
+        }
+        .tp-block lite-time-picker {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            font-family: 'Space Mono', monospace;
+            font-size: 1.5rem;
+        }
+        .tp-seg {
+            min-inline-size: 2.25rem;
+            padding: 0.35rem 0.5rem;
+            text-align: center;
+            color: #e6edf3;
+            color: var(--text);
+            background: #0d1117;
+            background: oklch(0.18 0.02 250);
+            border: 1px solid var(--line);
+            border-radius: 0.375rem;
+            cursor: ns-resize;
+        }
+        .tp-seg:focus-visible {
+            outline: 2px solid #58a6ff;
+            outline: 2px solid var(--accent, #58a6ff);
+            outline-offset: 2px;
+        }
+        @media (hover: hover) {
+            .tp-seg:hover {
+                border-color: #58a6ff;
+                border-color: var(--accent, #58a6ff);
+            }
+        }
+        .tp-meridiem { min-inline-size: 3rem; }
+        .tp-colon { color: var(--muted, #8b949e); }
+        .tp-readout {
+            margin-block-start: 0.75rem;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--muted, #8b949e);
+        }
+        .tp-log {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--muted, #8b949e);
+            padding-block-start: 0.5rem;
+            border-block-start: 1px solid var(--line);
+        }
+
+        /* ──────────────────────────────────────────────────────────
            pin-input scene (25)
            ────────────────────────────────────────────────────────── */
         .scene[data-scene="pin-input"] {
@@ -3881,7 +3952,7 @@
     <div class="bl-ring"></div>
     <div class="bl-text">
         <strong>@zakkster/lite-headless</strong>
-        <small>loading 58 primitives</small>
+        <small>loading 59 primitives</small>
     </div>
 </div>
 <style>
@@ -3950,10 +4021,10 @@
         <div class="brand">
             <span class="mark">◐</span>
             <span class="pkg">@zakkster/lite-headless</span>
-            <span class="ver">v1.4.0</span>
+            <span class="ver">v1.5.0</span>
         </div>
         <div class="tagline">
-            <span class="dot"></span>headless primitives · zero-GC · 58 primitives · 1607/1607 tests
+            <span class="dot"></span>headless primitives · zero-GC · 59 primitives · 1633/1633 tests
         </div>
     </header>
 
@@ -4278,6 +4349,10 @@
                 <li data-item data-scene="hover-card">
                     <span class="scene-num">62</span><span>Hover Card</span>
                     <span class="scene-desc">lite-floating + lite-observe &middot; hover-intent</span>
+                </li>
+                <li data-item data-scene="time-picker">
+                    <span class="scene-num">63</span><span>Time Picker</span>
+                    <span class="scene-desc">spinbutton segments &middot; hour12 &middot; typeahead</span>
                 </li>
             </ul>
         </lite-menu>
@@ -11075,10 +11150,91 @@ all dispose via owner tree
             </aside>
         </section>
 
+        <!-- ============================================================
+             SCENE 63 · TIME PICKER
+             ============================================================ -->
+        <section class="scene" data-scene="time-picker">
+            <div class="stage" style="padding: 0; overflow: hidden;">
+                <div class="stage-grid"></div>
+                <div class="stage-overlay tl">
+                    <span class="label">primitive</span><br>
+                    <span>time-picker &middot; spinbutton segments &middot; typeahead</span>
+                </div>
+
+                <div class="tp-stage">
+                    <div class="tp-block">
+                        <h3>12-hour &middot; hour / minute / meridiem</h3>
+                        <lite-time-picker id="tp-12" value="09:05" hour12="true" aria-label="Meeting time">
+                            <span class="tp-seg" data-hour-segment tabindex="0"></span>
+                            <span class="tp-colon">:</span>
+                            <span class="tp-seg" data-minute-segment tabindex="0"></span>
+                            <span class="tp-seg tp-meridiem" data-meridiem-segment tabindex="0"></span>
+                        </lite-time-picker>
+                        <div class="tp-readout" id="tp-12-readout">value: 09:05</div>
+                    </div>
+
+                    <div class="tp-block">
+                        <h3>24-hour &middot; minute-step=5</h3>
+                        <lite-time-picker id="tp-24" value="13:30" hour12="false" minute-step="5" aria-label="Slot time">
+                            <span class="tp-seg" data-hour-segment tabindex="0"></span>
+                            <span class="tp-colon">:</span>
+                            <span class="tp-seg" data-minute-segment tabindex="0"></span>
+                        </lite-time-picker>
+                        <div class="tp-readout" id="tp-24-readout">value: 13:30</div>
+                    </div>
+
+                    <div class="tp-log" id="tp-log">events &middot; -</div>
+                </div>
+            </div>
+
+            <aside class="panel">
+                <div class="panel-head">scene 63 &middot; time-picker</div>
+                <section>
+                    <h3>spinbutton segments</h3>
+                    <div class="qa-box">
+each segment role="spinbutton"
+   aria-valuenow / min / max
+   aria-valuetext (09 / AM)
+
+ArrowUp / ArrowDown spin
+   wraps 0&lt;-&gt;23, 0&lt;-&gt;59
+                    </div>
+                </section>
+                <section>
+                    <h3>typeahead</h3>
+                    <div class="qa-box">
+type "1" then "2" -&gt; 12
+   accumulates, then clamps
+
+meridiem: a -&gt; AM, p -&gt; PM
+                    </div>
+                </section>
+                <section>
+                    <h3>hour12</h3>
+                    <div class="qa-box">
+resolved ONCE at construction
+   explicit option wins,
+   else Intl locale probe
+
+never re-derived per event
+                    </div>
+                </section>
+                <section>
+                    <h3>cascade-clean</h3>
+                    <div class="qa-box" style="line-height: 1.55;">
+destroy() runs every attach<br>
+cleanup (roles + listeners<br>
+off consumer els) then seals<br>
+hour + minute signals (H-12)
+                    </div>
+                </section>
+            </aside>
+        </section>
+
     </main>
 
     <div class="footnote">
-        &copy; Zahary Shinikchiev &middot; MIT &middot; zero runtime deps &middot; @zakkster/lite-signal peer &middot; 1607/1607 unit tests &middot; 58 primitives &middot; lite-floating + lite-observe integration &middot; cascade-clean
+        &copy; Zahary Shinikchiev &middot; MIT &middot; zero runtime deps &middot; @zakkster/lite-signal peer &middot; 1633/1633 unit tests &middot; 59 primitives &middot; lite-floating + lite-observe integration &middot; cascade-clean
     </div>
 </div>
 
@@ -11240,6 +11396,7 @@ all dispose via owner tree
     import "../src/password-input/element.js";
     import "../src/alert-dialog/element.js";
     import "../src/hover-card/element.js";
+    import "../src/time-picker/element.js";
 
     // Alert-dialog: [data-confirm] already dismisses (wired by the element).
     // Here we attach the *destructive* handler the consumer owns -- updating
@@ -11342,6 +11499,7 @@ all dispose via owner tree
         "password-input":        { name: "Password Input",        num: "60" },
         "alert-dialog":          { name: "Alert Dialog",          num: "61" },
         "hover-card":            { name: "Hover Card",            num: "62" },
+        "time-picker":           { name: "Time Picker",           num: "63" },
     };
 
     function selectScene(sceneId) {
@@ -14805,6 +14963,30 @@ all dispose via owner tree
         }
         an.addEventListener("activechange", paint);
         customElements.whenDefined("lite-anchor").then(paint);
+    })();
+
+    // ── Scene 63: Time Picker ─────────────────────────────────────
+    (function wireTimePicker() {
+        const log = $("tp-log");
+        const pad = (n) => (n < 10 ? "0" + n : String(n));
+        function wire(hostId, readoutId, label) {
+            const host = $(hostId);
+            const out = $(readoutId);
+            if (!host || !out) return;
+            function paint(value) {
+                const v = value || host.value;
+                out.textContent = "value: " + pad(v.hour) + ":" + pad(v.minute);
+            }
+            host.addEventListener("valuechange", (e) => {
+                paint(e.detail.value);
+                if (log) log.textContent = "events · " + label + " -> " +
+                    pad(e.detail.value.hour) + ":" + pad(e.detail.value.minute) +
+                    " (" + e.detail.reason + ")";
+            });
+            customElements.whenDefined("lite-time-picker").then(() => paint());
+        }
+        wire("tp-12", "tp-12-readout", "12h");
+        wire("tp-24", "tp-24-readout", "24h");
     })();
 
 </script>

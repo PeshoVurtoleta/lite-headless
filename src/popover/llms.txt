@@ -7,6 +7,11 @@ createPopover(options) -> PopoverHandle
 Inherits from createDialog. Additional:
 
 - placement: 12 values         -- 'top'|'bottom'|'left'|'right' x {default, -start, -end}
+                               -- built-in engine also takes RTL aliases
+                               -- 'inline-start'/'inline-end' (-> left/right per
+                               -- anchor direction); a pluggable positioner /
+                               -- floating-adapter sees only the 12 physical
+                               -- placements (adapter throws on an alias)
 - offset: number = 8           -- gap between anchor and content (px)
 - flip: boolean = true         -- try opposite side when main-axis overflows
 - shift: boolean = true        -- slide along cross-axis to stay in boundary

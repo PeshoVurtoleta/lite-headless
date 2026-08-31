@@ -67,12 +67,64 @@ export function createPositioner(options = {}) {
     let _align = "center";
     parsePlacementInto(placement);
 
+    // RTL logical side aliases. "inline-start" / "inline-end" resolve to a
+    // PHYSICAL left/right side ONCE, here on the cold path (construction --
+    // this function runs exactly once at line ~68, never per tick and never
+    // per frame). Direction is sampled from the anchor's effective computed
+    // `direction` at this same cold moment (fallback: LTR when no anchor /
+    // no computed style is available -- fail-closed to the dominant script
+    // direction rather than guessing RTL).
+    //
+    // SCOPE: this resolution lives INSIDE the built-in engine only. It is NOT
+    // a shared parse ahead of the positioner seam -- a custom positioner (and
+    // the floating-adapter) receives the RAW placement string, unresolved. The
+    // aliases are a built-in-engine feature; the floating-adapter forwards the
+    // string to lite-floating, whose parsePlacement returns null on an unknown
+    // placement and whose createFloating then throws
+    // `TypeError('lite-floating: invalid placement: ...')` at first open. So an
+    // alias + a pluggable positioner fails closed LOUDLY rather than silently
+    // mispositioning. Inside THIS engine, after this function returns
+    // _requestedSide is always one of the 12 physical placements, so every
+    // downstream seam here (computeCoordsInto, the placement getter) only ever
+    // sees physical vocabulary.
     function parsePlacementInto(p) {
         if (!p) { _requestedSide = "bottom"; _requestedAlign = "center"; return; }
+        // Logical inline aliases: "inline-start" | "inline-end" with an
+        // optional "-start" / "-end" alignment suffix (e.g.
+        // "inline-end-start"). Resolve the physical side from direction.
+        if (p === "inline-start" || p.indexOf("inline-start-") === 0) {
+            _requestedSide  = _sampleDirection() === "rtl" ? "right" : "left";
+            _requestedAlign = p.length > 13 ? p.slice(13) : "center";
+            return;
+        }
+        if (p === "inline-end" || p.indexOf("inline-end-") === 0) {
+            _requestedSide  = _sampleDirection() === "rtl" ? "left" : "right";
+            _requestedAlign = p.length > 11 ? p.slice(11) : "center";
+            return;
+        }
         const dash = p.indexOf("-");
         if (dash < 0) { _requestedSide = p; _requestedAlign = "center"; return; }
         _requestedSide  = p.slice(0, dash);
         _requestedAlign = p.slice(dash + 1);
+    }
+
+    // Sample the anchor's effective writing direction from computed style at
+    // the cold-path moment (construction). Never called per tick.
+    function _sampleDirection() {
+        if (!anchor || anchor.nodeType !== 1) return "ltr";
+        const doc = anchor.ownerDocument;
+        const view = doc && doc.defaultView;
+        const gcs = (view && typeof view.getComputedStyle === "function")
+            ? view.getComputedStyle.bind(view)
+            : (typeof globalThis !== "undefined" && typeof globalThis.getComputedStyle === "function")
+                ? globalThis.getComputedStyle
+                : null;
+        if (!gcs) return "ltr";
+        try {
+            const cs = gcs(anchor);
+            if (cs && cs.direction === "rtl") return "rtl";
+        } catch (_) { /* fail-closed to ltr */ }
+        return "ltr";
     }
 
     // ----- cached clipping ancestor (resolved ONCE) ----------------------

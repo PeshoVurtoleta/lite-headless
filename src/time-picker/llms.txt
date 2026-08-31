@@ -1,0 +1,117 @@
+# @zakkster/lite-headless/time-picker
+
+createTimePicker(options) -> TimePickerHandle
+
+Headless time entry from ARIA spinbutton SEGMENTS: an hour segment, a minute
+segment, and (in 12-hour locales) a meridiem segment. The consumer provides
+the segment elements; the primitive wires
+aria-valuenow/valuemin/valuemax/valuetext, ArrowUp/Down spin-with-wrap, and
+digit typeahead (consecutive digits accumulate within a short window, then
+clamp -- the pin-input precedent).
+
+NON-OVERLAY primitive. Ships aria id helpers only. A popover / dropdown around
+the segments is a docs-level composition (exactly as the datepicker documents
+pairing with a popover); the overlay layers are deliberately NOT pulled in.
+
+hour12 is resolved ONCE, at construction: an explicit `hour12` option wins,
+otherwise it is derived from Intl.DateTimeFormat().resolvedOptions() a single
+time. Never re-derived per event.
+
+## Options
+
+- value: WriteSignal<{hour,minute}>     -- external controlled value (24h hour)
+- defaultValue: {hour,minute} | null    -- uncontrolled seed (24h hour)
+- onValueChange({hour,minute}, reason)  -- reason: 'spin'|'typeahead'|'meridiem'
+                                        --  |'home-end'|'slot'|'set'|'api'
+- hour12: boolean                        -- override the Intl-derived clock
+- minuteStep: number = 1                 -- ArrowUp/Down minute increment
+- hourStep: number = 1                   -- ArrowUp/Down hour increment
+- ariaLabel: string = 'Time'
+- ariaLabelHour: string = 'Hour'
+- ariaLabelMinute: string = 'Minute'
+- ariaLabelMeridiem: string = 'AM/PM'
+- typeaheadTimeout: number = 900         -- ms before the digit buffer resets
+
+## Returned
+
+{
+    hour(): number,                      -- 0..23 (reactive)
+    minute(): number,                    -- 0..59 (reactive)
+    meridiem(): 'AM'|'PM',               -- derived (reactive)
+    value(): { hour, minute },           -- 24h snapshot
+    hour12: boolean,                     -- resolved clock convention
+
+    setValue({hour,minute}, reason),
+    setHour(h24, reason),
+    setMinute(m, reason),
+    spinHour(delta),                     -- wraps 0<->23
+    spinMinute(delta),                   -- wraps 0<->59 by minuteStep
+    toggleMeridiem(reason),              -- 12h only; +/-12h
+
+    attachHourSegment(el),               -- role=spinbutton
+    attachMinuteSegment(el),             -- role=spinbutton
+    attachMeridiem(el),                  -- role=spinbutton (no-op in 24h mode)
+    attachSlotList(el),                  -- optional role=listbox
+    attachSlot(el, { hour, minute }),    -- optional role=option
+    destroy(),
+    destroyed
+}
+
+## Keyboard model (per segment)
+
+  ArrowUp / ArrowDown         spin the segment value (wraps)
+  Home / End                  jump to min / max (hour + minute segments)
+  0-9                         digit typeahead: "1" then "2" -> 12; clamps to max
+  a / p                       meridiem segment: set AM / PM
+
+## Segment ARIA
+
+- hour segment:     role=spinbutton, aria-valuemin/valuemax = 1..12 (12h) or
+                    0..23 (24h), aria-valuenow = displayed hour,
+                    aria-valuetext = "9" (12h) or "09" (24h), data-hour="HH"
+- minute segment:   role=spinbutton, 0..59, aria-valuetext = "05",
+                    data-minute="MM"
+- meridiem segment: role=spinbutton, 0..1, aria-valuenow 0=AM 1=PM,
+                    aria-valuetext = "AM"|"PM", data-meridiem="AM"|"PM"
+
+## Listbox slot mode (optional)
+
+attachSlotList(el) -> role=listbox; attachSlot(el, {hour, minute}) -> role=
+option that selects that time on click. Selected slot carries
+aria-selected="true" + data-selected. Segments are the priority surface; the
+slot mode is a thin add on the same value state.
+
+## Slot conventions (for <lite-time-picker>)
+
+- [data-hour-segment]        -- the hour spinbutton
+- [data-minute-segment]      -- the minute spinbutton
+- [data-meridiem-segment]    -- the meridiem spinbutton (12h mode only)
+
+## <lite-time-picker> attributes
+
+- value                      -- "HH:MM" (24-hour); default 00:00
+- hour12                     -- "true" | "false"; default locale-derived
+- minute-step                -- integer >= 1; default 1
+- aria-label                 -- group label
+
+## Composition (docs-level, non-overlay)
+
+To render the segments inside a dropdown, pair with createPopover exactly as
+the datepicker pairs with a popover: the popover owns open/placement/dismiss,
+this primitive owns the value + segment wiring. This module never imports the
+overlay layers.
+
+## Zero-GC notes
+
+Two owned lite-signal nodes (hour + minute). destroy() SEALS both back into the
+1024-node pool (H-12): reads freeze at the final value, writes no-op. Segment
+spins are allocation-free -- the typeahead buffer is one reused object, the
+reflection effect uses dirty-checked setAttr, and no per-event Intl call is
+made (hour12 resolved once at construction).
+
+## CSS contract
+
+This primitive's painted attributes follow the canonical CSS contract in
+`docs/CSS_CONTRACT.md`. See that doc for the cross-primitive taxonomy
+(booleans like `data-selected`, ARIA pairings, host accessor naming, and event
+naming).

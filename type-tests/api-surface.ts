@@ -430,7 +430,7 @@ import type { BannerKind } from "@zakkster/lite-headless/banner";
     const trend: "up" | "down" | "flat" = stat.trend();
     stat.setValue(200);
     stat.setLabel("Total");
-    stat.setUnit("€");
+    stat.setUnit("EUR");
     stat.setTrend("up");
     stat.attachLabel(el); stat.attachValue(el); stat.attachUnit(el); stat.attachTrend(el);
 

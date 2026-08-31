@@ -1,14 +1,14 @@
 # @zakkster/lite-headless
 
-VERSION 1.4.0
+VERSION 1.5.0
 
-58 headless UI primitives on signal-based reactivity (@zakkster/lite-signal).
+59 headless UI primitives on signal-based reactivity (@zakkster/lite-signal).
 Zero styling. Tree-shakable via per-primitive subpath exports. Framework-
 agnostic. Every primitive ships an optional `<lite-*>` custom element.
 
 The catalog spans overlays (dialog, alert-dialog, popover, tooltip, hover-card,
 menu, combobox, command-palette, toast, drawer, tour), form controls (button,
-slider, switch, rating, pin-input, tag-input, file-upload, color-picker,
+slider, switch, rating, pin-input, tag-input, time-picker, file-upload, color-picker,
 date-picker, stepper, inline-edit, form-field, password-input), data/display (tabs,
 accordion, tree, table-less primitives, pagination, carousel, calendar, kanban,
 sortable, timeline, descriptions, stat, meter, progress, skeleton, breadcrumb,
@@ -56,7 +56,19 @@ destroy}` positioner factory backed by @zakkster/lite-floating. Pass it as the
 lite-floating (identical spec + 12-placement vocabulary). Middleware built once
 per open; autoUpdate is a no-op (lite-floating owns it); element boundary throws.
 
-Newest additions: separator, clipboard, password-input, alert-dialog, hover-card.
+RTL logical placement aliases: the BUILT-IN engine accepts `inline-start` /
+`inline-end` (plus an optional `-start` / `-end` alignment suffix) and resolves
+them to a physical left/right side. Resolution happens per open, sampling the
+anchor's computed `direction` (explicit LTR fallback when no anchor / no
+computed style). This is a built-in-engine feature ONLY: with the
+floating-adapter or any custom `positioner`, the alias string passes through
+UNRESOLVED -- the adapter forwards it to lite-floating, whose parsePlacement
+returns null on an unknown placement and whose createFloating then throws
+`TypeError('lite-floating: invalid placement: ...')` at first open (fail-closed,
+loud). Use aliases with the default engine; use the 12 physical placements with
+a pluggable positioner.
+
+Newest additions: time-picker, separator, clipboard, password-input, alert-dialog, hover-card.
 
 ## Peer dependencies
 
@@ -103,7 +115,20 @@ Newest additions: separator, clipboard, password-input, alert-dialog, hover-card
 - node:test (NOT vitest)
 - happy-dom devDep (pinned ^15.11.0)
 - Per-test setupDOM/teardownDOM; teardown calls window.happyDOM.close()
-- 1607 tests; types.d.ts declares the documented surface (`tsc --noEmit`), while `test/api-surface.test.js` pins the full JS export surface against api-surface-snapshot.json (`npm run api:update` to regenerate); the undocumented allowlist is empty and the gate enforces that every live export is declared in its own subpath's `declare module` block -- the sole attribution rule is that for the bare "." specifier a file-top-level declaration (VERSION) counts as the barrel's own
+- 1633 tests; types.d.ts declares the documented surface (`tsc --noEmit`), while `test/api-surface.test.js` pins the full JS export surface against api-surface-snapshot.json (`npm run api:update` to regenerate); the undocumented allowlist is empty and the gate enforces that every live export is declared in its own subpath's `declare module` block -- the sole attribution rule is that for the bare "." specifier a file-top-level declaration (VERSION) counts as the barrel's own
+
+## Ecosystem and recipes
+
+- @zakkster/lite-table -- sortable, virtualizable data grid. lite-headless is
+  table-less on purpose; the grid lives there. lite-headless supplies the
+  surrounding controls (menu, combobox, pagination, toolbar).
+- @zakkster/lite-query -- async data + cache; feed a combobox / command-palette
+  listbox, or back an autosave mutation.
+- End-to-end compositions that cross package boundaries live in docs/recipes/:
+  crud-list-page (lite-table + lite-query + pagination + toolbar),
+  date-range-presets, transfer-list, autosave (isDirty + lite-debounce +
+  lite-query), bulk-actions-bar, tree-checkbox-cascade, and
+  textarea-autosize-and-indeterminate-checkbox.
 
 ## License
 

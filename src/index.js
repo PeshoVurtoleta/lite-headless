@@ -14,7 +14,7 @@
 // If bundle size matters at scale, prefer the subpath imports.
 
 // Three-place version sync: package.json, this const, llms.txt.
-export const VERSION = "1.4.0";
+export const VERSION = "1.5.0";
 
 export { createAccordion } from "./accordion/index.js";
 export { createAffix } from "./affix/index.js";
@@ -67,6 +67,7 @@ export { createSwitch } from "./switch/index.js";
 export { createTabs } from "./tabs/index.js";
 export { createTag } from "./tag/index.js";
 export { createTagInput } from "./tag-input/index.js";
+export { createTimePicker } from "./time-picker/index.js";
 export { createTimeline } from "./timeline/index.js";
 export { createToast } from "./toast/index.js";
 export { createToggleGroup } from "./toggle-group/index.js";

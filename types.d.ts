@@ -96,6 +96,7 @@ declare module "@zakkster/lite-headless" {
     export { createTabs } from "@zakkster/lite-headless/tabs";
     export { createTag } from "@zakkster/lite-headless/tag";
     export { createTagInput } from "@zakkster/lite-headless/tag-input";
+    export { createTimePicker } from "@zakkster/lite-headless/time-picker";
     export { createTimeline } from "@zakkster/lite-headless/timeline";
     export { createToast } from "@zakkster/lite-headless/toast";
     export { createToggleGroup } from "@zakkster/lite-headless/toggle-group";
@@ -338,6 +339,8 @@ declare module "@zakkster/lite-headless/combobox" {
         initialValue?: T | null;
         onValueChange?: (value: T | null, reason?: string) => void;
         onOpenChange?: (open: boolean, reason?: string) => void;
+        /** Opt into multi-select. Construction-time; see llms.txt R1 slice. */
+        multiple?: boolean;
         /** Pluggable positioning engine. Defaults to the built-in engine. */
         positioner?: import("@zakkster/lite-headless/floating-adapter").PositionerFactory;
     }
@@ -349,6 +352,16 @@ declare module "@zakkster/lite-headless/combobox" {
         setOpen(open: boolean, reason?: string): void;
         toggle(reason?: string): void;
         setValue(value: T | null, reason?: string): void;
+        /** Resolved multi-select flag. */
+        readonly multiple: boolean;
+        /** Multi-select: snapshot of selected values (empty unless multiple). */
+        values(): T[];
+        /** Multi-select: membership test. */
+        has(value: T): boolean;
+        /** Multi-select: add/remove membership. */
+        toggleValue(value: T, reason?: string): void;
+        /** Multi-select: wire a rendered chip so activating it deselects value. */
+        attachChip(el: Element, value: T): OffFn;
         attachTrigger(el: Element): OffFn;
         attachListbox(el: Element): OffFn;
         attachItem(el: Element, item: T): OffFn;
@@ -2063,6 +2076,55 @@ declare module "@zakkster/lite-headless/tag-input" {
     export function createTagInput(opts?: TagInputOptions): TagInputInstance;
 }
 declare module "@zakkster/lite-headless/tag-input/element" {}
+
+// =============================================================================
+// time-picker
+// =============================================================================
+
+declare module "@zakkster/lite-headless/time-picker" {
+    export interface TimeValue {
+        hour: number;
+        minute: number;
+    }
+
+    export interface TimePickerOptions {
+        value?: TimeValue;
+        defaultValue?: TimeValue | null;
+        onValueChange?: (value: TimeValue, reason?: string) => void;
+        hour12?: boolean;
+        minuteStep?: number;
+        hourStep?: number;
+        ariaLabel?: string;
+        ariaLabelHour?: string;
+        ariaLabelMinute?: string;
+        ariaLabelMeridiem?: string;
+        typeaheadTimeout?: number;
+    }
+
+    export interface TimePickerInstance {
+        hour: ReactiveAccessor<number>;
+        minute: ReactiveAccessor<number>;
+        meridiem: ReactiveAccessor<"AM" | "PM">;
+        value: ReactiveAccessor<TimeValue>;
+        readonly hour12: boolean;
+        setValue(value: TimeValue, reason?: string): void;
+        setHour(hour24: number, reason?: string): void;
+        setMinute(minute: number, reason?: string): void;
+        spinHour(delta: number): void;
+        spinMinute(delta: number): void;
+        toggleMeridiem(reason?: string): void;
+        attachHourSegment(el: Element): OffFn;
+        attachMinuteSegment(el: Element): OffFn;
+        attachMeridiem(el: Element): OffFn;
+        attachSlotList(el: Element): OffFn;
+        attachSlot(el: Element, meta: TimeValue): OffFn;
+        destroy(): void;
+        readonly destroyed: boolean;
+    }
+
+    export function createTimePicker(opts?: TimePickerOptions): TimePickerInstance;
+}
+declare module "@zakkster/lite-headless/time-picker/element" {}
 
 // =============================================================================
 // tour

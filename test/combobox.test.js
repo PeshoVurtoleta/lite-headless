@@ -281,3 +281,156 @@ test("attachInside protects external controls from outside-click dismissal", () 
     combo.destroy();
     teardownDOM();
 });
+
+// ---------------------------------------------------------------------------
+// multi-select (G-01 R1 slice): multiple:true adds has/toggleValue/values/
+// attachChip + data-count + Backspace-on-empty; single-select paths untouched.
+// ---------------------------------------------------------------------------
+
+test("multiple: toggleValue adds/removes membership + fires onValueChange", () => {
+    setupDOM();
+    const changes = [];
+    const combo = createCombobox({ multiple: true, onValueChange: (v, r) => changes.push([v.slice(), r]) });
+    const { trigger, listbox, items } = mkDOM();
+    combo.attachTrigger(trigger);
+    combo.attachListbox(listbox);
+    for (const it of items) combo.attachItem(it.el, { value: it.value, label: it.label });
+    assert.equal(combo.multiple, true);
+    assert.equal(combo.has("apple"), false);
+    combo.toggleValue("apple");
+    assert.equal(combo.has("apple"), true);
+    assert.deepEqual(combo.values(), ["apple"]);
+    combo.toggleValue("banana");
+    assert.deepEqual(combo.values().sort(), ["apple", "banana"]);
+    combo.toggleValue("apple");
+    assert.deepEqual(combo.values(), ["banana"]);
+    assert.equal(changes[changes.length - 1][1], "api");
+    combo.destroy();
+    teardownDOM();
+});
+
+test("multiple: item click toggles (does not close), reflects aria-selected + data-count", () => {
+    setupDOM();
+    const combo = createCombobox({ multiple: true });
+    const { trigger, listbox, items } = mkDOM();
+    combo.attachTrigger(trigger);
+    combo.attachListbox(listbox);
+    for (const it of items) combo.attachItem(it.el, { value: it.value, label: it.label });
+    combo.setOpen(true);
+    dispatchClick(items[0].el);
+    assert.equal(items[0].el.getAttribute("aria-selected"), "true");
+    assert.equal(combo.open(), true, "multi-select click keeps listbox open");
+    assert.equal(trigger.getAttribute("data-count"), "1");
+    dispatchClick(items[1].el);
+    assert.equal(trigger.getAttribute("data-count"), "2");
+    dispatchClick(items[0].el);
+    assert.equal(items[0].el.getAttribute("aria-selected"), "false");
+    assert.equal(trigger.getAttribute("data-count"), "1");
+    combo.destroy();
+    teardownDOM();
+});
+
+test("multiple: Backspace on empty trigger deselects the last value", () => {
+    setupDOM();
+    const combo = createCombobox({ multiple: true });
+    const { trigger, listbox, items } = mkDOM();
+    combo.attachTrigger(trigger);
+    combo.attachListbox(listbox);
+    for (const it of items) combo.attachItem(it.el, { value: it.value, label: it.label });
+    combo.toggleValue("apple");
+    combo.toggleValue("banana");
+    dispatchKey(trigger, "Backspace");
+    assert.deepEqual(combo.values(), ["apple"]);
+    dispatchKey(trigger, "Backspace");
+    assert.deepEqual(combo.values(), []);
+    dispatchKey(trigger, "Backspace"); // empty -> no throw
+    assert.deepEqual(combo.values(), []);
+    combo.destroy();
+    teardownDOM();
+});
+
+test("multiple: attachChip removal deselects the value (click + keyboard)", () => {
+    setupDOM();
+    const combo = createCombobox({ multiple: true });
+    const { trigger, listbox, items } = mkDOM();
+    combo.attachTrigger(trigger);
+    combo.attachListbox(listbox);
+    for (const it of items) combo.attachItem(it.el, { value: it.value, label: it.label });
+    combo.toggleValue("apple");
+    combo.toggleValue("banana");
+    const chip = document.createElement("span");
+    combo.attachChip(chip, "apple");
+    assert.equal(chip.getAttribute("data-chip-value"), "apple");
+    dispatchClick(chip);
+    assert.equal(combo.has("apple"), false);
+    const chip2 = document.createElement("span");
+    combo.attachChip(chip2, "banana");
+    dispatchKey(chip2, "Backspace");
+    assert.equal(combo.has("banana"), false);
+    combo.destroy();
+    teardownDOM();
+});
+
+test("multiple: defaultValue array seeds the selection", () => {
+    setupDOM();
+    const combo = createCombobox({ multiple: true, defaultValue: ["apple", "cherry"] });
+    const { trigger, listbox, items } = mkDOM();
+    combo.attachTrigger(trigger);
+    combo.attachListbox(listbox);
+    for (const it of items) combo.attachItem(it.el, { value: it.value, label: it.label });
+    assert.deepEqual(combo.values().sort(), ["apple", "cherry"]);
+    assert.equal(items[0].el.getAttribute("aria-selected"), "true"); // apple
+    assert.equal(trigger.getAttribute("data-count"), "2");
+    combo.destroy();
+    teardownDOM();
+});
+
+test("multiple:false -- multi surface is inert (single-select untouched)", () => {
+    setupDOM();
+    const combo = createCombobox({});
+    const { trigger, listbox, items } = mkDOM();
+    combo.attachTrigger(trigger);
+    combo.attachListbox(listbox);
+    for (const it of items) combo.attachItem(it.el, { value: it.value, label: it.label });
+    assert.equal(combo.multiple, false);
+    assert.deepEqual(combo.values(), []);
+    const chip = document.createElement("span");
+    assert.equal(typeof combo.attachChip(chip, "apple"), "function");
+    assert.equal(chip.hasAttribute("data-chip"), false, "attachChip no-op when not multiple");
+    assert.equal(trigger.hasAttribute("data-count"), false);
+    combo.destroy();
+    teardownDOM();
+});
+
+test("multiple omitted: toggleValue throws TypeError and leaves single-select intact (R6 fail-closed)", () => {
+    setupDOM();
+    const combo = createCombobox({});   // multiple omitted
+    const { trigger, listbox, items } = mkDOM();
+    combo.attachTrigger(trigger);
+    combo.attachListbox(listbox);
+    for (const it of items) combo.attachItem(it.el, { value: it.value, label: it.label });
+    combo.setValue("a");
+    assert.throws(
+        () => combo.toggleValue("a"),
+        (e) => e.name === "TypeError" && e.message === "createCombobox: toggleValue requires multiple: true",
+    );
+    // shadow set provably empty; single-select value untouched
+    assert.equal(combo.has("a"), false);
+    assert.deepEqual(combo.values(), []);
+    assert.equal(combo.value(), "a");
+    combo.destroy();
+    teardownDOM();
+});
+
+test("multiple:false explicit: toggleValue throws the same TypeError", () => {
+    setupDOM();
+    const combo = createCombobox({ multiple: false });
+    assert.throws(
+        () => combo.toggleValue("x"),
+        (e) => e.name === "TypeError" && e.message === "createCombobox: toggleValue requires multiple: true",
+    );
+    assert.equal(combo.has("x"), false);
+    assert.deepEqual(combo.values(), []);
+    combo.destroy();
+    teardownDOM();
+});

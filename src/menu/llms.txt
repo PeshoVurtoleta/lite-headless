@@ -19,6 +19,10 @@ that need to retain focus while a separate "active" cursor moves.
 - onOpenChange(next, reason)           -- 'trigger'|'api'|'escape'|'outside'|'select'|'tab'|'back'
 
 - placement: string = 'bottom-start'
+                        -- built-in engine also accepts RTL aliases
+                        -- 'inline-start'/'inline-end' (-> left/right per anchor
+                        -- direction); a pluggable positioner/floating-adapter
+                        -- sees only the 12 physical placements (adapter throws)
 - offset: number = 4
 - flip: boolean = true
 - shift: boolean = true

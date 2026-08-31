@@ -1,6 +1,6 @@
 {
   "name": "@zakkster/lite-headless",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "Zero-dependency headless UI primitives -- 58 ARIA-correct factories + custom-element wrappers, with explicit state-attribute CSS contract. Zero-GC hot paths; reactive accessors via lite-signal.",
   "type": "module",
   "main": "./src/index.js",
@@ -422,6 +422,14 @@
     "./tag-input/element": {
       "types": "./types.d.ts",
       "import": "./src/tag-input/element.js"
+    },
+    "./time-picker": {
+      "types": "./types.d.ts",
+      "import": "./src/time-picker/index.js"
+    },
+    "./time-picker/element": {
+      "types": "./types.d.ts",
+      "import": "./src/time-picker/element.js"
     },
     "./timeline": {
       "types": "./types.d.ts",

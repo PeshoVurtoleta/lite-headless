@@ -337,3 +337,97 @@ test("autoUpdate binds and unbinds listeners idempotently", () => {
     p.destroy();
     teardownDOM();
 });
+
+// ---------------------------------------------------------------------------
+// RTL logical placement aliases (G-10): inline-start / inline-end resolve to a
+// PHYSICAL left/right side ONCE at construction, from the anchor's effective
+// direction. Downstream only ever sees the 12 physical placements.
+// ---------------------------------------------------------------------------
+
+test("alias: inline-start resolves to LEFT in LTR", () => {
+    setupDOM();
+    const { anchor, content } = mkPair();
+    const map = new Map();
+    map.set(anchor, rect(200, 100, 100, 40));
+    map.set(content, rect(0, 0, 60, 30));
+    const p = createPositioner({
+        anchor, content, placement: "inline-start", offset: 5,
+        getRect: mkRects(map), getViewport: () => ({ width: 1024, height: 768 }),
+    });
+    p.update();
+    assert.equal(p.side, "left", "inline-start -> left in LTR");
+    // physical geometry: content sits to the LEFT of the anchor
+    const { x } = parseTranslate(content);
+    assert.equal(x, 200 - 60 - 5);
+    p.destroy();
+    teardownDOM();
+});
+
+test("alias: inline-end resolves to RIGHT in LTR", () => {
+    setupDOM();
+    const { anchor, content } = mkPair();
+    const map = new Map();
+    map.set(anchor, rect(200, 100, 100, 40));
+    map.set(content, rect(0, 0, 60, 30));
+    const p = createPositioner({
+        anchor, content, placement: "inline-end", offset: 5, flip: false,
+        getRect: mkRects(map), getViewport: () => ({ width: 1024, height: 768 }),
+    });
+    p.update();
+    assert.equal(p.side, "right", "inline-end -> right in LTR");
+    const { x } = parseTranslate(content);
+    assert.equal(x, 200 + 100 + 5);
+    p.destroy();
+    teardownDOM();
+});
+
+test("alias: inline-start resolves to RIGHT when anchor direction is RTL", () => {
+    setupDOM();
+    const { anchor, content } = mkPair();
+    anchor.style.direction = "rtl";
+    const map = new Map();
+    map.set(anchor, rect(200, 100, 100, 40));
+    map.set(content, rect(0, 0, 60, 30));
+    const p = createPositioner({
+        anchor, content, placement: "inline-start", offset: 5, flip: false,
+        getRect: mkRects(map), getViewport: () => ({ width: 1024, height: 768 }),
+    });
+    p.update();
+    assert.equal(p.side, "right", "inline-start -> right in RTL");
+    p.destroy();
+    teardownDOM();
+});
+
+test("alias: inline-end resolves to LEFT when anchor direction is RTL", () => {
+    setupDOM();
+    const { anchor, content } = mkPair();
+    anchor.style.direction = "rtl";
+    const map = new Map();
+    map.set(anchor, rect(200, 100, 100, 40));
+    map.set(content, rect(0, 0, 60, 30));
+    const p = createPositioner({
+        anchor, content, placement: "inline-end", offset: 5, flip: false,
+        getRect: mkRects(map), getViewport: () => ({ width: 1024, height: 768 }),
+    });
+    p.update();
+    assert.equal(p.side, "left", "inline-end -> left in RTL");
+    p.destroy();
+    teardownDOM();
+});
+
+test("alias: inline-start-start keeps the alignment suffix (start)", () => {
+    setupDOM();
+    const { anchor, content } = mkPair();
+    const map = new Map();
+    map.set(anchor, rect(200, 100, 100, 40));
+    map.set(content, rect(0, 0, 60, 30));
+    const p = createPositioner({
+        anchor, content, placement: "inline-start-start", offset: 5, flip: false,
+        getRect: mkRects(map), getViewport: () => ({ width: 1024, height: 768 }),
+    });
+    p.update();
+    assert.equal(p.side, "left");
+    assert.equal(p.placement, "left-start", "alignment suffix preserved through alias");
+    p.destroy();
+    teardownDOM();
+});

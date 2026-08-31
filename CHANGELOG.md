@@ -1,9 +1,77 @@
 # Changelog
 
-## Unreleased
+## 1.5.0 -- 2026-08-31
+
+### Added
+
+- H7 G-01: multi-select slice for `createCombobox`. A construction-time
+  `multiple: true` flag adds a parallel selection surface -- `has(value)`,
+  `toggleValue(value, reason)`, `values()`, `attachChip(el, value)`, a painted
+  `data-count` on the trigger, and Backspace-on-empty-trigger deselect (the
+  tag-input precedent). Storage is ONE reused Set plus a snapshot array rebuilt
+  only on mutation; steady-state keystrokes allocate nothing. The single-select
+  hot paths (`onKey`, `selectIndex`, the value-reflect effect) are byte-for-byte
+  unchanged -- the multi branch is construction-time and its item reflection is
+  a separate effect created only under `multiple`. DEFERRED, not in this slice:
+  `filter`, `loading`, `onQueryChange`, and any async/remote-options surface
+  (documented as deferred in src/combobox/llms.txt). Fail-closed by ruling
+  (R6/R7a/R7b, qa-found): `toggleValue` on a single-select handle throws a
+  TypeError (it previously mutated a shadow set nothing reads); `multiple: true`
+  with a non-array, non-null `defaultValue` throws a TypeError at construction
+  (previously silently ignored; null/omitted = empty selection); destroy() keeps
+  the selection Set, so post-destroy `has()` agrees with the sealed `values()`
+  snapshot (H-12 reads-freeze).
+- H7 G-04: `createTimePicker`, the 59th primitive (`./time-picker` +
+  `./time-picker/element`). Non-overlay: ARIA spinbutton segments
+  (`attachHourSegment` / `attachMinuteSegment` / `attachMeridiem`) with
+  `role="spinbutton"`, aria-valuenow/valuemin/valuemax/valuetext, ArrowUp/Down
+  spin-with-wrap, and digit typeahead (the pin-input accumulate-then-clamp
+  precedent). `hour12` is resolved ONCE at construction (explicit option wins,
+  else derived from `Intl.DateTimeFormat().resolvedOptions()`), never per event.
+  An optional listbox slot mode (`attachSlotList` / `attachSlot`) drives the
+  same value state. Popover composition stays docs-level (mirrors datepicker);
+  the overlay layers are not pulled in. destroy() runs every attach cleanup
+  through a self-splicing ledger (per-cleanup try/catch, idempotent on double
+  destroy), then seals both owned signals back into the pool (H-12).
+- H7 G-10: RTL logical placement aliases in the built-in positioner.
+  `parsePlacementInto` (src/_overlay/position.js) accepts `inline-start` /
+  `inline-end` side aliases (with an optional alignment suffix), resolved ONCE
+  per open (the positioner is constructed fresh per open, so a dir flip between
+  opens re-samples; never per tick) to a physical left/right side from the
+  anchor's effective computed `direction` (fallback LTR). Resolution lives
+  INSIDE the built-in engine: a custom positioner and the floating-adapter
+  receive the RAW placement string unresolved (the alias is a built-in-engine
+  feature). With the floating-adapter, an alias forwards to lite-floating, whose
+  parsePlacement returns null on an unknown placement and whose createFloating
+  then throws `TypeError('lite-floating: invalid placement: ...')` at first open
+  -- fail-closed and loud, never silent mispositioning. The floating-adapter is
+  byte-untouched. Aliases-only slice -- no keyboard maps.
+- H7 G-02/05/06/07/08/09/12: a `docs/recipes/` tier (docs-only, zero runtime
+  code) with seven cross-package compositions: crud-list-page (lite-table +
+  lite-query + pagination + toolbar, folding the pageSize / "X-Y of Z"
+  guidance), date-range-presets, transfer-list, autosave (isDirty +
+  lite-debounce + lite-query mutation), bulk-actions-bar, tree-checkbox-cascade
+  (tri-state over the existing tree; no tree code change), and
+  textarea-autosize-and-indeterminate-checkbox. README Ecosystem and the root
+  llms.txt now cross-link `docs/recipes/` and mention lite-table + lite-query.
+- H7 hygiene: docs/decisions/0003-checkjs-deferral.md records the checkJs
+  adoption decision -- measured 44 errors on the _validate + _overlay fallback
+  slice against the <=25 budget; deferred with the number on record.
+- Test suite 1607 -> 1679 (+26 feature, +3 time-picker teardown, +2 ruled
+  guards, +41 qa boundary cases across three new suites).
 
 ### Fixed
 
+- H7 G-01: src/tag-input/llms.txt pointed "select-from-known-options multi-pick"
+  at a `<lite-combobox multi: true>` API that never shipped. It now names the
+  real, shipped surface: `createCombobox({ multiple: true })` with
+  `has` / `toggleValue` / `values` / `attachChip`.
+- H7 hygiene: type-tests/api-surface.ts carried a literal U+20AC (euro sign) in
+  a sample string; replaced with ASCII "EUR". It survived because the ascii-law
+  gate scans the shipped `files[]` set, which excludes `type-tests/`.
+- H7 note: the gap-analysis citation of a stale README:791 RTL claim referred to
+  a pre-rebuild README (the line no longer exists); the RTL gap itself (G-10)
+  was real and is addressed above.
 - H6b: the `PaginationItem` ellipsis arm in the `./pagination` declare-module
   block of types.d.ts omitted the `position: "left" | "right"` field that both
   ellipsis emit sites in src/pagination/index.js (left and right gap markers)

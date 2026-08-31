@@ -100,6 +100,7 @@
         "createTabs",
         "createTag",
         "createTagInput",
+        "createTimePicker",
         "createTimeline",
         "createToast",
         "createToggleGroup",
@@ -807,6 +808,19 @@
     "./tag/element": {
       "defines": [
         "lite-tag"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./time-picker": {
+      "kind": "module",
+      "names": [
+        "createTimePicker"
+      ]
+    },
+    "./time-picker/element": {
+      "defines": [
+        "lite-time-picker"
       ],
       "kind": "element",
       "names": []

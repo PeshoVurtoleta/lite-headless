@@ -78,11 +78,11 @@ test("A2: near-miss suggests the intended key", () => {
 });
 
 // ---------------------------------------------------------------------------
-// A3: drift guard -- every "create*" export validates, and there are 58 of them
+// A3: drift guard -- every "create*" export validates, and there are 59 of them
 // ---------------------------------------------------------------------------
-test("A3: all 58 factories reject an unknown option key", () => {
+test("A3: all 59 factories reject an unknown option key", () => {
     const factories = Object.keys(headless).filter((k) => k.startsWith("create"));
-    assert.equal(factories.length, 58, "expected exactly 58 create* factories");
+    assert.equal(factories.length, 59, "expected exactly 59 create* factories");
 
     setupDOM();
     try {

@@ -208,7 +208,7 @@ host.addEventListener("invalid", (e) => /* e.detail = { tag, reason } */);
 ## When NOT to use
 
 - **A single text input with a free-form value**: just use `<input>`.
-- **A select-from-known-options multi-pick**: use `<lite-combobox>` with `multi: true` (or a similar selection model) -- tag input is for FREE-FORM entry; combobox is for picking from a defined list.
+- **A select-from-known-options multi-pick**: use `createCombobox({ multiple: true })` -- its `has(value)` / `toggleValue(value)` / `values()` / `attachChip(el, value)` surface is for picking from a defined list. Tag input is for FREE-FORM entry; combobox is for picking from a defined list.
 - **Heavy autocomplete / suggestion dropdown integration**: build a custom combobox+tag-input composite if you need typeahead suggestions while typing tags. The primitive deliberately doesn't bake autocomplete in -- different consumers want very different suggestion sources (network, fuzzy, recent, etc.).
 
 ## CSS contract
