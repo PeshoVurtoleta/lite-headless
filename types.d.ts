@@ -745,7 +745,7 @@ declare module "@zakkster/lite-headless/carousel/element" {}
 declare module "@zakkster/lite-headless/pagination" {
     export type PaginationItem =
         | { type: "page"; page: number; current: boolean }
-        | { type: "ellipsis" };
+        | { type: "ellipsis"; position: "left" | "right" };
 
     export interface PaginationOptions {
         pageCount: number;

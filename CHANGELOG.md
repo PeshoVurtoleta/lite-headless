@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- H6b: the `PaginationItem` ellipsis arm in the `./pagination` declare-module
+  block of types.d.ts omitted the `position: "left" | "right"` field that both
+  ellipsis emit sites in src/pagination/index.js (left and right gap markers)
+  have always set. The arm now declares it as required, matching the emitted
+  shape, so consumers narrowing `items()` entries to `type: "ellipsis"` can
+  read `position` without a cast. Field-level only -- the name-level
+  api-surface gate is unaffected. Hand-verified against the src emit sites;
+  this tsconfig cannot check declared types against the JS values (src is
+  excluded).
+
 ## 1.3.0 -- 2026-08-31
 
 ### Added
