@@ -208,3 +208,83 @@ test("_addCleanup returned remover unregisters AND runs the cleanup", () => {
     assert.equal(ran, 1, "cleanup should NOT run again on destroy after manual removal");
     teardownDOM();
 });
+
+// --- status generation guard (H-01) -----------------------------------
+
+test("same-tick setOpen(true) then setOpen(false) never emits closing->open", async () => {
+    setupDOM();
+    const c = createOverlayCore({ defaultOpen: false });
+    const seen = [];
+    c.status.subscribe((s) => seen.push(s));
+
+    c.setOpen(true);
+    c.setOpen(false);
+
+    await new Promise((r) => setTimeout(r, 10));
+
+    const illegalFlash = seen.some((s, i) => i > 0 && s === "open" && seen[i - 1] === "closing");
+    assert.equal(illegalFlash, false, `no closing->open flash; saw: ${JSON.stringify(seen)}`);
+    assert.equal(c.status(), "closed");
+
+    c.destroy();
+    teardownDOM();
+});
+
+test("reverse order: setOpen(false) after open never emits opening flash", async () => {
+    setupDOM();
+    const c = createOverlayCore({ defaultOpen: false });
+    c.setOpen(true);
+    await flushMicrotasks();
+    await new Promise((r) => setTimeout(r, 10));
+    assert.equal(c.status(), "open", "precondition: settled open");
+
+    const seen = [];
+    c.status.subscribe((s) => seen.push(s));
+
+    c.setOpen(false);
+    c.setOpen(true);
+
+    await new Promise((r) => setTimeout(r, 10));
+
+    // Once "opening" has been observed (the re-open winning), a later
+    // "closed" would mean a superseded close finalize slipped through and
+    // reverted the newer open -- the H-01 flash in reverse.
+    let sawOpening = false;
+    let staleClosedAfterOpening = false;
+    for (const s of seen) {
+        if (s === "opening") sawOpening = true;
+        else if (s === "closed" && sawOpening) staleClosedAfterOpening = true;
+    }
+    assert.equal(staleClosedAfterOpening, false, `no stale closed-after-opening; saw: ${JSON.stringify(seen)}`);
+    assert.equal(c.status(), "open");
+
+    c.destroy();
+    teardownDOM();
+});
+
+test("controlled mode: superseded read-back does not emit a stale status", async () => {
+    setupDOM();
+    const ext = signal(false);
+    const c = createOverlayCore({
+        open: ext,
+        onOpenChange: (next) => ext.set(next), // consumer flips synchronously, no veto
+    });
+
+    const seen = [];
+    c.status.subscribe((s) => seen.push(s));
+
+    c.setOpen(true, "trigger");
+    c.setOpen(false, "trigger");
+
+    await new Promise((r) => setTimeout(r, 10));
+
+    const LEGAL = new Set(["closed>opening", "opening>open", "open>closing", "closing>closed"]);
+    for (let i = 1; i < seen.length; i++) {
+        if (seen[i] === seen[i - 1]) continue; // repeats are fine
+        const pair = seen[i - 1] + ">" + seen[i];
+        assert.ok(LEGAL.has(pair), `illegal transition ${pair} in stream ${JSON.stringify(seen)}`);
+    }
+
+    c.destroy();
+    teardownDOM();
+});

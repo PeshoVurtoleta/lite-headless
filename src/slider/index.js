@@ -118,9 +118,15 @@ export function createSlider(options = {}) {
         // re-clamp because step rounding can push above max
         if (stepped > hi) return hi;
         if (stepped < lo) return lo;
-        // protect against float drift on round-trip arithmetic
-        const rounded = Number(stepped.toFixed(10));
-        return rounded;
+        // Protect against float drift on round-trip arithmetic, allocation-free.
+        // Below 1e5 magnitude this matches the old Number(stepped.toFixed(10))
+        // semantics (drift at the 10th decimal is corrected). At or above 1e5,
+        // Math.round(v*1e10) would overflow the exact-integer range
+        // (~9e15 / 1e10 = 9e5) and corrupt the value, so correction is skipped
+        // and `stepped` is returned untouched -- this diverges from the old
+        // toFixed(10) path by ~1 ULP, which is on the order of the f64 grid
+        // step at that magnitude. Two compares, zero alloc.
+        return (stepped > -1e5 && stepped < 1e5) ? Math.round(stepped * 1e10) / 1e10 : stepped;
     }
 
     // Convert a client (clientX, clientY) coordinate to a slider value,

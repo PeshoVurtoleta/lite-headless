@@ -525,3 +525,45 @@ test("setDisabled affects ALL thumbs in a multi-thumb slider", () => {
     slider.destroy();
     teardownDOM();
 });
+
+// --- clampSnap regimes ---------------------------------------------------
+
+test("clampSnap below 1e5: decimal drift correction stays exact", () => {
+    setupDOM();
+    const s = createSlider({ min: 0, max: 1, step: 0.1, defaultValue: [0] });
+    // Math.round((0.3-0)/0.1)*0.1 drifts to 0.30000000000000004 pre-correction;
+    // Math.round((0.7-0)/0.1)*0.1 drifts to 0.7000000000000001. The corrected
+    // regime (below 1e5 magnitude) must land on the exact decimal.
+    s.setValue([0.3]);
+    assert.strictEqual(s.value()[0], 0.3);
+    s.setValue([0.7]);
+    assert.strictEqual(s.value()[0], 0.7);
+    s.setValue([0.1]);
+    assert.strictEqual(s.value()[0], 0.1);
+    s.destroy();
+    teardownDOM();
+});
+
+test("clampSnap at/above 1e5 magnitude guard: finite, ordered, within bounds (no exactness claim)", () => {
+    setupDOM();
+    const s = createSlider({ min: 0, max: 2e5, step: 0.1, defaultValue: [0] });
+    // Above the 1e5 magnitude guard, clampSnap intentionally skips the
+    // Math.round(v*1e10)/1e10 correction (it would overflow f64's exact-
+    // integer range and corrupt the value). The honest contract is: finite,
+    // clamped to [min,max], and monotonic for monotonic inputs -- NOT
+    // decimal-exact.
+    const raws = [100000.111, 150000.222, 199999.333];
+    const results = raws.map((raw) => {
+        s.setValue([raw]);
+        return s.value()[0];
+    });
+    for (const v of results) {
+        assert.ok(Number.isFinite(v), `value must be finite: ${v}`);
+        assert.ok(v >= 0 && v <= 2e5, `value within [min,max]: ${v}`);
+    }
+    for (let i = 1; i < results.length; i++) {
+        assert.ok(results[i] >= results[i - 1], `monotonic for monotonic input: ${JSON.stringify(results)}`);
+    }
+    s.destroy();
+    teardownDOM();
+});

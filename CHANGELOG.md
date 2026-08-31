@@ -1,5 +1,48 @@
 # Changelog
 
+## 1.0.1 -- 2026-08-31
+
+### Fixed
+
+- H-01: illegal `closing` -> `open` status flash on a same-tick open/close
+  toggle. Each transition now captures a per-instance generation stamp; a
+  superseded finalize (microtask flip or transitionend commit) bails before
+  touching status. Covers both the uncontrolled path and the controlled
+  read-back. The surviving controlled read-back is additionally status-aware:
+  it advances only on the legal interrupt pairs (`closing` -> `opening`,
+  `opening` -> `closing`), so a net-zero same-tick flip emits nothing instead
+  of an illegal `closed` -> `closing` / `open` -> `opening` transition.
+- Escape now dismisses the most-recently-OPENED overlay, not the
+  most-recently-BOUND. A global monotonic open-sequence stamp is written on
+  each successful open; the shared keydown handler picks the open overlay with
+  the highest stamp. `defaultOpen` overlays (which never call setOpen) rank
+  lowest and still dismiss via the bind-order fallback.
+
+### Changed
+
+- slider `clampSnap` float-drift correction is now allocation-free
+  (magnitude-guarded integer rounding instead of `Number(v.toFixed(10))`).
+  Matches the old `toFixed(10)` semantics below 1e5 magnitude; at or above
+  1e5, where the multiply would overflow f64's exact-integer range,
+  correction is skipped and the value is returned untouched -- divergence
+  from the old path is ~1 ULP, on the order of the f64 grid step at that
+  magnitude.
+
+### Added
+
+- Mandatory zero-GC torture gate `npm run torture` (`@zakkster/lite-leak`
+  retention phase + `@zakkster/lite-gc-profiler` budget phase, plus a failing
+  `npm run torture:control` variant that proves the gate can fail). Wired into
+  `npm run verify`. Gate result at release: leak size 0/0, findings 0,
+  gc major 0, maxMs 0.53.
+- 8 named regression tests pinning the two fixes and the clampSnap regimes
+  (status generation guard x3, escape open-recency x3, clampSnap x2), each
+  with a failing-before reproduction against the pre-fix sources. Test totals:
+  1521 -> 1529.
+- `VERSION` const exported from `src/index.js`, declared in `types.d.ts`, and
+  stated in `llms.txt` -- three-place version sync (package.json, VERSION,
+  llms.txt) starts with this release.
+
 ## 1.0.0 -- 2026-06-26
 
 First public release. `@zakkster/lite-headless` is a zero-dependency set of

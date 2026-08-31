@@ -1,6 +1,6 @@
 {
   "name": "@zakkster/lite-headless",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Zero-dependency headless UI primitives — 58 ARIA-correct factories + custom-element wrappers, with explicit state-attribute CSS contract. Zero-GC hot paths; reactive accessors via lite-signal.",
   "type": "module",
   "main": "./src/index.js",
@@ -495,7 +495,9 @@
     "types": "tsc --noEmit",
     "types:watch": "tsc --noEmit --watch",
     "gen:appendix": "node scripts/gen-css-appendix.mjs",
-    "verify": "npm test && npm run types"
+    "torture": "node --expose-gc test/torture.mjs",
+    "torture:control": "TORTURE_CONTROL=1 node --expose-gc test/torture.mjs",
+    "verify": "npm test && npm run types && npm run torture"
   },
   "peerDependencies": {
     "@zakkster/lite-element": "^1.0.0",
@@ -511,6 +513,8 @@
     "@playwright/test": "^1.45.0",
     "@zakkster/lite-element": "^1.1.0",
     "@zakkster/lite-floating": "^1.0.0",
+    "@zakkster/lite-gc-profiler": "^1.16.0",
+    "@zakkster/lite-leak": "^1.10.0",
     "@zakkster/lite-observe": "^1.0.1",
     "@zakkster/lite-signal": "^1.2.2",
     "happy-dom": "^15.11.0",

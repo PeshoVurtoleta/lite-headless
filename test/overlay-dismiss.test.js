@@ -219,3 +219,63 @@ test("outside-click uses contains() when composedPath returns a sparse path", ()
     c.destroy();
     teardownDOM();
 });
+
+// --- escape open-recency (H-02) -----------------------------------------
+
+test("Escape closes the most-recently-OPENED overlay, not the most-recently-bound", () => {
+    setupDOM();
+    const a = createOverlayCore({ defaultOpen: false });
+    const b = createOverlayCore({ defaultOpen: false });
+    bindEscape(a); // bound first
+    bindEscape(b); // bound second (topmost by bind order)
+
+    b.setOpen(true); // opened first
+    a.setOpen(true); // opened second -- a is now visually on top
+
+    dispatchKey(document, "Escape");
+    assert.equal(a.open(), false, "most-recently-opened (a) closes");
+    assert.equal(b.open(), true, "b stays open");
+
+    a.destroy(); b.destroy();
+    teardownDOM();
+});
+
+test("re-open re-stamps recency", () => {
+    setupDOM();
+    const a = createOverlayCore({ defaultOpen: false });
+    const b = createOverlayCore({ defaultOpen: false });
+    bindEscape(a);
+    bindEscape(b);
+
+    a.setOpen(true);
+    b.setOpen(true);
+    a.setOpen(false);
+    a.setOpen(true); // re-open -- a is topmost again
+
+    dispatchKey(document, "Escape");
+    assert.equal(a.open(), false, "re-opened a closes");
+    assert.equal(b.open(), true, "b stays open");
+
+    a.destroy(); b.destroy();
+    teardownDOM();
+});
+
+test("defaultOpen overlay ranks lowest", () => {
+    setupDOM();
+    const a = createOverlayCore({ defaultOpen: true }); // never setOpen'd -- _openSeq stays 0
+    bindEscape(a);
+    const b = createOverlayCore({ defaultOpen: false });
+    bindEscape(b); // bound after a
+
+    b.setOpen(true); // explicitly opened -- outranks a's seq-0 stamp
+
+    dispatchKey(document, "Escape");
+    assert.equal(b.open(), false, "explicitly-opened b closes first");
+    assert.equal(a.open(), true, "defaultOpen a still open");
+
+    dispatchKey(document, "Escape");
+    assert.equal(a.open(), false, "defaultOpen a closes second (bind-order fallback among seq-0)");
+
+    a.destroy(); b.destroy();
+    teardownDOM();
+});

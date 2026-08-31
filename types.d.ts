@@ -23,6 +23,9 @@
 // Common types
 // =============================================================================
 
+/** Package version; equals package.json `version` exactly (three-place sync). */
+export const VERSION: string;
+
 /** Disposer returned by every `attachX()` method. Idempotent. */
 export type OffFn = () => void;
 

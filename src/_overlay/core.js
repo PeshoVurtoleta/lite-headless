@@ -22,9 +22,43 @@
 //     animationend on the content element passed via setContentForTransitions(),
 //     and only commits the final flip once the animation reports finished.
 //
+// A transition never starts from a resting state it is already in. The only
+// mid-transition interrupts are the two legal pairs opening->closing and
+// closing->opening; every other request from a resting state (a net-zero
+// same-tick flip) renders nothing.
+//
 // All teardown registers through `addCleanup`; `destroy()` runs them LIFO.
+//
+// SWALLOW-ON-TEARDOWN POLICY (H-11): teardown errors and consumer-callback
+// throws are swallowed BY DESIGN. `destroy()` runs every registered cleanup
+// even if one throws, so a single bad consumer cannot strand sibling
+// teardowns (listeners, portals, scroll locks). Likewise `onOpenChange` and
+// finalize callbacks are wrapped: a throwing consumer cannot corrupt the
+// state machine. `addCleanup` after `destroy()` runs the cleanup immediately
+// (LIFO ledger is already drained). No new throw paths are introduced here.
+//
+// STATUS-GENERATION GUARANTEE (H-01): each transition captures a factory-scope
+// generation stamp. A finalize (microtask flip or transitionend commit) that
+// has been superseded by a newer `setOpen` bails BEFORE touching status, so a
+// same-tick open->close (or close->open) toggle can never emit a stale status
+// such as the illegal closing->open flash. The surviving controlled read-back
+// is additionally status-aware: it only advances on the legal interrupt pairs
+// (closing->opening, opening->closing), so a net-zero same-tick flip whose
+// resting state never changed emits nothing rather than an illegal
+// closed->closing / open->opening transition.
+//
+// ESCAPE OPEN-RECENCY (H-02): every successful OPEN stamps `_openSeq` from a
+// module-scope monotonic counter. dismiss.js uses that stamp to dismiss the
+// most-recently-OPENED overlay on Escape (not the most-recently-BOUND).
 
 import { signal } from "@zakkster/lite-signal";
+
+// Module-scope monotonic open counter. Shared across ALL overlays so their
+// open events carry a single global ordering; dismiss.js reads `_openSeq` off
+// each bound overlay's handle to find the most-recently-opened one. Starts at
+// 0; a handle that never opened (or opened via defaultOpen before any setOpen)
+// keeps `_openSeq === 0` and ranks below any explicitly-opened overlay.
+let _openSeqCounter = 0;
 
 /** @typedef {'trigger'|'outside'|'escape'|'close'|'pointer-leave'|'api'} OpenChangeReason */
 
@@ -75,6 +109,14 @@ export function createOverlayCore(options = {}) {
     // ----- transition awaiting -------------------------------------------
     let _contentEl = null;
     let _pendingFinalize = null;
+    // Monotonic per-instance transition generation. Every scheduleFinalize()
+    // (and every controlled read-back) bumps this and captures its own value;
+    // a finalize whose captured gen no longer matches has been superseded by a
+    // newer setOpen and must not commit a status (H-01).
+    let _finalizeGen = 0;
+    // The handle returned at the end of the factory; `setOpen` stamps
+    // `handle._openSeq` on each OPEN. Assigned before any setOpen can run.
+    let handle = null;
 
     function setContentForTransitions(el) {
         _contentEl = el;
@@ -89,6 +131,10 @@ export function createOverlayCore(options = {}) {
 
     function scheduleFinalize(target) {
         clearPendingFinalize();
+        // Capture this transition's generation. A later setOpen bumps
+        // _finalizeGen again; when this finalize eventually fires we compare
+        // and bail if it no longer matches (superseded).
+        const gen = ++_finalizeGen;
         if (awaitTransitionEnd && _contentEl) {
             // Wait for transitionend/animationend bubbling up from content.
             // We bind once and resolve on first event of either type. If the
@@ -108,10 +154,15 @@ export function createOverlayCore(options = {}) {
         } else {
             // microtask flip -- gives one paint with the transitional status
             // so CSS animations starting from [data-status="opening"] work
-            const m = queueMicrotask(finalize);
-            _pendingFinalize = () => { /* microtask cannot be cancelled; finalize is idempotent below */ };
+            queueMicrotask(finalize);
+            _pendingFinalize = () => { /* microtask cannot be cancelled; the gen guard below no-ops a stale flip */ };
         }
         function finalize() {
+            // Superseded by a newer transition -> bail BEFORE touching status
+            // or _pendingFinalize (a later scheduleFinalize now owns the
+            // pending listener teardown; clearing here would strip ITS
+            // listeners and never commit its status). This is the H-01 guard.
+            if (gen !== _finalizeGen) return;
             clearPendingFinalize();
             if (destroyed) return;
             if (status.peek() !== target) status.set(target);
@@ -132,19 +183,39 @@ export function createOverlayCore(options = {}) {
 
         if (isControlled) {
             // controlled: consumer must flip the signal themselves; we just track status
-            // we wait one microtask to give them a chance, then read back
+            // we wait one microtask to give them a chance, then read back.
+            // Capture a generation NOW so a superseding setOpen in the same
+            // tick invalidates this stale read-back before it can paint a
+            // status the newer transition already moved past (H-01).
+            const gen = ++_finalizeGen;
             queueMicrotask(() => {
                 if (destroyed) return;
+                if (gen !== _finalizeGen) return; // superseded by a later setOpen
                 const settled = !!openSig.peek();
                 if (settled === want) {
-                    status.set(want ? "opening" : "closing");
-                    scheduleFinalize(want ? "open" : "closed");
+                    // Status-aware transition: the surviving read-back of a
+                    // net-zero same-tick flip must NOT start a transition from a
+                    // resting state it is already in (H-01). Only the legal
+                    // interrupt pairs advance: closing->opening on open, and
+                    // opening->closing on close.
+                    const st = status.peek();
+                    if (want) {
+                        if (st === "closed" || st === "closing") {
+                            status.set("opening");
+                            handle._openSeq = ++_openSeqCounter; // stamp open-recency
+                            scheduleFinalize("open");
+                        }
+                    } else if (st === "open" || st === "opening") {
+                        status.set("closing");
+                        scheduleFinalize("closed");
+                    }
                 }
                 // if consumer chose NOT to flip, status stays put (consumer veto)
             });
         } else {
             internal.set(want);
             status.set(want ? "opening" : "closing");
+            if (want) handle._openSeq = ++_openSeqCounter; // stamp open-recency
             scheduleFinalize(want ? "open" : "closed");
         }
     }
@@ -154,7 +225,11 @@ export function createOverlayCore(options = {}) {
     }
 
     // ----- handle ---------------------------------------------------------
-    return {
+    // Plain numeric `_openSeq` (init 0, reassigned in setOpen on each OPEN).
+    // Kept as a same-shape numeric property -- not a getter -- so the handle
+    // stays monomorphic and setOpen's stamp allocates nothing. dismiss.js
+    // reads it to order Escape dismissal by open-recency (H-02).
+    handle = {
         // read-only state
         open: readOnly(openSig),
         status: readOnly(status),
@@ -162,6 +237,9 @@ export function createOverlayCore(options = {}) {
         // imperative
         setOpen,
         toggle,
+
+        // open-recency stamp (H-02); 0 until the first successful open
+        _openSeq: 0,
 
         // internals for primitive composition
         _addCleanup: addCleanup,
@@ -172,6 +250,7 @@ export function createOverlayCore(options = {}) {
         destroy,
         get destroyed() { return destroyed; },
     };
+    return handle;
 }
 
 // ----- helpers ------------------------------------------------------------

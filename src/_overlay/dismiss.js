@@ -6,7 +6,7 @@
 //   bindOutsideClick(overlay, anchors)   -> closes on pointerdown outside the
 //                                           list of "inside" elements
 //
-// ESCAPE STACK SEMANTICS (v0.7.8)
+// ESCAPE STACK SEMANTICS (v0.7.8; open-recency rework H-02)
 //
 // Earlier versions used per-binding keydown listeners with a stack that
 // gated "am I the topmost binding?". That broke when N popovers were
@@ -14,30 +14,48 @@
 // topmost-bound handler saw the Escape, its overlay.open() check
 // returned false, and the event was swallowed. No popover closed.
 //
-// The fix is a single shared document listener that walks the stack
-// top-down and dispatches to the first OPEN overlay. Each bindEscape
-// call still pushes a stack entry (and pops on cleanup), but the
-// listener is registered once on document and removed when the stack
-// drains. Open/close state is sampled lazily at keydown time, so an
-// overlay opening after another stays "above" in dismissal order
-// regardless of construction order.
+// The fix is a single shared document listener that scans the stack and
+// dispatches to the most-recently-OPENED overlay. Each bindEscape call
+// still pushes a stack entry (and pops on cleanup); the listener is
+// registered once on document and removed when the stack drains.
+//
+// OPEN-RECENCY CONTRACT: bind order is NOT open order. Two overlays can be
+// bound A-then-B yet opened B-then-A, in which case A is visually on top and
+// Escape must dismiss A. core.js stamps each successful open with a global
+// monotonic `_openSeq`, so at keydown we pick the OPEN overlay with the
+// HIGHEST `_openSeq` -- the one opened last, i.e. on top.
+//
+// defaultOpen FALLBACK: an uncontrolled core created with `defaultOpen: true`
+// opens without ever calling setOpen, so its `_openSeq` stays 0 (as does any
+// overlay opened before the stamping existed). Among only-zero-seq open
+// overlays we fall back to the previous bind-order-top behavior (last bound
+// wins), so defaultOpen overlays still dismiss on Escape. Any explicitly
+// -opened overlay (seq > 0) outranks every seq-0 one.
+//
+// The handler allocates nothing: a single reverse scan tracking two locals.
 
 const _escapeStack = [];
 let _escapeListenerTarget = null;
 
 function _onEscapeKey(e) {
     if (e.key !== "Escape" && e.keyCode !== 27) return;
-    // top-down: the most recently bound overlay gets first refusal,
-    // but only OPEN overlays consume the event. Skipping closed
-    // overlays means an N-popover page where only the bottom one is
-    // open will still close on Escape -- the old design didn't.
+    // Single reverse pass: reverse order means the first OPEN entry we see is
+    // the bind-order-top one, which is exactly the seq-0 tie-breaker we want
+    // (later-bound wins among unstamped/defaultOpen overlays). We then let any
+    // strictly-higher `_openSeq` overwrite the pick, so an explicitly-opened
+    // overlay always outranks a seq-0 one and the newest open wins overall.
+    let best = null;
+    let bestSeq = -1;
     for (let i = _escapeStack.length - 1; i >= 0; i--) {
-        const entry = _escapeStack[i];
-        if (entry.overlay.open()) {
-            entry.overlay.setOpen(false, "escape");
-            return;
+        const overlay = _escapeStack[i].overlay;
+        if (!overlay.open()) continue;
+        const seq = overlay._openSeq || 0; // missing/0 => opened before stamping / defaultOpen
+        if (seq > bestSeq) {
+            bestSeq = seq;
+            best = overlay;
         }
     }
+    if (best) best.setOpen(false, "escape");
 }
 
 function _ensureEscapeListener(target) {
