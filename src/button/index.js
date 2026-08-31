@@ -40,11 +40,15 @@
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { setAttr, toggleAttr } from "../_overlay/aria.js";
+import { checkOptions } from "../_validate.js";
+
+const OPTION_KEYS = "toggle|pressed|loading|disabled|onPress";
 
 function noop() {}
 function removeAttr(el, name) { el.removeAttribute(name); }
 
 export function createButton(opts = {}) {
+    checkOptions("createButton", opts, OPTION_KEYS);
     const o = opts || {};
     // toggle === true means this is a toggle button (aria-pressed
     // gets painted). If `pressed` is provided as a boolean at

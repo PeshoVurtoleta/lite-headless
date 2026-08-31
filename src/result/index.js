@@ -19,6 +19,9 @@
 //   actions:     data-result-actions    role="group"
 
 import { setAttr } from "../_overlay/aria.js";
+import { checkOptions } from "../_validate.js";
+
+const OPTION_KEYS = "status";
 
 function noop() {}
 function removeAttr(el, name) { el.removeAttribute(name); }
@@ -29,6 +32,7 @@ const VALID_STATUS = new Set([
 ]);
 
 export function createResult(opts = {}) {
+    checkOptions("createResult", opts, OPTION_KEYS);
     const o = opts || {};
     const status = VALID_STATUS.has(o.status) ? o.status : "info";
     const _destroyed = { v: false };

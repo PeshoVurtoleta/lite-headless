@@ -22,11 +22,15 @@
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { setAttr, toggleAttr, ensureId } from "../_overlay/aria.js";
+import { checkOptions } from "../_validate.js";
+
+const OPTION_KEYS = "onVisibilityChange|visible";
 
 function noop() {}
 function removeAttr(el, name) { el.removeAttribute(name); }
 
 export function createPasswordInput(opts = {}) {
+    checkOptions("createPasswordInput", opts, OPTION_KEYS);
     const o = opts || {};
     const onVisibilityChange = (typeof o.onVisibilityChange === "function") ? o.onVisibilityChange : null;
 

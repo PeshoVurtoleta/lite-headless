@@ -58,6 +58,9 @@
 // We support both. Consumers can mix and match.
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
+import { checkOptions } from "../_validate.js";
+
+const OPTION_KEYS = "separator|onItemClick";
 
 const noop = () => {};
 function setAttr(el, name, value) {
@@ -68,6 +71,7 @@ function removeAttr(el, name) {
 }
 
 export function createBreadcrumb(options = {}) {
+    checkOptions("createBreadcrumb", options, OPTION_KEYS);
     const {
         separator = "/",
         onItemClick,

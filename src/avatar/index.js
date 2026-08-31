@@ -52,6 +52,9 @@
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { toggleAttr } from "../_overlay/aria.js";
+import { checkOptions } from "../_validate.js";
+
+const OPTION_KEYS = "src|name|initials|fallbackDelay|onLoad|onError";
 
 const noop = () => {};
 function setAttr(el, name, value) {
@@ -106,6 +109,7 @@ export function hueFromString(str) {
 }
 
 export function createAvatar(options = {}) {
+    checkOptions("createAvatar", options, OPTION_KEYS);
     const {
         src: initialSrc = null,
         name = "",

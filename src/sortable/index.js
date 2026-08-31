@@ -39,6 +39,9 @@
 //   Escape    -> cancel pickup, revert
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
+import { checkOptions } from "../_validate.js";
+
+const OPTION_KEYS = "orientation|items|onReorder|onDragStart|onDragEnd|applyDOMReorder|disabled|keyboardEnabled|dragStartThreshold|announceLive";
 
 const noop = () => {};
 let _idCounter = 0;
@@ -51,6 +54,7 @@ function removeAttr(el, name) {
 }
 
 export function createSortable(options = {}) {
+    checkOptions("createSortable", options, OPTION_KEYS);
     const {
         orientation        = "vertical",      // "vertical" | "horizontal"
         items: initialItems = [],             // string[] of starting keys

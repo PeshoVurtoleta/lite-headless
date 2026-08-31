@@ -1,5 +1,49 @@
 # Changelog
 
+## 1.1.0 -- 2026-08-31
+
+### Changed
+
+- H-04: unknown option keys, `null`, and non-object option bags now throw
+  `TypeError` at construction on all 58 public `createXxx` factories. Previously
+  an unknown key was silently ignored. The message carries a did-you-mean hint
+  (two-row Levenshtein; threshold 1 for keys <= 4 chars, else 2) or, when no key
+  is close enough, the full known-options list. `null` and non-objects
+  (number/string/boolean/function/array) are rejected; no-arg / `undefined`
+  stays legal, a known key with an `undefined` value is accepted (presence, not
+  value, is checked), and inherited/prototype and symbol keys are ignored. A
+  factory that reads no construction options rejects any key with a dedicated
+  "This factory takes no options." message, and a key literally containing the
+  "|" list delimiter is always rejected (never accepted as a spanning match).
+
+### Added
+
+- `src/_validate.js`: shared construction-time option validator (`checkOptions`).
+  Allocation-free membership scan on the success path; the Levenshtein suggester
+  runs only on the throw path.
+- `test/options-validation.test.js`: 58-factory drift guard plus did-you-mean,
+  null/non-object, and inherited-key coverage.
+- `test/options-boundary.test.js`: 26-test boundary matrix -- alias-direction
+  (internal destructure aliases such as `controlledOpen` / `_initialMax` are
+  rejected, public names accepted), mixed known/unknown bags, deterministic
+  first-unknown selection, first/last-key acceptance across both option
+  dialects, exact did-you-mean targets, value-not-validated contract, and
+  element-wrapper upgrade spot-checks.
+- Test totals 1529 -> 1562, all passing. Gates at release: `tsc --noEmit`
+  clean; `GATE leak=size 0/0 findings=0 warnings=3 | gc major=0 minor=22
+  maxMs=0.56 | ok`; control variant exits 1 at major=13.
+
+### Fixed
+
+- `test/carousel.test.js` passed its `slideCount` scene-helper knob straight
+  into `createCarousel` (not a carousel option; slide count derives from
+  attached slides). Latent caller bug surfaced by the new validation; fixed at
+  the caller.
+
+Per-call bags (`toast.show`, `notificationCenter.add`, tour steps,
+sortable/kanban payloads, per-item `attach*` options) are not yet validated;
+deferred as H-04b.
+
 ## 1.0.1 -- 2026-08-31
 
 ### Fixed

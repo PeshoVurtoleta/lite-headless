@@ -58,10 +58,14 @@
 // pointercancel stops the repeat.
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
+import { checkOptions } from "../_validate.js";
+
+const OPTION_KEYS = "value|defaultValue|min|max|step|largeStep|precision|formatter|parser|locale|onValueChange|repeatDelay|repeatInterval|selectOnFocus|disabled";
 
 const noop = () => {};
 
 export function createStepper(options = {}) {
+    checkOptions("createStepper", options, OPTION_KEYS);
     const {
         value: valueSignal,
         defaultValue = 0,

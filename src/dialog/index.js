@@ -25,8 +25,16 @@ import { createFocusTrap } from "../_overlay/focus.js";
 import { lockScroll } from "../_overlay/scroll-lock.js";
 import { portal } from "../_overlay/portal.js";
 import { uniqueId, setAttr, toggleAttr, ensureId, addIdToken, removeIdToken } from "../_overlay/aria.js";
+import { checkOptions } from "../_validate.js";
+
+// Exported so alert-dialog (createDialog with a stricter dismiss policy) can
+// validate against the identical option surface. Not re-exported from the
+// root barrel: src/index.js uses explicit named re-exports, so this stays a
+// dialog-subpath-only symbol and never leaks into the root namespace.
+export const DIALOG_OPTION_KEYS = "open|defaultOpen|onOpenChange|modal|closeOnEscape|closeOnOutsideClick|initialFocus|finalFocus|placement|role|container|transition|labelledBy|describedBy";
 
 export function createDialog(options = {}) {
+    checkOptions("createDialog", options, DIALOG_OPTION_KEYS);
     const {
         open,
         defaultOpen = false,

@@ -71,6 +71,9 @@
 // 80% expired through the pause.
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
+import { checkOptions } from "../_validate.js";
+
+const OPTION_KEYS = "placement|duration|swipeToDismiss|swipeDirection|swipeThreshold|maxStack|pauseOnHover|pauseOnFocus|announceLive|defaultUrgent|onDismiss|onShow";
 
 const noop = () => {};
 let _idCounter = 0;
@@ -98,6 +101,7 @@ function defaultSwipeForPlacement(placement) {
 }
 
 export function createToast(options = {}) {
+    checkOptions("createToast", options, OPTION_KEYS);
     const {
         placement       = "bottom-right",
         duration        = 5000,         // ms, 0 = no auto-dismiss

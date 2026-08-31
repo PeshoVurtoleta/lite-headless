@@ -22,6 +22,9 @@
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { setAttr, toggleAttr } from "../_overlay/aria.js";
+import { checkOptions } from "../_validate.js";
+
+const OPTION_KEYS = "dot|max|showZero|intent|count";
 
 function noop() {}
 function removeAttr(el, name) { el.removeAttribute(name); }
@@ -29,6 +32,7 @@ function removeAttr(el, name) { el.removeAttribute(name); }
 const VALID_INTENTS = new Set(["default", "primary", "success", "info", "warning", "danger"]);
 
 export function createBadge(opts = {}) {
+    checkOptions("createBadge", opts, OPTION_KEYS);
     const o = opts || {};
     const isDot = !!o.dot;
     const max = (typeof o.max === "number" && o.max > 0) ? Math.floor(o.max) : 99;

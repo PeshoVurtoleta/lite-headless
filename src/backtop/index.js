@@ -18,11 +18,15 @@
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { setAttr, toggleAttr } from "../_overlay/aria.js";
+import { checkOptions } from "../_validate.js";
+
+const OPTION_KEYS = "threshold|smooth|onActivate";
 
 function noop() {}
 function removeAttr(el, name) { el.removeAttribute(name); }
 
 export function createBackTop(opts = {}) {
+    checkOptions("createBackTop", opts, OPTION_KEYS);
     const o = opts || {};
     const _threshold = (typeof o.threshold === "number" && o.threshold >= 0)
                      ? o.threshold : 200;

@@ -93,6 +93,9 @@
 //   commits per commitOn.
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
+import { checkOptions } from "../_validate.js";
+
+const OPTION_KEYS = "initialValue|placeholder|trim|allowEmpty|commitOn|cancelOn|normalize|validate|onChange|onCommit|onCancel|onInvalid|onEditStart|multiline|ariaLabel";
 
 const noop = () => {};
 
@@ -104,6 +107,7 @@ function removeAttr(el, name) {
 }
 
 export function createInlineEdit(options = {}) {
+    checkOptions("createInlineEdit", options, OPTION_KEYS);
     const {
         initialValue = "",
         placeholder = "",

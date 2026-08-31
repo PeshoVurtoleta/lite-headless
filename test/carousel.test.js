@@ -164,8 +164,11 @@ test("detaching a slide repaints sibling labels (4 of 5 -> 4 of 4)", () => {
 // -----------------------------------------------------------------
 
 function buildPopulated(opts = {}) {
-    const scene = mkScene({ slideCount: opts.slideCount || 5 });
-    const c = createCarousel(opts);
+    // slideCount is an mkScene helper knob, not a createCarousel option --
+    // keep it out of the factory bag (the factory derives count from slides).
+    const { slideCount = 5, ...carouselOpts } = opts;
+    const scene = mkScene({ slideCount });
+    const c = createCarousel(carouselOpts);
     c.attachRoot(scene.root);
     c.attachViewport(scene.viewport);
     scene.slides.forEach((s, i) => c.attachSlide(s, i));

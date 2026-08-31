@@ -1,6 +1,6 @@
 # @zakkster/lite-headless
 
-> 58 headless UI primitives on signal-based reactivity. Overlays (dialog, alert-dialog, popover, tooltip, hover-card, menu, combobox, command-palette, toast, drawer, tour) share one composition core; form controls and data/display primitives live alongside. Each primitive ships an optional `<lite-*>` custom element. Framework-agnostic, tree-shakable, zero runtime deps, 1529 tests, MIT.
+> 58 headless UI primitives on signal-based reactivity. Overlays (dialog, alert-dialog, popover, tooltip, hover-card, menu, combobox, command-palette, toast, drawer, tour) share one composition core; form controls and data/display primitives live alongside. Each primitive ships an optional `<lite-*>` custom element. Framework-agnostic, tree-shakable, zero runtime deps, 1562 tests, MIT.
 
 [![npm version](https://img.shields.io/npm/v/@zakkster/lite-headless.svg?style=for-the-badge&color=latest)](https://www.npmjs.com/package/@zakkster/lite-headless)
 [![sponsor](https://img.shields.io/badge/sponsor-PeshoVurtoleta-ea4aaa.svg?logo=github)](https://github.com/sponsors/PeshoVurtoleta)
@@ -31,7 +31,7 @@ dialog.status.subscribe((s) => {
 dialog.setOpen(true, "api");
 ```
 
-## Current scope (v1.0.1)
+## Current scope (v1.1.0)
 
 > Note: the detailed prose further down this README predates the catalog
 > expansion and still describes the original overlay core in depth. The

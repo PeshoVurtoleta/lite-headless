@@ -34,6 +34,9 @@
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { setAttr } from "../_overlay/aria.js";
+import { checkOptions } from "../_validate.js";
+
+const OPTION_KEYS = "value|min|max|low|high|optimum|label|valueText";
 
 function noop() {}
 function removeAttr(el, name) { el.removeAttribute(name); }
@@ -85,6 +88,7 @@ function computeState(v, min, max, low, high, optimum) {
 }
 
 export function createMeter(opts = {}) {
+    checkOptions("createMeter", opts, OPTION_KEYS);
     const o = opts || {};
     const _value    = makeSignal(typeof o.value === "number" ? o.value : 0);
     const _min      = typeof o.min === "number" ? o.min : 0;

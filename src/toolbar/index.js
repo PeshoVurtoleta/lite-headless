@@ -20,11 +20,15 @@
 
 import { setAttr, toggleAttr } from "../_overlay/aria.js";
 import { createRovingFocus, STRATEGY_DOM_FOCUS } from "../_overlay/roving-focus.js";
+import { checkOptions } from "../_validate.js";
+
+const OPTION_KEYS = "orientation|loop";
 
 function noop() {}
 function removeAttr(el, name) { el.removeAttribute(name); }
 
 export function createToolbar(opts = {}) {
+    checkOptions("createToolbar", opts, OPTION_KEYS);
     const o = opts || {};
     const orientation = o.orientation === "vertical" ? "vertical" : "horizontal";
     const loop = o.loop !== false;    // default true

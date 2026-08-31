@@ -41,10 +41,14 @@ import { createOverlayCore } from "../_overlay/core.js";
 import { bindEscape } from "../_overlay/dismiss.js";
 import { portal } from "../_overlay/portal.js";
 import { uniqueId, setAttr, toggleAttr, ensureId } from "../_overlay/aria.js";
+import { checkOptions } from "../_validate.js";
+
+const OPTION_KEYS = "open|defaultOpen|onOpenChange|placement|offset|flip|shift|openDelay|closeDelay|closeOnEscape|container|transition";
 
 function noop() {}
 
 export function createHoverCard(options = {}) {
+    checkOptions("createHoverCard", options, OPTION_KEYS);
     const {
         open,
         defaultOpen = false,

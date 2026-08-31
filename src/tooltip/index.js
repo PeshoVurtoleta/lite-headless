@@ -30,8 +30,12 @@ import { bindEscape } from "../_overlay/dismiss.js";
 import { createPositioner } from "../_overlay/position.js";
 import { portal } from "../_overlay/portal.js";
 import { uniqueId, setAttr, toggleAttr, ensureId, addIdToken, removeIdToken } from "../_overlay/aria.js";
+import { checkOptions } from "../_validate.js";
+
+const OPTION_KEYS = "open|defaultOpen|onOpenChange|placement|offset|flip|shift|boundary|trigger|openDelay|closeDelay|closeOnEscape|container|transition|describesTrigger";
 
 export function createTooltip(options = {}) {
+    checkOptions("createTooltip", options, OPTION_KEYS);
     const {
         open,
         defaultOpen = false,

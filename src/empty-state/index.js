@@ -35,11 +35,15 @@
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { setAttr, toggleAttr, ensureId } from "../_overlay/aria.js";
+import { checkOptions } from "../_validate.js";
+
+const OPTION_KEYS = "variant";
 
 function noop() {}
 function removeAttr(el, name) { el.removeAttribute(name); }
 
 export function createEmptyState(opts = {}) {
+    checkOptions("createEmptyState", opts, OPTION_KEYS);
     const o = opts || {};
     const _variant = makeSignal(typeof o.variant === "string" ? o.variant : "empty");
     const _destroyed = { v: false };

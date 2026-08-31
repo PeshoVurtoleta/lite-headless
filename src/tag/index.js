@@ -21,6 +21,9 @@
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { setAttr, toggleAttr } from "../_overlay/aria.js";
+import { checkOptions } from "../_validate.js";
+
+const OPTION_KEYS = "closable|intent|onClose";
 
 function noop() {}
 function removeAttr(el, name) { el.removeAttribute(name); }
@@ -28,6 +31,7 @@ function removeAttr(el, name) { el.removeAttribute(name); }
 const VALID_INTENTS = new Set(["default", "primary", "success", "info", "warning", "danger"]);
 
 export function createTag(opts = {}) {
+    checkOptions("createTag", opts, OPTION_KEYS);
     const o = opts || {};
     const closable = !!o.closable;
     const _intent  = makeSignal(VALID_INTENTS.has(o.intent) ? o.intent : "default");

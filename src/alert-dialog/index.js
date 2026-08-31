@@ -17,9 +17,11 @@
 // identical to dialog. Same surface, same contract: an alert dialog IS a
 // dialog with a stricter dismiss policy and a more assertive role.
 
-import { createDialog } from "../dialog/index.js";
+import { createDialog, DIALOG_OPTION_KEYS } from "../dialog/index.js";
+import { checkOptions } from "../_validate.js";
 
 export function createAlertDialog(opts = {}) {
+    checkOptions("createAlertDialog", opts, DIALOG_OPTION_KEYS);
     const o = opts || {};
     return createDialog({
         ...o,

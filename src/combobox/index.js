@@ -48,8 +48,12 @@ import { createPositioner } from "../_overlay/position.js";
 import { portal } from "../_overlay/portal.js";
 import { uniqueId, setAttr, toggleAttr, ensureId, addIdToken, removeIdToken } from "../_overlay/aria.js";
 import { createRovingFocus, STRATEGY_ACTIVE_DESCENDANT } from "../_overlay/roving-focus.js";
+import { checkOptions } from "../_validate.js";
+
+const OPTION_KEYS = "open|defaultOpen|onOpenChange|value|defaultValue|onValueChange|placement|offset|flip|shift|boundary|typeahead|typeaheadTimeout|loop|autoFocus|closeOnSelect|closeOnEscape|closeOnOutsideClick|container|transition";
 
 export function createCombobox(options = {}) {
+    checkOptions("createCombobox", options, OPTION_KEYS);
     const {
         open, defaultOpen = false, onOpenChange,
         value: valueOpt, defaultValue = null, onValueChange,

@@ -40,12 +40,16 @@
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { setAttr, toggleAttr, ensureId } from "../_overlay/aria.js";
+import { checkOptions } from "../_validate.js";
+
+const OPTION_KEYS = "defaultNotifications|maxItems|defaultFilter|onChange|onMarkRead|onMarkAllRead|onClear|onClearAll";
 
 function noop() {}
 
 const VALID_KINDS = ["info", "success", "warning", "error", "system"];
 
 export function createNotificationCenter(options = {}) {
+    checkOptions("createNotificationCenter", options, OPTION_KEYS);
     const {
         defaultNotifications = [],
         maxItems = null,            // null = unbounded; integer = oldest are evicted

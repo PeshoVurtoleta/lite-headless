@@ -35,11 +35,15 @@
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { setAttr, toggleAttr, ensureId } from "../_overlay/aria.js";
+import { checkOptions } from "../_validate.js";
+
+const OPTION_KEYS = "collapsible|dismissible|label|onCollapseChange|onDismiss|collapsed|dismissed";
 
 function noop() {}
 function removeAttr(el, name) { el.removeAttribute(name); }
 
 export function createCard(opts = {}) {
+    checkOptions("createCard", opts, OPTION_KEYS);
     const o = opts || {};
     const collapsible = !!o.collapsible;
     const dismissible = !!o.dismissible;

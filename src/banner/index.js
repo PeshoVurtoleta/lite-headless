@@ -28,6 +28,9 @@
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { setAttr, toggleAttr, ensureId } from "../_overlay/aria.js";
+import { checkOptions } from "../_validate.js";
+
+const OPTION_KEYS = "defaultOpen|defaultKind|onOpenChange|onDismiss|dismissOnEscape";
 
 function noop() {}
 
@@ -45,6 +48,7 @@ function ariaForKind(k) {
 }
 
 export function createBanner(options = {}) {
+    checkOptions("createBanner", options, OPTION_KEYS);
     const {
         defaultOpen = true,
         defaultKind = "info",

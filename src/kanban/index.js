@@ -37,10 +37,14 @@
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { setAttr, toggleAttr, ensureId } from "../_overlay/aria.js";
 import { createSortable } from "../sortable/index.js";
+import { checkOptions } from "../_validate.js";
+
+const OPTION_KEYS = "columns|cards|onCardMove|onCardClick|onColumnAdd|onColumnRemove|sortableOptions|inColumnSortable";
 
 function noop() {}
 
 export function createKanban(options = {}) {
+    checkOptions("createKanban", options, OPTION_KEYS);
     const {
         columns: initialColumns = [],
         cards: initialCards = [],

@@ -26,10 +26,14 @@
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { setAttr, toggleAttr, ensureId, addIdToken, removeIdToken } from "../_overlay/aria.js";
+import { checkOptions } from "../_validate.js";
+
+const OPTION_KEYS = "defaultValid|defaultErrorMessage|defaultRequired|defaultTouched|showErrorsBeforeTouched|onValidChange|onTouch";
 
 function noop() {}
 
 export function createFormField(options = {}) {
+    checkOptions("createFormField", options, OPTION_KEYS);
     const {
         defaultValid = true,
         defaultErrorMessage = null,

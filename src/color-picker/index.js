@@ -44,6 +44,9 @@
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { toggleAttr } from "../_overlay/aria.js";
+import { checkOptions } from "../_validate.js";
+
+const OPTION_KEYS = "onValueChange|onCommit|alpha|defaultHsv|defaultRgb|defaultHex";
 
 function noop() {}
 
@@ -222,6 +225,7 @@ function hsvToHsl(h, s, v) {
 // ─── primitive ───────────────────────────────────────────────────────
 
 export function createColorPicker(opts = {}) {
+    checkOptions("createColorPicker", opts, OPTION_KEYS);
     const o = opts || {};
     const onValueChange = typeof o.onValueChange === "function" ? o.onValueChange : null;
     const onCommit      = typeof o.onCommit      === "function" ? o.onCommit      : null;

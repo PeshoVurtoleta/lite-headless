@@ -21,11 +21,15 @@
 // id on the label is referenced from the value).
 
 import { setAttr, ensureId } from "../_overlay/aria.js";
+import { checkOptions } from "../_validate.js";
+
+const OPTION_KEYS = "columns|bordered";
 
 function noop() {}
 function removeAttr(el, name) { el.removeAttribute(name); }
 
 export function createDescriptions(opts = {}) {
+    checkOptions("createDescriptions", opts, OPTION_KEYS);
     const o = opts || {};
     const columns = (typeof o.columns === "number" && o.columns >= 1 && o.columns <= 4)
                   ? Math.floor(o.columns) : 1;

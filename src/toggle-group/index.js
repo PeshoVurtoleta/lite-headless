@@ -70,6 +70,9 @@
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { toggleAttr } from "../_overlay/aria.js";
 import { createRovingFocus, STRATEGY_DOM_FOCUS } from "../_overlay/roving-focus.js";
+import { checkOptions } from "../_validate.js";
+
+const OPTION_KEYS = "type|value|defaultValue|disabled|loop|allowDeselect|orientation|onValueChange";
 
 const noop = () => {};
 let _idCounter = 0;
@@ -82,6 +85,7 @@ function removeAttr(el, name) {
 }
 
 export function createToggleGroup(options = {}) {
+    checkOptions("createToggleGroup", options, OPTION_KEYS);
     const {
         type = "single",
         value: externalValue,

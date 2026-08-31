@@ -19,6 +19,9 @@
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { setAttr } from "../_overlay/aria.js";
+import { checkOptions } from "../_validate.js";
+
+const OPTION_KEYS = "decorative|orientation";
 
 function noop() {}
 function removeAttr(el, name) { el.removeAttribute(name); }
@@ -26,6 +29,7 @@ function removeAttr(el, name) { el.removeAttribute(name); }
 const VALID_ORIENTATIONS = new Set(["horizontal", "vertical"]);
 
 export function createSeparator(opts = {}) {
+    checkOptions("createSeparator", opts, OPTION_KEYS);
     const o = opts || {};
     const decorative = !!o.decorative;
     const _orientation = makeSignal(
