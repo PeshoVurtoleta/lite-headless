@@ -1,5 +1,45 @@
 # Changelog
 
+## 1.4.0 -- 2026-08-31
+
+### Added
+
+- 31 helper declarations in their subpaths' own `declare module` blocks in
+  types.d.ts (avatar 2: `deriveInitials`, `hueFromString`; pagination 1:
+  `buildItems`; color-picker 10 color-math helpers; datepicker 18 date helpers),
+  each declared where it lives so no live export depends on the allowlist.
+
+### Removed
+
+- `DIALOG_OPTION_KEYS` from the `./dialog` public surface. It relocates to the
+  private `src/_validate.js` validator module (exported alongside `checkOptions`),
+  which no exports subpath can reach; dialog and alert-dialog import it from
+  there. `./dialog`'s live exports are now exactly `["createDialog"]`. See ADR
+  0002. Not a documented removal: the symbol was in no README, `llms.txt`, or
+  types.d.ts, and never in the root barrel.
+
+### Fixed
+
+- The three names referenced by the barrel re-export lines (types.d.ts:56/:80:
+  `deriveInitials`, `hueFromString`, `buildItems`) previously existed nowhere in
+  the file; they are now declared in their own avatar/pagination blocks. The
+  barrel lines' resolution behavior under the tsconfig `paths` self-map is
+  unchanged (error-typed, identical to every pre-existing barrel re-export line).
+
+### Changed
+
+- The api-surface gate's `undocumented` allowlist is now empty and its
+  exact-count pin moves from 32 to 0. Every live export is declared in its
+  subpath's own `declare module` block, and the gate's declaration scan is now
+  block-scoped per export (previously name-global across the whole file): a
+  missing block fails closed, and a file-top-level declaration counts only for
+  the bare `.` specifier (`VERSION`, the sole such case).
+- tsc-level signature verification through imports is infeasible under the
+  current `paths` self-map (@zakkster/lite-headless{,/*} -> types.d.ts), which
+  resolves value bindings to permissive error types; recorded as a measured
+  constraint in `type-tests/api-surface.ts`. Declaration parity is enforced
+  fail-closed by `test/api-surface.test.js`.
+
 ## 1.3.0 -- 2026-08-31
 
 ### Added

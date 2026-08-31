@@ -257,7 +257,7 @@ Classes 1-3 are outputs the primitive writes; class 4 are inputs the wrapper rea
 
 | Export           | Meaning                                                           |
 | ---------------- | ---------------------------------------------------------------- |
-| `VERSION`        | Package version string (`"1.3.0"`), also mirrored in `llms.txt`. |
+| `VERSION`        | Package version string (`"1.4.0"`), also mirrored in `llms.txt`. |
 | status values    | `"closed"` -> `"opening"` -> `"open"` -> `"closing"` (per overlay). |
 | generated id ns  | `lh-dialog-`, `lh-popover-`, ... namespaced per primitive.        |
 

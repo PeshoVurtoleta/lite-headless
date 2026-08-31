@@ -779,3 +779,18 @@ import { createAnchor } from "@zakkster/lite-headless/anchor";
         void frac; void done;
     }
 });
+
+// =============================================================================
+// Helper signatures: not tsc-testable through imports (measured constraint)
+// =============================================================================
+//
+// The 31 pure helpers (avatar deriveInitials/hueFromString, pagination
+// buildItems, 10 color-math, 18 date) are declared in their own declare-module
+// blocks. Under the tsconfig `paths` self-map (@zakkster/lite-headless{,/*} ->
+// types.d.ts), barrel and subpath VALUE bindings resolve to the types.d.ts file
+// top level as permissive error types, so tsc cannot assert any value-export
+// signature through an import (probed: TS2305 on a subpath value import, TS2339
+// on typeof-import member access). Name-level declaration parity is enforced
+// fail-closed by test/api-surface.test.js (block-scoped scan + the
+// undocumented[] === 0 pin); the 31 signatures were verified against src by
+// hand in review.

@@ -1,6 +1,6 @@
 {
   "name": "@zakkster/lite-headless",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Zero-dependency headless UI primitives -- 58 ARIA-correct factories + custom-element wrappers, with explicit state-attribute CSS contract. Zero-GC hot paths; reactive accessors via lite-signal.",
   "type": "module",
   "main": "./src/index.js",
