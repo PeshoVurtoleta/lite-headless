@@ -63,7 +63,7 @@ export const STRATEGY_ACTIVE_DESCENDANT = "active-descendant";
  *   Required for active-descendant strategy. The element whose
  *   `aria-activedescendant` is updated to the highlighted item's id.
  * @param {boolean} [opts.loop=true]
- *   Whether `move(±1)` wraps at the ends.
+ *   Whether `move(+-1)` wraps at the ends.
  * @param {boolean} [opts.typeahead=true]
  * @param {number}  [opts.typeaheadTimeout=500]
  * @param {(item) => string} [opts.getLabel]

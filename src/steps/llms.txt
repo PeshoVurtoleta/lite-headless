@@ -7,10 +7,10 @@ workflows.
 
 ## Per-step status
 
-- **`complete`** — passed; can navigate back to it
-- **`current`** — the active step
-- **`pending`** — not yet reached
-- **`error`** — failed validation; needs attention (explicit override)
+- **`complete`** -- passed; can navigate back to it
+- **`current`** -- the active step
+- **`pending`** -- not yet reached
+- **`error`** -- failed validation; needs attention (explicit override)
 
 Default status is derived from each step's index vs the current index.
 `setStepStatus(id, "error")` overrides for that one step.

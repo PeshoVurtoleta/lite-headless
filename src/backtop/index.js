@@ -46,7 +46,7 @@ export function createBackTop(opts = {}) {
     const _cleanups = [];
     function addCleanup(fn) { _cleanups.push(fn); }
 
-    // Throttle scroll → paint via rAF in browsers, setTimeout(0) in
+    // Throttle scroll -> paint via rAF in browsers, setTimeout(0) in
     // non-browser test environments where rAF doesn't exist. We
     // resolve once per primitive instance so the fallback path is
     // deterministic.

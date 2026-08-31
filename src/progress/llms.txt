@@ -5,7 +5,7 @@ or indeterminate. The primitive owns reactive value clamping + ARIA
 painting + a CSS custom property `--progress` (0..1) on the root; the
 consumer provides the markup and CSS.
 
-## Quick example — linear
+## Quick example -- linear
 
 ```js
 import { createProgress } from "@zakkster/lite-headless/progress";
@@ -44,7 +44,7 @@ pg.attachBar(barEl);       // optional: bar element gets --progress + data-progr
 }
 ```
 
-## Quick example — circular
+## Quick example -- circular
 
 ```js
 const pg = createProgress({
@@ -80,7 +80,7 @@ pg.attachIndicator(indEl);
 .progress-ring .ind {
     stroke: var(--primary);
     stroke-linecap: round;
-    /* circumference = 2π * r = 2π * 16 ≈ 100.53 */
+    /* circumference = 2pi * r = 2pi * 16 ~ 100.53 */
     stroke-dasharray: 100.53;
     stroke-dashoffset: calc(100.53 * (1 - var(--progress)));
     transition: stroke-dashoffset 200ms;
@@ -105,9 +105,9 @@ pg.attachIndicator(indEl);
 
 | Element      | Attributes painted by primitive                            |
 | ------------ | ---------------------------------------------------------- |
-| Root         | `role="progressbar"` · `aria-valuenow` (omitted when indeterminate) · `aria-valuemin` · `aria-valuemax` · `aria-valuetext` · `aria-label` (or `aria-labelledby` via attachLabel) · `data-progress-root` · `data-complete` (when value === max) · `data-loading` (when value < max) · `data-variant` · `data-indeterminate` |
-| Bar          | `data-progress-bar` · `data-progress="NN"` (0-100 int)     |
-| Indicator    | `data-progress-indicator` · `data-progress="NN"`           |
+| Root         | `role="progressbar"` - `aria-valuenow` (omitted when indeterminate) - `aria-valuemin` - `aria-valuemax` - `aria-valuetext` - `aria-label` (or `aria-labelledby` via attachLabel) - `data-progress-root` - `data-complete` (when value === max) - `data-loading` (when value < max) - `data-variant` - `data-indeterminate` |
+| Bar          | `data-progress-bar` - `data-progress="NN"` (0-100 int)     |
+| Indicator    | `data-progress-indicator` - `data-progress="NN"`           |
 
 The CSS custom property `--progress` (0..1 number) is set on root, bar,
 and indicator. Consumer CSS uses it for whatever rendering they choose:
@@ -117,22 +117,22 @@ width %, scaleX, stroke-dashoffset, conic-gradient angle, etc.
 
 ```
 construct
-    │
-    ▼
-┌──────────┐   value < max     ┌──────────┐
-│ loading  │ ────────────────► │ loading  │  (paints repeat as value changes)
-└──────────┘                   └────┬─────┘
-                                    │
+    |
+    v
++----------+   value < max     +----------+
+| loading  | ----------------> | loading  |  (paints repeat as value changes)
++----------+                   +----+-----+
+                                    |
                               value >= max
-                                    │
-                                    ▼
-                              ┌──────────┐
-                              │ complete │  data-complete
-                              └──────────┘  onComplete fires once
+                                    |
+                                    v
+                              +----------+
+                              | complete |  data-complete
+                              +----------+  onComplete fires once
 ```
 
 `data-complete` is set whenever `value >= max && !indeterminate`,
-otherwise `"loading"`. `onComplete` fires on the 0→1 transition; if
+otherwise `"loading"`. `onComplete` fires on the 0->1 transition; if
 `setValue` later drops below `max` and returns to `max`, it fires again.
 
 ## Indeterminate mode
@@ -255,14 +255,14 @@ api.estimateSize().then(total => {
 
 ## When NOT to use
 
-- **Indeterminate spinners with no progress context** — a CSS-only spinner
+- **Indeterminate spinners with no progress context** -- a CSS-only spinner
   is lighter. Use this primitive only when there's actual progress to
   communicate (even "we don't know how much" is meaningful when paired
   with `indeterminate: true`).
-- **Stepper / wizard UI with named steps** — use `stepper` instead, which
+- **Stepper / wizard UI with named steps** -- use `stepper` instead, which
   has named-step ARIA and keyboard navigation. `progress` is for a single
   number; `stepper` is for a sequence of labeled stations.
-- **Loading skeletons** — those should use a dedicated skeleton primitive
+- **Loading skeletons** -- those should use a dedicated skeleton primitive
   (coming) which coordinates multiple placeholders revealing together.
 
 ## CSS contract

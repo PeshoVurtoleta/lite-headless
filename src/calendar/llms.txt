@@ -106,9 +106,9 @@ Each returns an `off()` function. All offs run in LIFO order at `destroy()`.
 ```html
 <lite-calendar view="2026-06-01" week-starts-on="0">
     <header>
-        <button data-cal-prev>‹</button>
+        <button data-cal-prev><</button>
         <span  data-cal-label></span>
-        <button data-cal-next>›</button>
+        <button data-cal-next>></button>
     </header>
     <div data-cal-grid>
         <!-- consumer renders day cells via [data-cal-day][data-date] -->
@@ -139,8 +139,8 @@ host._calendarInstance                 // raw primitive escape hatch
 ## Composition
 
 Calendar pairs naturally with:
-- `lite-popover` for "click date → show event creation popover"
-- `lite-dialog` for "click event → show event detail modal"
+- `lite-popover` for "click date -> show event creation popover"
+- `lite-dialog` for "click event -> show event detail modal"
 - `lite-toast`  for "event saved" notifications
 - `lite-skeleton` for loading state while fetching events
 

@@ -32,7 +32,7 @@ for (let i = 0; i < 6; i++) {
 </div>
 ```
 
-The consumer styles `.pin-box` however they want — typically `width: 2.5rem; text-align: center; font-size: 1.5rem;` and an outline on `:focus`. Nothing about layout or sizing is owned by the primitive.
+The consumer styles `.pin-box` however they want -- typically `width: 2.5rem; text-align: center; font-size: 1.5rem;` and an outline on `:focus`. Nothing about layout or sizing is owned by the primitive.
 
 ## Behavior
 
@@ -84,8 +84,8 @@ Invalid characters are silently dropped at the keystroke -- no flash of bad inpu
 | `type`            | `"numeric"`    | `"numeric"` / `"alphanumeric"` / `RegExp`        |
 | `initialValue`    | `""`           | Filtered through `type` before being stored      |
 | `onChange`        | -              | `(value, isComplete) => void`                    |
-| `onComplete`      | -              | `(value) => void` — fires once per incomplete -> complete edge |
-| `onInvalidPaste`  | -              | `(rawText) => void` — fires when paste has no valid chars |
+| `onComplete`      | -              | `(value) => void` -- fires once per incomplete -> complete edge |
+| `onInvalidPaste`  | -              | `(rawText) => void` -- fires when paste has no valid chars |
 | `inputAriaLabel`  | `(i, n) => "Digit N of N"` | Customize per-input aria-label    |
 | `ariaLabel`       | `"One-time code"` | Applied to the root group                     |
 
@@ -135,7 +135,7 @@ Each input:
 const pin = createPinInput({
     length: 6,
     onComplete: async (code) => {
-        statusEl.textContent = "Verifying…";
+        statusEl.textContent = "Verifying...";
         try {
             await api.verifyMfa(code);
             location.href = "/dashboard";

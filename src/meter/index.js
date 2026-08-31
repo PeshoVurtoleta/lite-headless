@@ -52,7 +52,7 @@ function clamp(n, lo, hi) {
 // + thresholds. Mirrors browser behavior for <meter low high optimum>.
 function computeState(v, min, max, low, high, optimum) {
     // If no thresholds defined, everything is "optimum" (matches
-    // browser default rendering — the meter shows in the standard
+    // browser default rendering -- the meter shows in the standard
     // "good" color).
     if (low == null && high == null) return "optimum";
     // "Optimum" region is one of three: below low, between low/high,
@@ -142,7 +142,7 @@ export function createMeter(opts = {}) {
             const f = clamp((v - _min) / (_max - _min), 0, 1);
             const st = computeState(v, _min, _max, _low, _high, _optimum);
             const vt = _valueText();
-            // Custom property — usable by both root and fill.
+            // Custom property -- usable by both root and fill.
             el.style.setProperty("--meter", String(f));
             setAttr(el, "data-zone", st);
             if (root) {

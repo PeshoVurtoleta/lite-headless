@@ -3,13 +3,13 @@
 Headless segmented control / toggle group with WAI-ARIA semantics.
 Two modes:
 
-- **`single`** — exclusive selection (like a radio group, but
-  rendered as buttons with `aria-pressed` — the segmented-control
+- **`single`** -- exclusive selection (like a radio group, but
+  rendered as buttons with `aria-pressed` -- the segmented-control
   pattern, e.g., a view-mode selector: List / Grid / Card).
-- **`multi`** — independent toggles (each item has its own
+- **`multi`** -- independent toggles (each item has its own
   `aria-pressed`, e.g., text-formatting buttons: B / I / U / S).
 
-## Quick example — single mode
+## Quick example -- single mode
 
 ```js
 import { createToggleGroup } from "@zakkster/lite-headless/toggle-group";
@@ -26,7 +26,7 @@ tg.attachItem(btnGrid, "grid");
 tg.attachItem(btnCard, "card");
 ```
 
-## Quick example — multi mode
+## Quick example -- multi mode
 
 ```js
 const tg = createToggleGroup({
@@ -50,7 +50,7 @@ tg.attachItem(btnU, "underline");
 | `disabled`       | `false`        | Group-wide disabled                                      |
 | `loop`           | `true`         | Arrow nav wraps at edges                                 |
 | `allowDeselect`  | `false`        | Single mode: clicking current deselects? Multi always allows |
-| `orientation`    | `"horizontal"` | Arrow nav uses ←/→ (horizontal) or ↑/↓ (vertical)        |
+| `orientation`    | `"horizontal"` | Arrow nav uses <-/-> (horizontal) or ^/v (vertical)        |
 | `onValueChange`  | -              | `(value, reason) => void`                                |
 
 `reason` values: `"click"`, `"keyboard"`, `"set"`, `"imperative"`,
@@ -169,7 +169,7 @@ host.type         // read-only
 
 ### Dispatched events
 
-- `change` — `{ detail: { value, reason } }`
+- `change` -- `{ detail: { value, reason } }`
 
 ## CSS contract
 

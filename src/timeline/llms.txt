@@ -2,7 +2,7 @@
 
 Vertical activity log with per-item markers. Each item has a `type`
 (default/success/warning/danger/info) controlling marker color. Mostly
-a layout + ARIA primitive — items are static and consumer-rendered;
+a layout + ARIA primitive -- items are static and consumer-rendered;
 the primitive paints data attributes for styling and ARIA roles for
 screen-reader navigation.
 
@@ -57,7 +57,7 @@ tl.attachItem(item3, { type: "default" });
 
 ### Markers (`[data-timeline-marker]` inside an item)
 
-- `aria-hidden="true"` (decoration only — the item itself announces it)
+- `aria-hidden="true"` (decoration only -- the item itself announces it)
 
 ## Wrapper (`<lite-timeline>`)
 

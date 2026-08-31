@@ -55,11 +55,11 @@ aff.attachRoot(navEl);  // the element that gets pinned
 
 ### Target (`[data-affix-root]`)
 
-- `data-pinned` — boolean, true while pinned
+- `data-pinned` -- boolean, true while pinned
 
 ### Sentinel (auto-injected `[data-affix-sentinel]`)
 
-- `aria-hidden="true"` — decoration only
+- `aria-hidden="true"` -- decoration only
 - Inline styles: `position:relative; height:0; margin:0; padding:0; border:0;`
   (1px in concept, 0px in layout so it doesn't push siblings)
 
@@ -80,10 +80,10 @@ aff.attachRoot(navEl);  // the element that gets pinned
 ```
 
 Attributes:
-- `offset-top` — px (default 0)
-- `root` — CSS selector for scroll container; defaults to viewport
+- `offset-top` -- px (default 0)
+- `root` -- CSS selector for scroll container; defaults to viewport
 
-Event: `affixchange` — `{ detail: { pinned } }`
+Event: `affixchange` -- `{ detail: { pinned } }`
 
 ## CSS contract
 

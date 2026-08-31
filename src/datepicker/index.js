@@ -683,7 +683,7 @@ export function createDatePicker(options = {}) {
             // cell. During a month change, the fixture (or any caller that
             // recycles cells) re-attaches each cell with a new date; if the
             // new date for cell-A happens to be the same key that cell-B
-            // currently holds, our `set(key, …)` would overwrite cell-B's
+            // currently holds, our `set(key, ...)` would overwrite cell-B's
             // entry. Then cell-B's own off() (about to run as its prevOff
             // when it gets re-attached) would unconditionally
             // `delete(dayKey(B's old d))` and erase our just-written entry
@@ -754,7 +754,7 @@ export function createDatePicker(options = {}) {
         toggleAttr(el, "data-focused", isFoc);
     }
 
-    // ─── months view ──────────────────────────────────────────────────
+    // --- months view --------------------------------------------------
     //
     // attachMonth(el, monthDate) attaches a cell representing a month.
     // monthDate's year is what matters; the cell's "month index" is the
@@ -877,7 +877,7 @@ export function createDatePicker(options = {}) {
     });
     _cleanups.push(stopMonthPaint);
 
-    // ─── years view ───────────────────────────────────────────────────
+    // --- years view ---------------------------------------------------
     function attachYear(el, yearDate) {
         if (!el || _destroyed) return noop;
         const y = new Date(yearDate.getFullYear(), 0, 1);

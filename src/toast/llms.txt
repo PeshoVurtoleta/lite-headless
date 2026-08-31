@@ -24,7 +24,7 @@ toast.show("Saved!");
 const el = document.createElement("div");
 el.className = "my-toast my-toast-success";
 el.innerHTML = `
-    <span class="icon">✓</span>
+    <span class="icon">OK</span>
     <span class="message">Order placed</span>
     <button data-toast-close aria-label="Dismiss">×</button>
 `;
@@ -71,10 +71,10 @@ appear and which direction the swipe-to-dismiss goes:
   stack grows UPWARD)
 
 The placement also drives `swipeDirection: "auto"`:
-- right placements → swipe right
-- left placements → swipe left
-- top-center → swipe up
-- bottom-center → swipe down
+- right placements -> swipe right
+- left placements -> swipe left
+- top-center -> swipe up
+- bottom-center -> swipe down
 
 The actual screen position of the viewport is **CSS-controlled** by
 the consumer. The primitive only sets `data-placement="..."` on the
@@ -123,7 +123,7 @@ or update a specific toast:
 ```js
 const t = toast.show("Uploading...", { duration: 0, id: "upload" });
 // ... later, when upload completes
-t.update("Uploaded ✓", { duration: 2000 });
+t.update("Uploaded OK", { duration: 2000 });
 // ... or on error
 t.dismiss("upload-failed");
 ```
@@ -177,14 +177,14 @@ When the swipe distance exceeds `swipeThreshold`, the primitive
 sets `data-dismissing="true"` and dismisses with `reason: "swipe"`.
 
 Swipes that start on `<button>`, `<a>`, `<input>`, `<textarea>`,
-or `<select>` children are ignored — so close buttons, links, and
+or `<select>` children are ignored -- so close buttons, links, and
 inputs inside the toast remain interactive.
 
 ## Pause-on-hover / Pause-on-focus
 
 When the user's pointer is over the stack (or focus is inside it),
 auto-dismiss timers freeze. On hover-out / focus-out they resume
-with the REMAINING time preserved — a toast that was 4 seconds into
+with the REMAINING time preserved -- a toast that was 4 seconds into
 a 5-second duration resumes with 1 second left, not a fresh 5.
 
 The primitive sets `data-paused="true"` on each affected toast
@@ -220,7 +220,7 @@ direct assertive announcement).
         const h = t.show("Saving...", { duration: 0, id: "save" });
         try {
             await api.save();
-            h.update("Saved ✓", { duration: 2000 });
+            h.update("Saved OK", { duration: 2000 });
         } catch (e) {
             h.update("Failed: " + e.message, { duration: 4000, urgent: true });
         }
@@ -232,8 +232,8 @@ Reactive attributes: none in v1.
 
 Dispatched events:
 
-- `show` — `{ detail: { id } }`
-- `dismiss` — `{ detail: { id, reason } }`
+- `show` -- `{ detail: { id } }`
+- `dismiss` -- `{ detail: { id, reason } }`
 
 ## Comparison to other UI patterns
 
@@ -242,7 +242,7 @@ Dispatched events:
 | Toast          | Ephemeral, non-blocking status updates                      |
 | `<dialog>`     | Modal interactions that BLOCK until the user responds       |
 | Inline message | Form validation, contextual info next to the source         |
-| Snackbar       | Same primitive — "snackbar" is just bottom-center toast     |
+| Snackbar       | Same primitive -- "snackbar" is just bottom-center toast     |
 
 Don't use toast for:
 - Confirmations that need user action (use a dialog instead)

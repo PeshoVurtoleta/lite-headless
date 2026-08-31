@@ -1,9 +1,9 @@
 // @zakkster/lite-headless / datepicker / element.js
 //
 // <lite-date-picker mode="single">
-//     <button data-prev-month aria-label="prev">‹</button>
+//     <button data-prev-month aria-label="prev"><</button>
 //     <h2 data-month-label></h2>
-//     <button data-next-month aria-label="next">›</button>
+//     <button data-next-month aria-label="next">></button>
 //     <div data-grid>
 //         <!-- consumer either pre-renders cells with data-day, or lets
 //              the element auto-render them when the view/viewMonth changes -->

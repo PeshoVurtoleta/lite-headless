@@ -69,12 +69,12 @@ a synthetic key is generated.
 
 ### Links (`[data-anchor-link]`)
 
-- `data-active` — boolean, true for the currently-active link
-- `aria-current="location"` — set on the active link, removed otherwise
+- `data-active` -- boolean, true for the currently-active link
+- `aria-current="location"` -- set on the active link, removed otherwise
 
 ### Sections (`[data-anchor-section]`)
 
-- `data-anchor-section-key="<key>"` — the identifier used for matching
+- `data-anchor-section-key="<key>"` -- the identifier used for matching
 
 ## Wrapper (`<lite-anchor>`)
 
@@ -96,11 +96,11 @@ Auto-discovery: any `<a href="#...">` or any element with
 matching section is found by `document.querySelector` on the hash.
 
 Attributes:
-- `offset-top` — px (default 0)
-- `smooth` — set `"false"` for instant jump
-- `root` — CSS selector for scroll container
+- `offset-top` -- px (default 0)
+- `smooth` -- set `"false"` for instant jump
+- `root` -- CSS selector for scroll container
 
-Event: `activechange` — `{ detail: { key } }`
+Event: `activechange` -- `{ detail: { key } }`
 
 ## CSS contract
 

@@ -14,7 +14,7 @@
 //
 // Autoplay behavior follows the WAI-ARIA APG recommendation: pause on
 // hover, focus-within, and any user-driven navigation. The Play/Pause
-// button override is sticky — once the user pauses manually, hovering
+// button override is sticky -- once the user pauses manually, hovering
 // out doesn't resume.
 //
 // Layout-agnostic: this primitive does NOT enforce horizontal-vs-
@@ -61,9 +61,9 @@ export function createCarousel(options = {}) {
         onIndexChange,
         onPlayingChange,
         scrollBehavior    = "smooth",        // passed to scrollTo
-        // observer thresholds — finer thresholds give faster reaction to
+        // observer thresholds -- finer thresholds give faster reaction to
         // partial scrolls; coarser is cheaper. 11 thresholds (0..1 step
-        // 0.1) is a sweet spot — re-derivable as needed.
+        // 0.1) is a sweet spot -- re-derivable as needed.
         observerThresholds,
     } = options;
 
@@ -111,7 +111,7 @@ export function createCarousel(options = {}) {
         })();
         _io = new IntersectionObserver((entries) => {
             // Update each entry's slide ratio. We do NOT iterate all
-            // slides looking for the max from inside the callback —
+            // slides looking for the max from inside the callback --
             // the callback fires with only the entries that changed,
             // and we have to scan all slides anyway because the
             // "winning" slide may not have a new entry this tick.
@@ -153,7 +153,7 @@ export function createCarousel(options = {}) {
     // ----- fast path (uniform slide width) ----------------------------
     // The fast path reads scrollLeft once per animation frame (rAF
     // throttled). Computes index = round(scrollLeft / slideWidth).
-    // Assumes all slides are equal width — falls back to observer if
+    // Assumes all slides are equal width -- falls back to observer if
     // we detect a mismatch.
     //
     // Layout-thrash guard: the original implementation read

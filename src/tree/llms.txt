@@ -54,17 +54,17 @@ invalidates on every attach so the next keyboard nav sees them.
 
 ## Keyboard (per APG tree pattern)
 
-- `ArrowDown` / `ArrowUp`  — next / previous visible item (wraps if `loop`)
-- `ArrowRight` on collapsed parent  — expand (focus stays)
-- `ArrowRight` on expanded parent   — move to first child
-- `ArrowRight` on leaf              — no-op
-- `ArrowLeft` on expanded parent    — collapse (focus stays)
-- `ArrowLeft` on collapsed / leaf   — move to parent
-- `Home` / `End`            — first / last visible
-- `Enter`                   — toggle expand (parent) or select (leaf)
-- `Space`                   — select (toggles in multiselect)
-- `*`                       — expand all sibling parents at the focused level
-- typeahead                 — single character; cycles through matches
+- `ArrowDown` / `ArrowUp`  -- next / previous visible item (wraps if `loop`)
+- `ArrowRight` on collapsed parent  -- expand (focus stays)
+- `ArrowRight` on expanded parent   -- move to first child
+- `ArrowRight` on leaf              -- no-op
+- `ArrowLeft` on expanded parent    -- collapse (focus stays)
+- `ArrowLeft` on collapsed / leaf   -- move to parent
+- `Home` / `End`            -- first / last visible
+- `Enter`                   -- toggle expand (parent) or select (leaf)
+- `Space`                   -- select (toggles in multiselect)
+- `*`                       -- expand all sibling parents at the focused level
+- typeahead                 -- single character; cycles through matches
 - disabled items skipped during arrow nav and typeahead
 
 ## ARIA
@@ -77,11 +77,11 @@ Group:     `role="group"` (when consumer marks the children container;
            optional)
 
 Data attributes (consumer styling hooks):
-- `data-tree-key`  — the key for this node
-- `data-open`     — present when branch is expanded
-- `data-leaf`     — present when node has no children
-- `data-selected`  — "true" | "false"
-- `data-disabled`  — present when disabled
+- `data-tree-key`  -- the key for this node
+- `data-open`     -- present when branch is expanded
+- `data-leaf`     -- present when node has no children
+- `data-selected`  -- "true" | "false"
+- `data-disabled`  -- present when disabled
 
 ## Custom-element wrapper
 
@@ -102,17 +102,17 @@ Data attributes (consumer styling hooks):
 ```
 
 Reactive attributes:
-- `selected` — string (single) or comma-separated keys (multi)
-- `expanded` — comma-separated keys
+- `selected` -- string (single) or comma-separated keys (multi)
+- `expanded` -- comma-separated keys
 
 Read-once attributes:
-- `selection-mode` — "single" | "multiple"
-- `no-typeahead`   — presence disables typeahead
-- `no-loop`        — presence disables arrow wrap
+- `selection-mode` -- "single" | "multiple"
+- `no-typeahead`   -- presence disables typeahead
+- `no-loop`        -- presence disables arrow wrap
 
 Dispatches:
-- `selectionchange` — `detail: { selected, reason }`
-- `expandedchange`  — `detail: { expanded, reason }`
+- `selectionchange` -- `detail: { selected, reason }`
+- `expandedchange`  -- `detail: { expanded, reason }`
 
 Mirrors active state back to attributes; the v0.7.9 cascade guard
 (`if (reason !== "attribute")`) is applied so external setAttribute

@@ -51,13 +51,13 @@ tag.attachCloseButton(xBtn);
 ### Root (`[data-tag-root]`)
 
 - `data-intent="default|primary|success|info|warning|danger"`
-- `data-closable` — boolean, when closable
-- `data-hidden` — boolean, after close
-- `hidden` — after close (for SR + non-CSS)
+- `data-closable` -- boolean, when closable
+- `data-hidden` -- boolean, after close
+- `hidden` -- after close (for SR + non-CSS)
 
 ### Close button (`[data-tag-close]`)
 
-- `aria-label="Remove tag"` — only if not pre-set
+- `aria-label="Remove tag"` -- only if not pre-set
 
 ## Wrapper (`<lite-tag>`)
 
@@ -71,11 +71,11 @@ tag.attachCloseButton(xBtn);
 ```
 
 Attributes:
-- `intent` — string; reactive
-- `closable` — boolean
+- `intent` -- string; reactive
+- `closable` -- boolean
 
 Host methods: `setIntent(v)`, `close()`, `reset()`.
-Event: `close` — `{ detail: { reason } }`.
+Event: `close` -- `{ detail: { reason } }`.
 
 ## CSS contract
 

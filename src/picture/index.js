@@ -33,7 +33,7 @@
 //   })
 //
 //   attachRoot(pictureEl)   // <picture> or any container
-//   attachImg(imgEl)        // <img> — primitive controls src assignment
+//   attachImg(imgEl)        // <img> -- primitive controls src assignment
 //
 //   state()                 // signal accessor
 //   retry()

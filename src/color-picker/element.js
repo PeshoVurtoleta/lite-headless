@@ -12,8 +12,8 @@
 //       <div data-color-alpha-slider>
 //           <div data-color-alpha-handle></div>
 //       </div>
-//       <button data-color-swatch data-color="#ff5500">…</button>
-//       <button data-color-swatch data-color="#00aaff">…</button>
+//       <button data-color-swatch data-color="#ff5500">...</button>
+//       <button data-color-swatch data-color="#00aaff">...</button>
 //   </lite-color-picker>
 //
 // Reactive attributes:

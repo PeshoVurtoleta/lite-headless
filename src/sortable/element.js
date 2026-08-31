@@ -9,7 +9,7 @@
 // <lite-sortable label="Reorder tasks" orientation="vertical">
 //   <ul>
 //     <li data-sortable-item="task-1">Buy milk
-//       <span data-sortable-handle>⋮⋮</span>
+//       <span data-sortable-handle>::</span>
 //     </li>
 //     <li data-sortable-item="task-2">Walk dog</li>
 //     <li data-sortable-item="task-3" data-disabled>Pay rent</li>

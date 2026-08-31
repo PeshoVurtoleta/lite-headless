@@ -167,12 +167,12 @@ call popover.setOpen(false) to close.
 
 The picker has a three-state view machine driven by the `view` signal:
 
-- `"days"` (default) — 42-cell month grid (the v0.6 surface)
-- `"months"` — 12-cell grid (Jan..Dec of the current viewMonth's year)
-- `"years"` — 12-cell grid for the decade containing viewMonth's year
+- `"days"` (default) -- 42-cell month grid (the v0.6 surface)
+- `"months"` -- 12-cell grid (Jan..Dec of the current viewMonth's year)
+- `"years"` -- 12-cell grid for the decade containing viewMonth's year
                 (1 padding year before + 10 in-decade + 1 padding after)
 
-Cycle days → months → years via `picker.cycleView()` or by wiring it to
+Cycle days -> months -> years via `picker.cycleView()` or by wiring it to
 the month label click:
 
     picker.attachMonthLabel(labelEl, { clickToCycle: true });
@@ -196,15 +196,15 @@ drilldown transitions:
 
 Per-view keyboard nav (on the grid):
 
-- months view: ← → ±1 month, ↑ ↓ ±3 months (3-col layout),
-               Page ±1 year, Home = Jan, End = Dec,
+- months view: <- -> +-1 month, ^ v +-3 months (3-col layout),
+               Page +-1 year, Home = Jan, End = Dec,
                Enter = drill to days view at focused month
-- years view:  ← → ±1 year, ↑ ↓ ±3 years,
-               Page ±10 years (decade), Home/End = decade boundaries,
+- years view:  <- -> +-1 year, ^ v +-3 years,
+               Page +-10 years (decade), Home/End = decade boundaries,
                Enter = drill to months view at focused year
 
 Per-view prev/next stride: month / year / decade. Per-view label format:
-"June 2026" / "2026" / "2020 – 2029". Custom formatter receives
+"June 2026" / "2026" / "2020 - 2029". Custom formatter receives
 (viewMonth, view) so consumers can override per view if needed.
 
 ## Not in v0.7 (planned later)

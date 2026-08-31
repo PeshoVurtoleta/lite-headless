@@ -52,10 +52,10 @@ last-attached.
 
 | Element     | Attributes                                                     |
 | ----------- | -------------------------------------------------------------- |
-| Root        | `role="navigation"` · `aria-label="Breadcrumb"` (unless overridden) |
+| Root        | `role="navigation"` - `aria-label="Breadcrumb"` (unless overridden) |
 | List        | `role="list"`                                                  |
-| Items       | `role="listitem"` · `aria-current="page"` on current · `data-current="true"` for CSS |
-| Separator   | `aria-hidden="true"` · `data-bc-sep`                           |
+| Items       | `role="listitem"` - `aria-current="page"` on current - `data-current="true"` for CSS |
+| Separator   | `aria-hidden="true"` - `data-bc-sep`                           |
 
 Screen readers announce "navigation: Breadcrumb. List of 3 items.
 Home, link. Projects, link. This project, current page."
@@ -64,7 +64,7 @@ Home, link. Projects, link. This project, current page."
 
 Two strategies, both supported:
 
-**(a) Pure CSS** — use `::after` on items:
+**(a) Pure CSS** -- use `::after` on items:
 ```css
 [data-bc-item]:not(:last-child)::after {
     content: " / ";
@@ -73,11 +73,11 @@ Two strategies, both supported:
     aria-hidden: true;       /* sadly not directly settable from CSS */
 }
 ```
-Note: CSS `aria-hidden` isn't a real thing — but generated content
+Note: CSS `aria-hidden` isn't a real thing -- but generated content
 is not in the accessibility tree, so screen readers won't read
 `::after` content. This is the recommended approach.
 
-**(b) Real DOM separators** — pass to `attachSeparator(el)`:
+**(b) Real DOM separators** -- pass to `attachSeparator(el)`:
 ```html
 <ol>
     <li data-bc-item="home"><a>Home</a></li>
@@ -140,10 +140,10 @@ host.addEventListener("itemclick", e => e.detail.key);
 
 ## When NOT to use
 
-- Single-page apps with no navigable hierarchy — breadcrumb is for
+- Single-page apps with no navigable hierarchy -- breadcrumb is for
   showing where the user IS, not for general navigation. Use the
   `menu` or `tabs` primitive for navigation actions.
-- Step-by-step wizards — use `stepper`, which is semantically
+- Step-by-step wizards -- use `stepper`, which is semantically
   different (shows progress through a flow, not location in a tree).
 
 ## CSS contract

@@ -70,9 +70,9 @@ succession re-target the same tween from the current frame (no jumpy
 resets).
 
 Default formatter:
-- abs(n) >= 1000:  `Math.round(n).toLocaleString()`  → "1,234"
-- abs(n) >= 1:     `n.toFixed(0)`                     → "42"
-- otherwise:       `n.toFixed(2)`                     → "0.85"
+- abs(n) >= 1000:  `Math.round(n).toLocaleString()`  -> "1,234"
+- abs(n) >= 1:     `n.toFixed(0)`                     -> "42"
+- otherwise:       `n.toFixed(2)`                     -> "0.85"
 
 Override via `formatter` option for "%", "$", custom locales, etc.
 

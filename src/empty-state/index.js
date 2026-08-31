@@ -3,12 +3,12 @@
 // Headless empty-state. A structural primitive for the "no items" /
 // "no results" UI pattern that appears across admin products:
 //
-//   ┌─────────────────────────┐
-//   │      [icon]             │
-//   │   No projects yet       │  ← title
-//   │   Create one to start   │  ← description
-//   │   [Primary]  [Secondary]│  ← actions
-//   └─────────────────────────┘
+//   +-------------------------+
+//   |      [icon]             |
+//   |   No projects yet       |  <- title
+//   |   Create one to start   |  <- description
+//   |   [Primary]  [Secondary]|  <- actions
+//   +-------------------------+
 //
 // This primitive is intentionally minimal: it wires ARIA structure
 // (role="status" + aria-labelledby/describedby chain), tracks
@@ -27,8 +27,8 @@
 //
 // Painted on root:
 //   role="status"               (live region; announces on attach)
-//   aria-labelledby             → title id
-//   aria-describedby            → description id
+//   aria-labelledby             -> title id
+//   aria-describedby            -> description id
 //   data-empty-state-root
 //   data-variant="empty"|"error"|"loading"
 //   data-empty                  (boolean; for CSS hooks)
@@ -73,7 +73,7 @@ export function createEmptyState(opts = {}) {
     });
     addCleanup(stopPaint);
 
-    // ─── attach ──────────────────────────────────────────────────────
+    // --- attach ------------------------------------------------------
 
     function attachRoot(el) {
         if (!el || _destroyed.v) return noop;
@@ -184,7 +184,7 @@ export function createEmptyState(opts = {}) {
         else          removeAttr(_rootEl, "aria-describedby");
     }
 
-    // ─── mutations ──────────────────────────────────────────────────
+    // --- mutations --------------------------------------------------
 
     function setVariant(v) {
         if (_destroyed.v) return;

@@ -29,9 +29,9 @@
 //
 // CSS contract
 //
-//   root[data-loaded]              — image loaded successfully
-//   root:not([data-loaded])        — using initials (fallback)
-//   fallback[data-color-hue="N"]  — hue (0..359) for background color
+//   root[data-loaded]              -- image loaded successfully
+//   root:not([data-loaded])        -- using initials (fallback)
+//   fallback[data-color-hue="N"]  -- hue (0..359) for background color
 //
 //   Consumer CSS:
 //     [data-avatar-fallback] {

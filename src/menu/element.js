@@ -6,7 +6,7 @@
 //     <li data-item data-on-select="save">Save</li>
 //     <li data-item data-on-select="export" data-disabled>Export</li>
 //     <hr data-separator>
-//     <li data-item data-submenu="recent">Open Recent ▸</li>
+//     <li data-item data-submenu="recent">Open Recent ></li>
 //     <li data-item data-on-select="quit">Quit</li>
 //   </ul>
 //   <lite-menu is-submenu data-submenu-key="recent">

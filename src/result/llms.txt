@@ -1,7 +1,7 @@
 # @zakkster/lite-headless / result
 
 Page-state primitive: success / error / warning / info / empty / 404 /
-403 / 500. The bigger sibling of `empty-state` — typically occupies
+403 / 500. The bigger sibling of `empty-state` -- typically occupies
 the main content area to communicate an outcome with a centered icon,
 title, subtitle, and action row.
 
@@ -75,7 +75,7 @@ r.attachActions(actionsEl);
 
 ```html
 <lite-result status="404">
-    <div data-result-icon>📭</div>
+    <div data-result-icon>empty</div>
     <h2 data-result-title>Page not found</h2>
     <p data-result-subtitle>The page you're looking for doesn't exist or has moved.</p>
     <div data-result-actions>

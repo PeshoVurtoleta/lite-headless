@@ -11,7 +11,7 @@
 //   - 4 signals: hue (0..360), saturation (0..1), brightness (0..1),
 //     alpha (0..1). One effect mirrors them to CSS custom properties on
 //     attached elements.
-//   - Color conversions: HSV ↔ sRGB ↔ HEX, HSV → HSL, sRGB ↔ OKLab ↔ OKLCH.
+//   - Color conversions: HSV <-> sRGB <-> HEX, HSV -> HSL, sRGB <-> OKLab <-> OKLCH.
 //     All conversions are pure functions; no allocation in the hot path
 //     (pointerToHsv reuses a shared scratch object, returns numbers).
 //   - Pointer drag on the area (saturation × brightness) and on the
@@ -51,9 +51,9 @@ const OPTION_KEYS = "onValueChange|onCommit|alpha|defaultHsv|defaultRgb|defaultH
 
 function noop() {}
 
-// ─── color conversions ───────────────────────────────────────────────
+// --- color conversions -----------------------------------------------
 //
-// HSV → RGB. h in [0, 360), s,v in [0, 1]. Returns numbers 0..255
+// HSV -> RGB. h in [0, 360), s,v in [0, 1]. Returns numbers 0..255
 // (integer, rounded) so HEX serialization is exact.
 function hsvToRgb(h, s, v) {
     if (s <= 0) {
@@ -79,7 +79,7 @@ function hsvToRgb(h, s, v) {
     ];
 }
 
-// RGB → HSV. r,g,b in 0..255. Returns [h, s, v] with h in [0, 360),
+// RGB -> HSV. r,g,b in 0..255. Returns [h, s, v] with h in [0, 360),
 // s,v in [0, 1]. Zero-saturation case preserves the existing hue so
 // the picker UI doesn't jump on a brightness slide through gray.
 function rgbToHsv(r, g, b, prevH) {
@@ -146,19 +146,19 @@ function toHex2(n) {
     return (v < 16 ? "0" : "") + v.toString(16);
 }
 
-// sRGB → linear sRGB (gamma decode). Component in 0..1.
+// sRGB -> linear sRGB (gamma decode). Component in 0..1.
 function srgbToLinear(c) {
     return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
 }
 
-// linear sRGB → sRGB (gamma encode).
+// linear sRGB -> sRGB (gamma encode).
 function linearToSrgb(c) {
     if (c <= 0) return 0;
     if (c >= 1) return 1;
     return c <= 0.0031308 ? 12.92 * c : 1.055 * Math.pow(c, 1 / 2.4) - 0.055;
 }
 
-// Linear sRGB → OKLab. Spec: https://bottosson.github.io/posts/oklab/
+// Linear sRGB -> OKLab. Spec: https://bottosson.github.io/posts/oklab/
 // (also W3C CSS Color 4). Operates on linear-sRGB triple in 0..1.
 function linearRgbToOklab(r, g, b) {
     const l = 0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b;
@@ -174,7 +174,7 @@ function linearRgbToOklab(r, g, b) {
     ];
 }
 
-// OKLab → linear sRGB. Inverse of above.
+// OKLab -> linear sRGB. Inverse of above.
 function oklabToLinearRgb(L, a, b) {
     const l_ = L + 0.3963377774 * a + 0.2158037573 * b;
     const m_ = L - 0.1055613458 * a - 0.0638541728 * b;
@@ -189,7 +189,7 @@ function oklabToLinearRgb(L, a, b) {
     ];
 }
 
-// sRGB (0..255) → OKLCH. Returns [L, C, h] with L in 0..1, C in ~0..0.4,
+// sRGB (0..255) -> OKLCH. Returns [L, C, h] with L in 0..1, C in ~0..0.4,
 // h in [0, 360).
 function rgbToOklch(r, g, b) {
     const rl = srgbToLinear(r / 255);
@@ -202,7 +202,7 @@ function rgbToOklch(r, g, b) {
     return [L, C, h];
 }
 
-// OKLCH → sRGB (0..255). Clamps each channel into [0, 255]. Out-of-
+// OKLCH -> sRGB (0..255). Clamps each channel into [0, 255]. Out-of-
 // gamut colors are silently clamped; consumers wanting gamut-mapping
 // should pre-process.
 function oklchToRgb(L, C, h) {
@@ -216,14 +216,14 @@ function oklchToRgb(L, C, h) {
     ];
 }
 
-// HSV → HSL. Standard formula; preserves hue. Returns [h, s, l].
+// HSV -> HSL. Standard formula; preserves hue. Returns [h, s, l].
 function hsvToHsl(h, s, v) {
     const l = v * (1 - s / 2);
     const sl = (l === 0 || l === 1) ? 0 : (v - l) / Math.min(l, 1 - l);
     return [h, sl, l];
 }
 
-// ─── primitive ───────────────────────────────────────────────────────
+// --- primitive -------------------------------------------------------
 
 export function createColorPicker(opts = {}) {
     checkOptions("createColorPicker", opts, OPTION_KEYS);
@@ -263,7 +263,7 @@ export function createColorPicker(opts = {}) {
     let _alpha = makeSignal(_a0);
     const _destroyed = { v: false };
 
-    // ─── reads (derived; converted on demand) ─────────────────────────
+    // --- reads (derived; converted on demand) -------------------------
 
     function hue()        { return _hue(); }
     function saturation() { return _sat(); }
@@ -295,7 +295,7 @@ export function createColorPicker(opts = {}) {
         return { l: L, c: C, h, a: _alpha() };
     }
 
-    // ─── writes ──────────────────────────────────────────────────────
+    // --- writes ------------------------------------------------------
 
     function _setIfDifferent(sig, val) {
         if (sig() !== val) sig.set(val);
@@ -401,7 +401,7 @@ export function createColorPicker(opts = {}) {
         }
     }
 
-    // ─── attachments ─────────────────────────────────────────────────
+    // --- attachments -------------------------------------------------
 
     const _cleanups = [];
     function addCleanup(fn) { _cleanups.push(fn); }
@@ -503,7 +503,7 @@ export function createColorPicker(opts = {}) {
         return off;
     }
 
-    // ── 2D area: pointerdown→drag for saturation × brightness ──
+    // -- 2D area: pointerdown->drag for saturation × brightness --
     function attachArea(el) {
         if (!el || _destroyed.v) return noop;
         _attachedAreas.add(el);
@@ -536,7 +536,7 @@ export function createColorPicker(opts = {}) {
             let y = (ev.clientY - rect.top) / rect.height;
             if (x < 0) x = 0; else if (x > 1) x = 1;
             if (y < 0) y = 0; else if (y > 1) y = 1;
-            // x → saturation, (1 - y) → brightness
+            // x -> saturation, (1 - y) -> brightness
             setSaturation(x, "drag-area");
             setBrightness(1 - y, "drag-area");
         }
@@ -601,7 +601,7 @@ export function createColorPicker(opts = {}) {
         return off;
     }
 
-    // ── 1D rail attach helper shared by hue + alpha ──
+    // -- 1D rail attach helper shared by hue + alpha --
     //
     // dim is "hue" | "alpha"; orientation is "horizontal" | "vertical"
     // (default horizontal). Caller wires which signal getter/setter to
@@ -749,7 +749,7 @@ export function createColorPicker(opts = {}) {
         return off;
     }
 
-    // Swatch: a preset color tile. Click → setRgb (or setHex if the
+    // Swatch: a preset color tile. Click -> setRgb (or setHex if the
     // attribute is a hex string). Consumer paints the swatch background
     // themselves; the primitive only wires the click handler.
     function attachSwatch(el, color) {

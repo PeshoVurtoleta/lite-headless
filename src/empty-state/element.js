@@ -1,7 +1,7 @@
 // @zakkster/lite-headless / empty-state / element.js
 //
 // <lite-empty-state variant="empty">
-//     <div data-empty-icon>📭</div>
+//     <div data-empty-icon>empty</div>
 //     <h3 data-empty-title>No projects yet</h3>
 //     <p data-empty-description>Create one to start tracking work.</p>
 //     <div data-empty-actions>

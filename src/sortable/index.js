@@ -14,7 +14,7 @@
 // (5 by default), the drag begins. During drag:
 //   - the dragging item gets `data-dragging="true"`
 //   - a "slot midpoint" test determines which slot the pointer is
-//     hovering — the slot that would receive the item on drop
+//     hovering -- the slot that would receive the item on drop
 //   - the slot element gets `data-insert-before="true"` (vertical
 //     orientation) or similar; previous indicator slots are cleared
 //   - pointerup commits the reorder + fires onReorder; pointercancel
@@ -32,8 +32,8 @@
 // ------------------------------------------------------
 //   Tab to focus an item
 //   Space     -> "pick up" the item (aria-grabbed=true, announced)
-//   Arrow ↑↓  -> move pickup position by 1 (vertical orientation)
-//   Arrow ←→  -> move pickup position by 1 (horizontal orientation)
+//   Arrow ^v  -> move pickup position by 1 (vertical orientation)
+//   Arrow <-->  -> move pickup position by 1 (horizontal orientation)
 //   Home/End  -> top / bottom
 //   Space     -> drop (commit)
 //   Escape    -> cancel pickup, revert

@@ -44,20 +44,20 @@ av.attachFallback(fallbackEl);  // data-initials + data-color-hue painted here
 
 ```
 construct (with src)
-    │
-    ▼
-┌──────────┐
-│ loading  │   img.src assigned
-└────┬─────┘
-     │
-   load? ──── yes ────→ ┌────────┐
-     │                  │ image  │  (img visible, fallback hidden)
-   error?               └────────┘
-     │
-     ▼
-  fallbackDelay ───→ ┌──────────┐
-                    │ fallback │  (img hidden, fallback visible)
-                    └──────────┘
+    |
+    v
++----------+
+| loading  |   img.src assigned
++----+-----+
+     |
+   load? ---- yes ----> +--------+
+     |                  | image  |  (img visible, fallback hidden)
+   error?               +--------+
+     |
+     v
+  fallbackDelay ---> +----------+
+                    | fallback |  (img hidden, fallback visible)
+                    +----------+
 ```
 
 `state()` returns one of `"loading"`, `"image"`, `"fallback"`.
@@ -77,22 +77,22 @@ deriveInitials("Alice Lee")          // "AL"
 deriveInitials("Jean-Paul Sartre")   // "JS"  (hyphen = word break)
 deriveInitials("M. Curie")           // "MC"  (dot = word break)
 deriveInitials("john_doe")           // "JD"
-deriveInitials("Cher")               // "C"   (single capitalized name → 1 letter)
-deriveInitials("zakkster")           // "ZA"  (all-lowercase username → 2 letters)
+deriveInitials("Cher")               // "C"   (single capitalized name -> 1 letter)
+deriveInitials("zakkster")           // "ZA"  (all-lowercase username -> 2 letters)
 deriveInitials("john@example.com")   // "JO"  (strip @domain, then 2-letter username)
 deriveInitials("")                   // "?"
 ```
 
-## hueFromString — deterministic color
+## hueFromString -- deterministic color
 
 ```js
 import { hueFromString } from "@zakkster/lite-headless/avatar";
 
-hueFromString("alice")    // → 142  (always 142 for "alice")
-hueFromString("bob")      // → 87
+hueFromString("alice")    // -> 142  (always 142 for "alice")
+hueFromString("bob")      // -> 87
 ```
 
-FNV-1a hash → hue in [0, 360). Same input always produces the
+FNV-1a hash -> hue in [0, 360). Same input always produces the
 same hue (stable across reloads). Consumer CSS uses the hue:
 
 ```css

@@ -5,16 +5,16 @@
 // Markup contract:
 //
 //   <lite-pagination page-count="20" page="5" sibling-count="1" boundary-count="1">
-//       <button data-pgn-first>« First</button>
-//       <button data-pgn-prev>‹ Prev</button>
+//       <button data-pgn-first><< First</button>
+//       <button data-pgn-prev>< Prev</button>
 //       <ol data-pgn-list></ol>          <!-- wrapper renders <li> items into this -->
-//       <button data-pgn-next>Next ›</button>
-//       <button data-pgn-last>Last »</button>
+//       <button data-pgn-next>Next ></button>
+//       <button data-pgn-last>Last >></button>
 //   </lite-pagination>
 //
 // Wrapper RENDERS the page items into the [data-pgn-list]. Each
 // rendered <li> contains either a <button> for a page number or a
-// span with "…" for an ellipsis. The consumer can style the <li>
+// span with "..." for an ellipsis. The consumer can style the <li>
 // elements + their children freely.
 //
 // Imperative API on host:
@@ -104,7 +104,7 @@ define("lite-pagination", (host, scope) => {
             pg.attachPageList(list);
             _attached.list = list;
             _listEl = list;
-            // Initial render — pg.items() is an accessor that returns
+            // Initial render -- pg.items() is an accessor that returns
             // the current Item[]; without the parens you'd pass the
             // function itself and trigger "items is not iterable".
             renderItems(pg.items());
@@ -128,7 +128,7 @@ define("lite-pagination", (host, scope) => {
             if (item.type === "ellipsis") {
                 li.setAttribute("data-pgn-ellipsis", item.position || "");
                 const span = document.createElement("span");
-                span.textContent = "\u2026";       // …
+                span.textContent = "\u2026";       // ...
                 span.setAttribute("aria-hidden", "true");
                 li.appendChild(span);
             } else {

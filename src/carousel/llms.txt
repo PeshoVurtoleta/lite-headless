@@ -109,9 +109,9 @@ carousel.playing()                  // signal -> is autoplay running
 
 ## Keyboard (when viewport has focus)
 
-- `ArrowLeft` / `ArrowRight` (horizontal) — prev / next
-- `ArrowUp` / `ArrowDown` (vertical) — prev / next
-- `Home` / `End` — first / last
+- `ArrowLeft` / `ArrowRight` (horizontal) -- prev / next
+- `ArrowUp` / `ArrowDown` (vertical) -- prev / next
+- `Home` / `End` -- first / last
 - Any keyboard nav pauses autoplay (sticky until user resumes)
 
 Indicator tablist: each indicator has `tabindex="0"` when current,
@@ -146,19 +146,19 @@ Per WAI-ARIA APG recommendation:
 
 ```html
 <lite-carousel label="Featured" autoplay="4000" loop>
-    <button data-carousel-prev>←</button>
+    <button data-carousel-prev><-</button>
     <div data-carousel-viewport tabindex="0">
         <div data-carousel-slide>Slide 1</div>
         <div data-carousel-slide>Slide 2</div>
         <div data-carousel-slide>Slide 3</div>
     </div>
-    <button data-carousel-next>→</button>
+    <button data-carousel-next>-></button>
     <div role="tablist">
-        <button data-carousel-indicator>●</button>
-        <button data-carousel-indicator>○</button>
-        <button data-carousel-indicator>○</button>
+        <button data-carousel-indicator>o</button>
+        <button data-carousel-indicator>.</button>
+        <button data-carousel-indicator>.</button>
     </div>
-    <button data-carousel-play-pause>⏯</button>
+    <button data-carousel-play-pause>play/pause</button>
 </lite-carousel>
 ```
 
@@ -167,7 +167,7 @@ the consumer can specify `data-index="N"` for explicit numbering.
 
 Reactive attributes:
 
-- `index` — current slide (two-way; v0.7.12 cascade guard applied)
+- `index` -- current slide (two-way; v0.7.12 cascade guard applied)
 
 Read-once attributes:
 
@@ -175,8 +175,8 @@ Read-once attributes:
 
 Dispatched events:
 
-- `indexchange` — `{ detail: { index, reason } }`
-- `playingchange` — `{ detail: { playing, reason } }`
+- `indexchange` -- `{ detail: { index, reason } }`
+- `playingchange` -- `{ detail: { playing, reason } }`
 
 ## CSS contract
 

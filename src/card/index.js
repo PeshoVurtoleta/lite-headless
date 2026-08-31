@@ -65,7 +65,7 @@ export function createCard(opts = {}) {
     const _cleanups = [];
     function addCleanup(fn) { _cleanups.push(fn); }
 
-    // ─── mutations ───────────────────────────────────────────────────
+    // --- mutations ---------------------------------------------------
 
     function setCollapsed(b, reason) {
         if (_destroyed.v || !collapsible) return;
@@ -95,7 +95,7 @@ export function createCard(opts = {}) {
     function isCollapsed() { return _collapsed(); }
     function isDismissed() { return _dismissed(); }
 
-    // ─── attach: root ────────────────────────────────────────────────
+    // --- attach: root ------------------------------------------------
 
     function attachRoot(el) {
         if (!el || _destroyed.v) return noop;
@@ -129,7 +129,7 @@ export function createCard(opts = {}) {
         return off;
     }
 
-    // ─── attach: body ────────────────────────────────────────────────
+    // --- attach: body ------------------------------------------------
 
     function attachBody(el) {
         if (!el || _destroyed.v) return noop;
@@ -156,7 +156,7 @@ export function createCard(opts = {}) {
         return off;
     }
 
-    // ─── attach: collapse trigger ────────────────────────────────────
+    // --- attach: collapse trigger ------------------------------------
 
     function attachCollapseTrigger(el) {
         if (!el || _destroyed.v || !collapsible) return noop;
@@ -190,7 +190,7 @@ export function createCard(opts = {}) {
         return off;
     }
 
-    // ─── attach: dismiss button ──────────────────────────────────────
+    // --- attach: dismiss button --------------------------------------
 
     function attachDismissButton(el) {
         if (!el || _destroyed.v || !dismissible) return noop;
@@ -206,7 +206,7 @@ export function createCard(opts = {}) {
         return off;
     }
 
-    // ─── destroy ─────────────────────────────────────────────────────
+    // --- destroy -----------------------------------------------------
 
     function destroy() {
         if (_destroyed.v) return;

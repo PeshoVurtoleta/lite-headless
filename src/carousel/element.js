@@ -8,7 +8,7 @@
 // Markup contract:
 //
 // <lite-carousel label="Featured products" autoplay="4000">
-//   <button data-carousel-prev aria-label="Previous">←</button>
+//   <button data-carousel-prev aria-label="Previous"><-</button>
 //
 //   <div data-carousel-viewport tabindex="0">
 //     <div data-carousel-slide data-index="0">Slide 1</div>
@@ -16,15 +16,15 @@
 //     <div data-carousel-slide data-index="2">Slide 3</div>
 //   </div>
 //
-//   <button data-carousel-next aria-label="Next">→</button>
+//   <button data-carousel-next aria-label="Next">-></button>
 //
 //   <div role="tablist">
-//     <button data-carousel-indicator data-index="0">●</button>
-//     <button data-carousel-indicator data-index="1">○</button>
-//     <button data-carousel-indicator data-index="2">○</button>
+//     <button data-carousel-indicator data-index="0">o</button>
+//     <button data-carousel-indicator data-index="1">.</button>
+//     <button data-carousel-indicator data-index="2">.</button>
 //   </div>
 //
-//   <button data-carousel-play-pause>⏯</button>
+//   <button data-carousel-play-pause>play/pause</button>
 // </lite-carousel>
 //
 // Attribute -> option mapping:
@@ -115,7 +115,7 @@ define("lite-carousel", (host, scope) => {
     const detachRoot = carousel.attachRoot(host, { label });
 
     // Role observer for child markers. Each slide / indicator needs an
-    // index — we read `data-index` if present, otherwise infer from
+    // index -- we read `data-index` if present, otherwise infer from
     // child order among siblings (slides count slide-elements,
     // indicators count indicator-elements).
     function indexOfSlide(el) {

@@ -9,9 +9,9 @@
 //
 // Conventions:
 //
-//   - ReactiveAccessor<T> = () => T  — read the current value
-//   - OffFn               = () => void  — disposer returned by attach*
-//   - Reason              = string | undefined  — action descriptor
+//   - ReactiveAccessor<T> = () => T  -- read the current value
+//   - OffFn               = () => void  -- disposer returned by attach*
+//   - Reason              = string | undefined  -- action descriptor
 //                           passed through events ("click", "set",
 //                           "drag", etc.)
 //
@@ -1654,7 +1654,7 @@ declare module "@zakkster/lite-headless/color-picker" {
     export interface OKLCH { l: number; c: number; h: number; a: number }
 
     export interface ColorPickerOptions {
-        value?: string;                  // hex, rgb(), hsl() — parsed at construction
+        value?: string;                  // hex, rgb(), hsl() -- parsed at construction
         alpha?: number;
         onChange?: (hex: string, reason?: string) => void;
     }

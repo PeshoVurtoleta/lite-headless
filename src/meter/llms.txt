@@ -24,7 +24,7 @@ const meter = createMeter({
     value: 0.42,
     min: 0,
     max: 1,
-    label: "Vote share — Yes",
+    label: "Vote share -- Yes",
 });
 meter.attachRoot(rootEl);
 meter.attachFill(fillEl);
@@ -53,9 +53,9 @@ meter.setValue(0.51);
 When `low` / `high` / `optimum` are configured, `meter.state()` returns
 one of:
 
-- `"optimum"` — value is in the optimum region
-- `"sub-optimum"` — value is in a neighbor region
-- `"low"` — value is on the opposite side from optimum
+- `"optimum"` -- value is in the optimum region
+- `"sub-optimum"` -- value is in a neighbor region
+- `"low"` -- value is on the opposite side from optimum
 
 When no thresholds are set, state is always `"optimum"`.
 
@@ -79,7 +79,7 @@ The state mirrors browser behavior for native `<meter low high optimum>`:
     setValueText(t: string | null): void
 
     attachRoot(el): off
-    attachFill(el): off    // optional — paints --meter + data-zone on a fill child
+    attachFill(el): off    // optional -- paints --meter + data-zone on a fill child
 
     destroy(): void
 }
@@ -131,10 +131,10 @@ The fill is purely a CSS hook. Consumer renders it however they want:
 ```
 
 Attributes:
-- `value`, `min`, `max` — numeric (default 0, 0, 1)
-- `low`, `high`, `optimum` — numeric (optional)
-- `label` — `aria-label` text
-- `value-text` — `aria-valuetext` override
+- `value`, `min`, `max` -- numeric (default 0, 0, 1)
+- `low`, `high`, `optimum` -- numeric (optional)
+- `label` -- `aria-label` text
+- `value-text` -- `aria-valuetext` override
 
 Reactive: `value` and `value-text` attributes flow through bidirectionally.
 
