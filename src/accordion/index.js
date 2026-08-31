@@ -66,6 +66,9 @@
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { uniqueId, setAttr, toggleAttr } from "../_overlay/aria.js";
 import { sealSignal } from "../_overlay/seal.js";
+import { checkOptions } from "../_validate.js";
+
+const OPTION_KEYS = "type|collapsible|value|defaultValue|onValueChange";
 
 const noop = () => {};
 
@@ -76,6 +79,7 @@ function asArrayValue(value) {
 }
 
 export function createAccordion(options = {}) {
+    checkOptions("createAccordion", options, OPTION_KEYS);
     const {
         type = "single",
         collapsible = false,

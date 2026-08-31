@@ -29,12 +29,16 @@
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { setAttr, toggleAttr, ensureId } from "../_overlay/aria.js";
 import { sealSignal } from "../_overlay/seal.js";
+import { checkOptions } from "../_validate.js";
+
+const OPTION_KEYS = "steps|defaultCurrent|orientation|allowBack|allowSkip|onStepChange|onComplete";
 
 function noop() {}
 
 const VALID_STATUSES = ["complete", "current", "pending", "error"];
 
 export function createSteps(options = {}) {
+    checkOptions("createSteps", options, OPTION_KEYS);
     const {
         steps: initialSteps = [],
         defaultCurrent = 0,

@@ -25,8 +25,12 @@ import { createFocusTrap } from "../_overlay/focus.js";
 import { createPositioner } from "../_overlay/position.js";
 import { portal } from "../_overlay/portal.js";
 import { uniqueId, setAttr, toggleAttr, ensureId, addIdToken, removeIdToken } from "../_overlay/aria.js";
+import { checkOptions } from "../_validate.js";
+
+const OPTION_KEYS = "open|defaultOpen|onOpenChange|placement|offset|flip|shift|boundary|modal|closeOnEscape|closeOnOutsideClick|initialFocus|finalFocus|container|transition|labelledBy|describedBy";
 
 export function createPopover(options = {}) {
+    checkOptions("createPopover", options, OPTION_KEYS);
     const {
         open,
         defaultOpen = false,

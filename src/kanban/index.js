@@ -38,6 +38,9 @@ import { signal as makeSignal, effect, dispose } from "@zakkster/lite-signal";
 import { sealSignal } from "../_overlay/seal.js";
 import { setAttr, toggleAttr, ensureId } from "../_overlay/aria.js";
 import { createSortable } from "../sortable/index.js";
+import { checkOptions } from "../_validate.js";
+
+const OPTION_KEYS = "columns|cards|onCardMove|onCardClick|onColumnAdd|onColumnRemove|sortableOptions|inColumnSortable";
 
 function noop() {}
 
@@ -56,6 +59,7 @@ _SEALED_EMPTY_ORDER.subscribe = (cb) => {
 };
 
 export function createKanban(options = {}) {
+    checkOptions("createKanban", options, OPTION_KEYS);
     const {
         columns: initialColumns = [],
         cards: initialCards = [],

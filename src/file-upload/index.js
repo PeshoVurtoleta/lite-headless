@@ -92,6 +92,9 @@
 
 import { signal as makeSignal, effect, computed } from "@zakkster/lite-signal";
 import { sealSignal } from "../_overlay/seal.js";
+import { checkOptions } from "../_validate.js";
+
+const OPTION_KEYS = "accept|multiple|maxFiles|maxSize|validate|autoUpload|onUpload|onFilesAdded|onProgress|onComplete|onError|onInvalid|onAllDone";
 
 const noop = () => {};
 
@@ -143,6 +146,7 @@ function _matchesAccept(file, acceptList) {
 }
 
 export function createFileUpload(options = {}) {
+    checkOptions("createFileUpload", options, OPTION_KEYS);
     const {
         accept = "",
         multiple = true,

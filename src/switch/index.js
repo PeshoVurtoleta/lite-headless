@@ -64,6 +64,9 @@
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { sealSignal } from "../_overlay/seal.js";
+import { checkOptions } from "../_validate.js";
+
+const OPTION_KEYS = "defaultChecked|checked|disabled|required|onChange";
 
 const noop = () => {};
 let _idCounter = 0;
@@ -76,6 +79,7 @@ function removeAttr(el, name) {
 }
 
 export function createSwitch(options = {}) {
+    checkOptions("createSwitch", options, OPTION_KEYS);
     const {
         defaultChecked = false,
         checked: externalChecked,

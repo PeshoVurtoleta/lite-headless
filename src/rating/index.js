@@ -16,6 +16,9 @@
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { setAttr, toggleAttr, ensureId } from "../_overlay/aria.js";
 import { sealSignal } from "../_overlay/seal.js";
+import { checkOptions } from "../_validate.js";
+
+const OPTION_KEYS = "max|defaultValue|step|readOnly|clearable|onValueChange|onHoverChange|ariaLabel";
 
 function noop() {}
 
@@ -24,6 +27,7 @@ function clamp(n, lo, hi) {
 }
 
 export function createRating(options = {}) {
+    checkOptions("createRating", options, OPTION_KEYS);
     const {
         max = 5,
         defaultValue = 0,

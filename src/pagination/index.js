@@ -70,6 +70,9 @@
 
 import { signal as makeSignal, effect, untrack } from "@zakkster/lite-signal";
 import { sealSignal } from "../_overlay/seal.js";
+import { checkOptions } from "../_validate.js";
+
+const OPTION_KEYS = "pageCount|defaultPage|page|siblingCount|boundaryCount|onChange|onItemsChange";
 
 const noop = () => {};
 let _idCounter = 0;
@@ -154,6 +157,7 @@ export function buildItems(page, total, siblingCount, boundaryCount) {
 // ----- primitive -----------------------------------------------------
 
 export function createPagination(options = {}) {
+    checkOptions("createPagination", options, OPTION_KEYS);
     const {
         pageCount: initialPageCount = 1,
         defaultPage = 1,

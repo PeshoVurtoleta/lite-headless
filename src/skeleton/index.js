@@ -85,6 +85,9 @@
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { toggleAttr } from "../_overlay/aria.js";
 import { sealSignal } from "../_overlay/seal.js";
+import { checkOptions } from "../_validate.js";
+
+const OPTION_KEYS = "sources|minVisibleMs|initiallyReady|onReveal|onConceal";
 
 const noop = () => {};
 
@@ -98,6 +101,7 @@ function removeAttr(el, name) {
 const now = () => (typeof performance !== "undefined" ? performance.now() : Date.now());
 
 export function createSkeleton(options = {}) {
+    checkOptions("createSkeleton", options, OPTION_KEYS);
     const {
         sources: declaredSources = [],
         minVisibleMs = 0,

@@ -1,6 +1,6 @@
 # @zakkster/lite-headless
 
-VERSION 1.0.1
+VERSION 1.1.0
 
 58 headless UI primitives on signal-based reactivity (@zakkster/lite-signal).
 Zero styling. Tree-shakable via per-primitive subpath exports. Framework-
@@ -59,6 +59,7 @@ Newest additions: separator, clipboard, password-input, alert-dialog, hover-card
 ## Conventions
 
 - Static config (set once at createXxx). Reactive state is exposed via signals.
+- Unknown option keys throw TypeError at construction with a did-you-mean hint; null and non-objects are rejected; no-arg/undefined is legal.
 - status ReadSignal: 'closed' -> 'opening' -> 'open' -> 'closing' -> 'closed'
 - Slots use data-* attributes: data-trigger, data-content, data-anchor,
   data-arrow, data-close, data-trigger, data-indicator, data-input, data-toggle
@@ -87,7 +88,7 @@ Newest additions: separator, clipboard, password-input, alert-dialog, hover-card
 - node:test (NOT vitest)
 - happy-dom devDep (pinned ^15.11.0)
 - Per-test setupDOM/teardownDOM; teardown calls window.happyDOM.close()
-- 1538 tests; `tsc --noEmit` type-checks the full public surface
+- 1571 tests; `tsc --noEmit` type-checks the full public surface
 
 ## License
 

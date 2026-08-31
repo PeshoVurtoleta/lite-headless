@@ -42,6 +42,9 @@
 
 import { signal as makeSignal, effect, untrack } from "@zakkster/lite-signal";
 import { sealSignal } from "../_overlay/seal.js";
+import { checkOptions } from "../_validate.js";
+
+const OPTION_KEYS = "triggerKey|fuzzy|maxResults|recentBoost|rememberRecent|recentLimit|onSelect|onOpen|onClose|onOpenChange|onQueryChange|onResultsChange|onActiveIndexChange|invokeOnSelect";
 
 const noop = () => {};
 let _idCounter = 0;
@@ -157,6 +160,7 @@ function scoreCommand(cmd, query, fuzzy) {
 // ----- main primitive -------------------------------------------------
 
 export function createCommandPalette(options = {}) {
+    checkOptions("createCommandPalette", options, OPTION_KEYS);
     const {
         triggerKey      = { key: "k", meta: true },   // Cmd+K / Ctrl+K
         fuzzy           = true,

@@ -60,6 +60,9 @@ import {
     createRovingFocus, STRATEGY_DOM_FOCUS
 } from "../_overlay/roving-focus.js";
 import { sealSignal } from "../_overlay/seal.js";
+import { checkOptions } from "../_validate.js";
+
+const OPTION_KEYS = "selectionMode|defaultSelected|defaultExpanded|typeahead|loop|onSelectionChange|onExpandedChange";
 
 const noop = () => {};
 
@@ -70,6 +73,7 @@ function asArr(v) {
 }
 
 export function createTree(options = {}) {
+    checkOptions("createTree", options, OPTION_KEYS);
     const {
         selectionMode = "single",
         defaultSelected,

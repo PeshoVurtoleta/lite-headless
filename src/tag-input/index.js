@@ -106,6 +106,9 @@
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { sealSignal } from "../_overlay/seal.js";
+import { checkOptions } from "../_validate.js";
+
+const OPTION_KEYS = "initialValue|maxItems|allowDuplicates|delimiters|pasteSplitOn|trim|normalize|validate|onChange|onAdd|onRemove|onInvalid|ariaLabel";
 
 const noop = () => {};
 const DEFAULT_DELIMITERS = ["Enter", "Tab", ","];
@@ -119,6 +122,7 @@ function removeAttr(el, name) {
 }
 
 export function createTagInput(options = {}) {
+    checkOptions("createTagInput", options, OPTION_KEYS);
     const {
         initialValue = [],
         maxItems = Infinity,

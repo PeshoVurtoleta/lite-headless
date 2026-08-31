@@ -39,8 +39,12 @@ import { createPositioner } from "../_overlay/position.js";
 import { portal } from "../_overlay/portal.js";
 import { uniqueId, setAttr, toggleAttr, ensureId, addIdToken, removeIdToken } from "../_overlay/aria.js";
 import { createRovingFocus, STRATEGY_DOM_FOCUS } from "../_overlay/roving-focus.js";
+import { checkOptions } from "../_validate.js";
+
+const OPTION_KEYS = "open|defaultOpen|onOpenChange|placement|offset|flip|shift|boundary|typeahead|typeaheadTimeout|loop|closeOnSelect|closeOnEscape|closeOnOutsideClick|isSubmenu|submenuOpenDelay|submenuCloseDelay|safeTriangle|container|transition";
 
 export function createMenu(options = {}) {
+    checkOptions("createMenu", options, OPTION_KEYS);
     const {
         open, defaultOpen = false, onOpenChange,
 

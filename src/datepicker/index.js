@@ -33,6 +33,9 @@
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { uniqueId, setAttr, toggleAttr, ensureId, addIdToken, removeIdToken } from "../_overlay/aria.js";
 import { sealSignal } from "../_overlay/seal.js";
+import { checkOptions } from "../_validate.js";
+
+const OPTION_KEYS = "mode|value|defaultValue|onValueChange|minDate|maxDate|weekStartsOn|now|today|disabled";
 
 // Module-scoped Intl.DateTimeFormat. Construction is non-trivial (locale
 // resolution + options parsing); doing it on every effect run in the
@@ -179,6 +182,7 @@ function normalizeValue(v, mode) {
 // ----- main factory ------------------------------------------------------
 
 export function createDatePicker(options = {}) {
+    checkOptions("createDatePicker", options, OPTION_KEYS);
     const {
         mode = "single",                        // "single" | "range"
         value: externalValue,

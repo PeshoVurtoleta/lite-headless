@@ -54,6 +54,9 @@ import {
     isSameDay, isSameMonth, isBefore, isAfter,
     buildDaysInView, dayKey,
 } from "../datepicker/index.js";
+import { checkOptions } from "../_validate.js";
+
+const OPTION_KEYS = "defaultView|defaultEvents|defaultSelectedDate|weekStartsOn|onViewChange|onEventClick|onDateClick|onSelectedDateChange";
 
 function endOfDay(d) {
     return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
@@ -82,6 +85,7 @@ function compareEvents(a, b) {
 }
 
 export function createCalendar(options = {}) {
+    checkOptions("createCalendar", options, OPTION_KEYS);
     const {
         defaultView,
         defaultEvents = [],

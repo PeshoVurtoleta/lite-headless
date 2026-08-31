@@ -20,6 +20,9 @@
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { setAttr } from "../_overlay/aria.js";
 import { sealSignal } from "../_overlay/seal.js";
+import { checkOptions } from "../_validate.js";
+
+const OPTION_KEYS = "decorative|orientation";
 
 function noop() {}
 function removeAttr(el, name) { el.removeAttribute(name); }
@@ -27,6 +30,7 @@ function removeAttr(el, name) { el.removeAttribute(name); }
 const VALID_ORIENTATIONS = new Set(["horizontal", "vertical"]);
 
 export function createSeparator(opts = {}) {
+    checkOptions("createSeparator", opts, OPTION_KEYS);
     const o = opts || {};
     const decorative = !!o.decorative;
     // `let`: destroy() seals this (H-12) -- the pooled node goes back to the

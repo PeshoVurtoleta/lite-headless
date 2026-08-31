@@ -20,6 +20,9 @@
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { setAttr, toggleAttr } from "../_overlay/aria.js";
 import { sealSignal } from "../_overlay/seal.js";
+import { checkOptions } from "../_validate.js";
+
+const OPTION_KEYS = "timeout|write|onCopy|onError|value";
 
 function noop() {}
 function removeAttr(el, name) { el.removeAttribute(name); }
@@ -32,6 +35,7 @@ function defaultWrite(text) {
 }
 
 export function createClipboard(opts = {}) {
+    checkOptions("createClipboard", opts, OPTION_KEYS);
     const o = opts || {};
     const timeout = (typeof o.timeout === "number" && o.timeout >= 0) ? o.timeout : 2000;
     const write = (typeof o.write === "function") ? o.write : defaultWrite;

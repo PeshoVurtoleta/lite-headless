@@ -34,8 +34,12 @@
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { uniqueId, setAttr, ensureId } from "../_overlay/aria.js";
 import { sealSignal } from "../_overlay/seal.js";
+import { checkOptions } from "../_validate.js";
+
+const OPTION_KEYS = "value|defaultValue|onValueChange|min|max|step|largeStep|orientation|inverted|disabled|minStepsBetweenThumbs";
 
 export function createSlider(options = {}) {
+    checkOptions("createSlider", options, OPTION_KEYS);
     const {
         // Value: pass an external WriteSignal for controlled mode, or
         // defaultValue for uncontrolled. defaultValue's array length determines

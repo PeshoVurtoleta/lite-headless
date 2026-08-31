@@ -31,6 +31,9 @@ import { createFocusTrap } from "../_overlay/focus.js";
 import { lockScroll } from "../_overlay/scroll-lock.js";
 import { bindEscape, bindOutsideClick } from "../_overlay/dismiss.js";
 import { sealSignal } from "../_overlay/seal.js";
+import { checkOptions } from "../_validate.js";
+
+const OPTION_KEYS = "open|defaultOpen|defaultSide|modal|portalRoot|closeOnEscape|closeOnOutsideClick|lockScrollOnOpen|trapFocus|awaitTransitionEnd|initialFocus|returnFocus|onOpenChange";
 
 function noop() {}
 
@@ -40,6 +43,7 @@ function normalizeSide(s) {
 }
 
 export function createDrawer(options = {}) {
+    checkOptions("createDrawer", options, OPTION_KEYS);
     const {
         open: controlledOpen,
         defaultOpen = false,

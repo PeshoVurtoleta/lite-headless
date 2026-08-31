@@ -60,6 +60,9 @@
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { sealSignal } from "../_overlay/seal.js";
+import { checkOptions } from "../_validate.js";
+
+const OPTION_KEYS = "src|sources|placeholder|lazy|eager|aspectRatio|containerSources|maxRetries|rootMargin|onStateChange|onLoad|onError";
 
 const noop = () => {};
 function setAttr(el, name, value) {
@@ -70,6 +73,7 @@ function removeAttr(el, name) {
 }
 
 export function createPicture(options = {}) {
+    checkOptions("createPicture", options, OPTION_KEYS);
     const {
         src,
         sources = [],

@@ -43,11 +43,15 @@ import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { sealSignal } from "../_overlay/seal.js";
 import { setAttr, toggleAttr } from "../_overlay/aria.js";
 import { createRovingFocus, STRATEGY_DOM_FOCUS } from "../_overlay/roving-focus.js";
+import { checkOptions } from "../_validate.js";
+
+const OPTION_KEYS = "orientation|required|value|onChange|disabled";
 
 function noop() {}
 function removeAttr(el, name) { el.removeAttribute(name); }
 
 export function createRadioGroup(opts = {}) {
+    checkOptions("createRadioGroup", opts, OPTION_KEYS);
     const o = opts || {};
     const orientation = o.orientation === "horizontal" ? "horizontal" : "vertical";
     const required    = !!o.required;

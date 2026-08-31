@@ -59,6 +59,9 @@
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { sealSignal } from "../_overlay/seal.js";
+import { checkOptions } from "../_validate.js";
+
+const OPTION_KEYS = "separator|onItemClick";
 
 const noop = () => {};
 function setAttr(el, name, value) {
@@ -69,6 +72,7 @@ function removeAttr(el, name) {
 }
 
 export function createBreadcrumb(options = {}) {
+    checkOptions("createBreadcrumb", options, OPTION_KEYS);
     const {
         separator = "/",
         onItemClick,

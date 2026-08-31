@@ -44,10 +44,14 @@ import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { createRovingFocus, STRATEGY_DOM_FOCUS } from "../_overlay/roving-focus.js";
 import { uniqueId, setAttr, toggleAttr } from "../_overlay/aria.js";
 import { sealSignal } from "../_overlay/seal.js";
+import { checkOptions } from "../_validate.js";
+
+const OPTION_KEYS = "value|defaultValue|orientation|activation|loop|typeahead|onValueChange";
 
 const noop = () => {};
 
 export function createTabs(options = {}) {
+    checkOptions("createTabs", options, OPTION_KEYS);
     const {
         value: valueSignal,
         defaultValue,

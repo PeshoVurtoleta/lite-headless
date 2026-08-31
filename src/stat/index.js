@@ -26,6 +26,9 @@
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { setAttr, toggleAttr, ensureId } from "../_overlay/aria.js";
 import { sealSignal } from "../_overlay/seal.js";
+import { checkOptions } from "../_validate.js";
+
+const OPTION_KEYS = "defaultValue|defaultLabel|defaultUnit|defaultTrend|formatter|trendFormatter|animationDuration|onValueChange";
 
 function noop() {}
 
@@ -53,6 +56,7 @@ function defaultTrendFormatter(t) {
 }
 
 export function createStat(options = {}) {
+    checkOptions("createStat", options, OPTION_KEYS);
     const {
         defaultValue = 0,
         defaultLabel = "",

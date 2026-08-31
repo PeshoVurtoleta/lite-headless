@@ -70,10 +70,14 @@
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { sealSignal } from "../_overlay/seal.js";
+import { checkOptions } from "../_validate.js";
+
+const OPTION_KEYS = "orientation|layout|defaultLayout|snapThreshold|keyboardStep|onLayoutChange";
 
 const noop = () => {};
 
 export function createSplitPanels(options = {}) {
+    checkOptions("createSplitPanels", options, OPTION_KEYS);
     const {
         orientation   = "horizontal",
         layout: layoutSignal,

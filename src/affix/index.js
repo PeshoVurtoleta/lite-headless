@@ -25,11 +25,15 @@
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { setAttr, toggleAttr } from "../_overlay/aria.js";
 import { sealSignal } from "../_overlay/seal.js";
+import { checkOptions } from "../_validate.js";
+
+const OPTION_KEYS = "offsetTop|root|onChange";
 
 function noop() {}
 function removeAttr(el, name) { el.removeAttribute(name); }
 
 export function createAffix(opts = {}) {
+    checkOptions("createAffix", opts, OPTION_KEYS);
     const o = opts || {};
     const _offsetTop = (typeof o.offsetTop === "number" && o.offsetTop >= 0)
                      ? o.offsetTop : 0;

@@ -30,6 +30,9 @@
 import { signal as makeSignal, effect, untrack } from "@zakkster/lite-signal";
 import { toggleAttr } from "../_overlay/aria.js";
 import { sealSignal } from "../_overlay/seal.js";
+import { checkOptions } from "../_validate.js";
+
+const OPTION_KEYS = "orientation|autoplay|autoplayBehavior|loop|defaultIndex|uniformSlideWidth|respectReducedMotion|onIndexChange|onPlayingChange|scrollBehavior|observerThresholds";
 
 const noop = () => {};
 let _idCounter = 0;
@@ -44,6 +47,7 @@ const REDUCED_MOTION =
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 export function createCarousel(options = {}) {
+    checkOptions("createCarousel", options, OPTION_KEYS);
     const {
         orientation       = "horizontal",
         autoplay          = null,            // ms interval, null = no autoplay

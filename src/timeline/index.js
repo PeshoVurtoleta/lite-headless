@@ -20,6 +20,9 @@
 //     aria-hidden="true"  (decoration only -- the surrounding item announces it)
 
 import { setAttr } from "../_overlay/aria.js";
+import { checkOptions } from "../_validate.js";
+
+const OPTION_KEYS = "";
 
 function noop() {}
 function removeAttr(el, name) { el.removeAttribute(name); }
@@ -27,6 +30,7 @@ function removeAttr(el, name) { el.removeAttribute(name); }
 const VALID_TYPES = new Set(["default", "success", "warning", "danger", "info"]);
 
 export function createTimeline(opts = {}) {
+    checkOptions("createTimeline", opts, OPTION_KEYS);
     const o = opts || {};
     const _destroyed = { v: false };
     const _items = new Set();    // attached item elements

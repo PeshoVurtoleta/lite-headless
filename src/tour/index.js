@@ -43,11 +43,15 @@
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { setAttr, toggleAttr, ensureId } from "../_overlay/aria.js";
 import { sealSignal } from "../_overlay/seal.js";
+import { checkOptions } from "../_validate.js";
+
+const OPTION_KEYS = "onStepChange|onComplete|onSkip|loop";
 
 function noop() {}
 function removeAttr(el, name) { el.removeAttribute(name); }
 
 export function createTour(opts = {}) {
+    checkOptions("createTour", opts, OPTION_KEYS);
     const o = opts || {};
     const onStepChange = typeof o.onStepChange === "function" ? o.onStepChange : null;
     const onComplete   = typeof o.onComplete   === "function" ? o.onComplete   : null;

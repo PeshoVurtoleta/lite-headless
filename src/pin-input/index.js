@@ -85,6 +85,9 @@
 
 import { signal as makeSignal, effect, untrack } from "@zakkster/lite-signal";
 import { sealSignal } from "../_overlay/seal.js";
+import { checkOptions } from "../_validate.js";
+
+const OPTION_KEYS = "length|type|initialValue|onChange|onComplete|onInvalidPaste|inputAriaLabel|ariaLabel";
 
 const noop = () => {};
 
@@ -112,6 +115,7 @@ function _defaultLabel(i, length) {
 }
 
 export function createPinInput(options = {}) {
+    checkOptions("createPinInput", options, OPTION_KEYS);
     const {
         length = 6,
         type = "numeric",

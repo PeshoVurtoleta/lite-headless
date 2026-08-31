@@ -82,6 +82,9 @@
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { toggleAttr } from "../_overlay/aria.js";
 import { sealSignal } from "../_overlay/seal.js";
+import { checkOptions } from "../_validate.js";
+
+const OPTION_KEYS = "value|min|max|indeterminate|variant|label|valueText|onChange|onComplete";
 
 const noop = () => {};
 function setAttr(el, name, value) {
@@ -105,6 +108,7 @@ function uniqueId(prefix) {
 }
 
 export function createProgress(options = {}) {
+    checkOptions("createProgress", options, OPTION_KEYS);
     const {
         value:        initialValue = 0,
         min:          initialMin   = 0,
