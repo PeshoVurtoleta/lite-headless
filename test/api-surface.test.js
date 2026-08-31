@@ -88,7 +88,7 @@ test("snapshot and generator sources are ASCII-legal", async () => {
     }
 });
 
-test("every live export is declared in types.d.ts or pinned; every pin is absent from its subpath's own declare-module block", async () => {
+test("every live export is declared in its OWN subpath's declare-module block (file top level counts only for the bare barrel) or pinned", async () => {
     const types = await readFile(new URL("../types.d.ts", import.meta.url), "utf8");
     const typeLines = types.split("\n");
 
@@ -111,6 +111,27 @@ test("every live export is declared in types.d.ts or pinned; every pin is absent
         }
         return null;
     };
+
+    // Top-level residue: the file text with every `declare module "..." { ... }`
+    // block span removed, using the same block-boundary rule as moduleBlock
+    // (opener line startsWith `declare module "`, terminator = a line that is
+    // exactly `}`). A single-line empty block (`declare module "..." {}`) has no
+    // terminator line and is dropped whole. What survives is the file top level
+    // -- the bare "." barrel's own surface (e.g. VERSION at file scope).
+    const residueLines = [];
+    let inModuleBlock = false;
+    for (const line of typeLines) {
+        if (!inModuleBlock && line.startsWith('declare module "')) {
+            if (!line.endsWith("{}")) inModuleBlock = true;
+            continue;
+        }
+        if (inModuleBlock) {
+            if (line === "}") inModuleBlock = false;
+            continue;
+        }
+        residueLines.push(line);
+    }
+    const topLevelResidue = residueLines.join("\n");
 
     // Is NAME declared inside a given block body? Anchored declaration or a
     // member of an `export { ... }` list within the block.
@@ -135,39 +156,26 @@ test("every live export is declared in types.d.ts or pinned; every pin is absent
         return false;
     };
 
-    // Anchored declaration scan. A name counts as declared only via a real
-    // declaration position -- never a bare substring (which false-passes on a
-    // name that merely appears inside a comment or another signature).
-    const declared = new Set();
-    // Line-anchored value declarations: export [declare] [async] function|const|let|var|class NAME
-    const declRe = /^\s*export\s+(?:declare\s+)?(?:async\s+)?(?:function|const|let|var|class)\s+([A-Za-z0-9_$]+)/;
-    for (const line of types.split("\n")) {
-        const m = declRe.exec(line);
-        if (m) declared.add(m[1]);
-    }
-    // export { ... } / export type { ... } blocks (with or without a from clause).
-    const braceRe = /export\s+(?:type\s+)?\{([\s\S]*?)\}/g;
-    let bm;
-    while ((bm = braceRe.exec(types)) !== null) {
-        for (let tok of bm[1].split(",")) {
-            tok = tok.trim();
-            if (!tok) continue;
-            const parts = tok.split(/\s+as\s+/);
-            const name = parts[parts.length - 1].trim();
-            if (/^[A-Za-z0-9_$]+$/.test(name)) declared.add(name);
-        }
-    }
-
     const undocumented = snapshot.undocumented;
     const pinned = new Set(undocumented);
 
-    // (1) every live export is declared or pinned.
+    // (1) every live export is declared in its OWN subpath's declare-module
+    // block, or pinned. The file top level counts only for the bare "." barrel
+    // (its VERSION lives at file scope, not inside the barrel block). A module
+    // subpath with no declare-module block fails closed -- never a pass.
     const uncovered = [];
     for (const subpath of liveKeys) {
         const entry = liveExports[subpath];
         if (entry.kind !== "module") continue;
+        const tail = subpath === "." ? "" : subpath.slice(1); // "./avatar" -> "/avatar"
+        const block = moduleBlock(tail);
         for (const name of entry.names) {
-            if (declared.has(name)) continue;
+            if (block === null) {
+                uncovered.push(subpath + "#" + name);
+                continue;
+            }
+            if (declaredInBlock(block, name)) continue;
+            if (subpath === "." && declaredInBlock(topLevelResidue, name)) continue;
             if (pinned.has(subpath + "#" + name)) continue;
             uncovered.push(subpath + "#" + name);
         }
@@ -175,12 +183,12 @@ test("every live export is declared in types.d.ts or pinned; every pin is absent
     assert.deepEqual(
         uncovered,
         [],
-        "live exports neither declared in types.d.ts nor pinned in undocumented[]: " +
+        "live exports not declared in their own subpath's declare-module block nor pinned: " +
             uncovered.join(", ")
     );
 
     // (2) the allowlist is a fixed budget that may only shrink, never grow.
-    assert.equal(undocumented.length, 32, "undocumented[] must hold exactly 32 entries");
+    assert.equal(undocumented.length, 0, "undocumented[] must hold exactly 0 entries");
 
     // (3) no ghosts: every pinned entry resolves to a live export.
     const ghosts = [];

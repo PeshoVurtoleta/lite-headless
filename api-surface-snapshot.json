@@ -391,7 +391,6 @@
     "./dialog": {
       "kind": "module",
       "names": [
-        "DIALOG_OPTION_KEYS",
         "createDialog"
       ]
     },
@@ -2429,39 +2428,6 @@
     "mirrored": 335,
     "primitives": 53
   },
-  "undocumented": [
-    "./avatar#deriveInitials",
-    "./avatar#hueFromString",
-    "./color-picker#hsvToHsl",
-    "./color-picker#hsvToRgb",
-    "./color-picker#linearRgbToOklab",
-    "./color-picker#linearToSrgb",
-    "./color-picker#oklabToLinearRgb",
-    "./color-picker#oklchToRgb",
-    "./color-picker#parseHex",
-    "./color-picker#rgbToHsv",
-    "./color-picker#rgbToOklch",
-    "./color-picker#srgbToLinear",
-    "./datepicker#addDays",
-    "./datepicker#addMonths",
-    "./datepicker#addYears",
-    "./datepicker#buildDaysInView",
-    "./datepicker#buildMonthsInView",
-    "./datepicker#buildYearsInView",
-    "./datepicker#dayKey",
-    "./datepicker#decadeRange",
-    "./datepicker#isAfter",
-    "./datepicker#isBefore",
-    "./datepicker#isInDecade",
-    "./datepicker#isInRange",
-    "./datepicker#isSameDay",
-    "./datepicker#isSameMonth",
-    "./datepicker#monthKey",
-    "./datepicker#startOfDay",
-    "./datepicker#startOfMonth",
-    "./datepicker#yearKey",
-    "./dialog#DIALOG_OPTION_KEYS",
-    "./pagination#buildItems"
-  ],
+  "undocumented": [],
   "version": "2.0.0"
 }

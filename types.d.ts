@@ -498,6 +498,26 @@ declare module "@zakkster/lite-headless/datepicker" {
         readonly maxDate: Date | null;
     }
 
+    // pure date helpers (re-exported for advanced grid renderers)
+    export function startOfDay(d: Date): Date;
+    export function startOfMonth(d: Date): Date;
+    export function addDays(d: Date, n: number): Date;
+    export function addMonths(d: Date, n: number): Date;
+    export function addYears(d: Date, n: number): Date;
+    export function isSameDay(a: Date | null, b: Date | null): boolean;
+    export function isSameMonth(a: Date | null, b: Date | null): boolean;
+    export function isBefore(a: Date, b: Date): boolean;
+    export function isAfter(a: Date, b: Date): boolean;
+    export function isInRange(d: Date, lo: Date, hi: Date): boolean;
+    export function dayKey(d: Date): string;
+    export function monthKey(d: Date): string;
+    export function yearKey(d: Date): string;
+    export function buildDaysInView(monthDate: Date, weekStartsOn: number): Date[];
+    export function buildMonthsInView(year: number): Date[];
+    export function buildYearsInView(year: number): Date[];
+    export function decadeRange(year: number): { start: number; end: number };
+    export function isInDecade(year: number, decadeStartYear: number): boolean;
+
     export function createDatePicker(opts?: DatePickerOptions): DatePickerInstance;
 }
 declare module "@zakkster/lite-headless/datepicker/element" {}
@@ -775,6 +795,9 @@ declare module "@zakkster/lite-headless/pagination" {
         destroy(): void;
         readonly destroyed: boolean;
     }
+
+    // pure helper (re-exported from the barrel)
+    export function buildItems(page: number, total: number, siblingCount: number, boundaryCount: number): PaginationItem[];
 
     export function createPagination(opts: PaginationOptions): PaginationInstance;
 }
@@ -1300,6 +1323,10 @@ declare module "@zakkster/lite-headless/avatar" {
         readonly destroyed: boolean;
     }
 
+    // pure helpers (re-exported from the barrel)
+    export function deriveInitials(name: string | null | undefined): string;
+    export function hueFromString(str: string | null | undefined): number;
+
     export function createAvatar(opts?: AvatarOptions): AvatarInstance;
 }
 declare module "@zakkster/lite-headless/avatar/element" {}
@@ -1699,6 +1726,19 @@ declare module "@zakkster/lite-headless/color-picker" {
         destroy(): void;
         readonly destroyed: boolean;
     }
+
+    // pure color-math helpers; these return bare tuples, not the
+    // RGB/HSL/HSV/OKLCH object interfaces above.
+    export function hsvToRgb(h: number, s: number, v: number): [number, number, number];
+    export function rgbToHsv(r: number, g: number, b: number, prevH?: number): [number, number, number];
+    export function hsvToHsl(h: number, s: number, v: number): [number, number, number];
+    export function parseHex(input: string): [number, number, number, number] | null;
+    export function srgbToLinear(c: number): number;
+    export function linearToSrgb(c: number): number;
+    export function linearRgbToOklab(r: number, g: number, b: number): [number, number, number];
+    export function oklabToLinearRgb(L: number, a: number, b: number): [number, number, number];
+    export function rgbToOklch(r: number, g: number, b: number): [number, number, number];
+    export function oklchToRgb(L: number, C: number, h: number): [number, number, number];
 
     export function createColorPicker(opts?: ColorPickerOptions): ColorPickerInstance;
 }

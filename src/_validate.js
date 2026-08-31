@@ -108,6 +108,13 @@ export function checkOptions(fnName, options, knownKeys) {
     }
 }
 
+// Cross-primitive option-key seam. A shared option-key list needed by more
+// than one primitive lives here, in the private validator module, and is never
+// reachable through an exports subpath (see ADR 0002). dialog and alert-dialog
+// validate against the identical option surface; the pipe-delimited string is
+// an encoding private to checkOptions, not a public contract.
+export const DIALOG_OPTION_KEYS = "open|defaultOpen|onOpenChange|modal|closeOnEscape|closeOnOutsideClick|initialFocus|finalFocus|placement|role|container|transition|labelledBy|describedBy";
+
 // Positioner factory validation, at construction. `undefined` is legal -- the
 // factory falls back to the built-in positioning engine. Anything that is not
 // a function fails closed: null, an object, a string are all rejected here,
