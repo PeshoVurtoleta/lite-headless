@@ -65,20 +65,23 @@ test.describe("anchor", () => {
 
     test("clicking a link scrolls + optimistically activates", async ({ page }) => {
         await page.click('a[href="#sec-delta"]');
-        // After click, delta should be active (optimistic) and scroller advanced.
-        // Use poll: the data-active attribute is painted by one effect and the
-        // activeKey getter reads a separate signal; under worker contention
-        // these can settle on different ticks (we've observed data-active set
-        // on delta while activeKey still reads the IO-driven previous value
-        // for a frame).
+        // delta is the trailing section: its scroll target clamps to the
+        // scroller's max scrollTop, so it never reaches the viewport top and
+        // gamma stays visible above it. The click pins delta active through
+        // the programmatic scroll, so the IO "earliest visible" recompute
+        // cannot demote it to gamma. Poll (the optimistic paint lands on a
+        // later microtask than the synchronous signal write).
         await expect.poll(
             () => page.evaluate(() => document.getElementById("side").activeKey),
             { timeout: 2000, intervals: [50] },
         ).toBe("sec-delta");
-        const scrollTop = await page.evaluate(
-            () => document.getElementById("scroller").scrollTop,
-        );
-        expect(scrollTop).toBeGreaterThan(0);
+        // The smooth scroll advances over several frames -- it is 0 on the
+        // tick the click returns. Poll for the scroller to leave the top
+        // rather than reading once (the read used to race the animation).
+        await expect.poll(
+            () => page.evaluate(() => document.getElementById("scroller").scrollTop),
+            { timeout: 2000, intervals: [50] },
+        ).toBeGreaterThan(0);
     });
 
     test("modifier-key click is not intercepted (default browser action runs)", async ({ page }) => {

@@ -47,6 +47,18 @@ export function createAnchor(opts = {}) {
     let _activeKey = makeSignal(null);   // identifier of currently-active link
     const _destroyed = { v: false };
 
+    // Click pin: an explicit link click marks its target active and holds it
+    // through the programmatic smooth scroll. Without this, the
+    // IntersectionObserver "earliest visible" recompute clobbers the choice
+    // mid-scroll -- and for a trailing section that never reaches the viewport
+    // top it settles on an EARLIER link, so clicking the last item would leave
+    // the second-to-last active. The pin releases only once the pinned section
+    // has been seen intersecting and then leaves view (a genuine user scroll
+    // away), at which point IO drives the active link again. Two primitive
+    // fields: no allocation, no timers, no listeners.
+    let _pinnedKey = null;   // click-pinned key, or null when IO is in charge
+    let _pinSeen = false;    // pinned section has been observed intersecting
+
     // Track sections + links by key. Each link has a target (the
     // section element it links to) and a key (string identifier,
     // typically the section's id).
@@ -61,6 +73,14 @@ export function createAnchor(opts = {}) {
 
     function _recomputeActive() {
         if (_destroyed.v) return;
+        // A live click pin overrides the heuristic: keep the pinned link
+        // active until its section has been seen and then scrolled out of
+        // view. Fail closed -- an explicit click beats an inferred guess.
+        if (_pinnedKey !== null) {
+            if (_intersectingKeys.has(_pinnedKey)) { _pinSeen = true; return; }
+            if (!_pinSeen) return;                 // target not scrolled in yet
+            _pinnedKey = null; _pinSeen = false;   // scrolled away -> resume IO
+        }
         // Pick the FIRST key that is intersecting, in DOM order of
         // the section elements. This produces the "earliest visible
         // section" behavior most scrollspy implementations use.
@@ -151,6 +171,11 @@ export function createAnchor(opts = {}) {
                 _activeKey.set(k);
                 if (onChange) try { onChange(k); } catch {}
             }
+            // Pin the explicit choice through the programmatic scroll so the
+            // IO "earliest visible" recompute cannot override it (see the
+            // _pinnedKey declaration for why trailing sections need this).
+            _pinnedKey = k;
+            _pinSeen = false;
         };
         linkEl.addEventListener("click", onClick);
 
@@ -168,6 +193,7 @@ export function createAnchor(opts = {}) {
             removeAttr(linkEl, "aria-current");
             removeAttr(sectionEl, "data-anchor-section");
             removeAttr(sectionEl, "data-anchor-section-key");
+            if (_pinnedKey === k) { _pinnedKey = null; _pinSeen = false; }
             if (_activeKey() === k) _activeKey.set(null);
         };
         _links.set(k, { linkEl, sectionEl, off });
@@ -195,6 +221,7 @@ export function createAnchor(opts = {}) {
         _cleanups.length = 0;
         _links.clear();
         _intersectingKeys.clear();
+        _pinnedKey = null; _pinSeen = false;
         // return the pooled signal node after every effect stopped; reads
         // freeze at the final value (H-12)
         _activeKey = sealSignal(_activeKey);
