@@ -109,6 +109,8 @@ pin.destroy()
 
 `attach*` returns an `off()` cleanup function that removes the wired attrs + listeners. Useful when the same primitive drives a re-rendered list of inputs.
 
+Steady-state `setValue` is witnessed allocation-free: the torture gate's E3 ENGINE window drives detached `setValue` at 2872 B / 50000 ops (~0 B/op, gated `<= 16384` B total).
+
 ## ARIA contract
 
 Root:

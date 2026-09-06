@@ -1,5 +1,81 @@
 # Changelog
 
+## 1.5.1 -- 2026-09-06
+
+### Added
+
+- H8 witness port: Phase C of the torture gate, the transient witness ported
+  from LiteForm (`test/torture/harness.mjs`). V8's new space is a bump
+  allocator, so the used-bytes delta around a GC-free synchronous loop is
+  exactly the per-op transient garbage the loop produced -- the one thing Phase
+  B misses (its perf_hooks GC entries are event-loop-deferred; a gc-bracketed
+  delta reclaims transients by construction). Each window is measured
+  `allocTotalMin` (min-of-N attempts, smallest valid delta): real per-op garbage
+  reproduces in every attempt, one-off background-runtime noise cannot survive an
+  immediate retry, and every attempt voiding fails closed. Fail-closed on a
+  negative new-space delta (a mid-window scavenge) and on the shrink ceiling.
+- H8 Phase C windows -- 5 ENGINE gated at `<= 16384 B / 50000 ops` (~0 B/op):
+  E2 stepper spin detached 6760 B; E3 pin-input setValue detached 2872 B; E4
+  time-picker spin detached 2888 B; E5s positioner steady-state tick (fresh
+  monomorphic instance, no-op diff path) 7392 B; E6 floating-adapter
+  steady-state tick 3072 B. 5 DOM recorded over a per-run calibration floor (F0
+  empty setAttribute alternation, printed on the GATE line -- ~1485816 B / 512
+  ops this run), each with a pinned ratchet = `ceil(max_measured * 1.25) + 4096`:
+  E1 combobox highlight via real ArrowDown dispatch 1890112 B / 256 ops, ratchet
+  2365376; E5 positioner MOVING tick 117640 B / 512 ops, ratchet 151166 (~230
+  B/op = one transform string per move, unavoidable by DOM contract); D1 slider
+  setValue mix 1856768 B / 512 ops, ratchet 2345436; D2 time-picker attached
+  spin 2505464 B / 256 ops, ratchet 3135926; D3 dialog full open/close toggle
+  incl. focus trap 2278096 B / 32 ops, ratchet 2857066.
+- H8 transient control: `TORTURE_CONTROL=transient` injects dead per-op garbage
+  into the E4 window. Phase A and Phase B are provably blind to it (the run
+  prints `phaseA live=0 findings=0 | phaseB major=0 ok=true -- h8 transient
+  witness sees`); only the Phase C witness kills the run. New npm script
+  `torture:control:transient`; `torture:control` (`TORTURE_CONTROL=1`)
+  unchanged and still fails.
+- H8 GATE line extended before the terminal `ok|FAIL` (existing head segments
+  keep their positions): `... | alloc=0 B/op | transient gated=5/5
+  budget=16384B/50000ops worst=<N>B(<window>) | transient rec=5
+  floor=<N>B/512ops | ok`.
+
+### Fixed
+
+- H8 LH-01 pin-input paydown (src/pin-input/index.js): the witness found
+  `setValue` allocating ~362 B/op detached -- `_filter` built intermediate
+  strings per char (`out += c`) and `_repaintInputs` iterated an empty Map (a
+  fresh iterator per call). Fixed with a scan-only clean-input fast path that
+  returns the input string itself (identity, zero alloc) and an early return
+  before the empty-Map iterator. Semantics byte-identical (1679 tests green);
+  now gated at 2872 B / 50000 ops (~0 B/op steady state, window E3).
+- H8 LH-08: package.json description "58 ARIA-correct factories" -> "59
+  ARIA-correct factories" (the 59th, time-picker, shipped in 1.5.0).
+
+### Design decisions (ADR)
+
+- PRNG NOT ported: every H8 drive is deterministic (modular index walk, fixed
+  step, scratch-table cycle, fixed rect mutation), so a seeded xorshift32 with
+  no consumer is dead bytes; `HEADLESS_TORTURE_SEED` is reserved for the first
+  randomized drive.
+- Toast show/dismiss OUT of H8: it is a construction path (per-call state by
+  design), not a steady-state hot body -- recording it buys a number no one can
+  act on. H9 candidate alongside its per-call bag validation.
+- DOM_OPS=5000 retired by measurement: happy-dom's write floor is ~2.9 KB/op, so
+  a fixed op count would overflow new space and VOID; each DOM window pins its
+  own ceiling-safe op count, printed as its denominator.
+- E1 reclassified ENGINE -> DOM-recorded: no public highlight mutator exists
+  (setHighlight/moveHighlight are internal), so the honest drive dispatches a
+  real ArrowDown and crosses happy-dom.
+- E3/E5s per-window warmup (30000) + E5s fresh-instance ruling: a large hot body
+  is still in V8's baseline tier at the suite warmup (1000) and its un-optimized
+  call frame boxes bytes that are a JIT tiering artifact, not primitive garbage;
+  the witness gates steady state, not tiering.
+- E5 moving-tick cost recorded as inherent: one transform string per move is
+  unavoidable by DOM contract; the zero-alloc guarantee holds for the
+  steady-state (element-not-moved) tick, witnessed by E5s.
+- E6 exonerated: the peer's `window.inner*` reads do not allocate per op, so
+  Phase B loop (iii)'s "steady-state tick is allocation-free" claim is confirmed
+  by the witness (3072 B / 50000 ops).
+
 ## 1.5.0 -- 2026-08-31
 
 ### Added

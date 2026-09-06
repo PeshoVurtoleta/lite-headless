@@ -480,6 +480,24 @@ test("setValue filters by pattern", () => {
     teardownDOM();
 });
 
+test("setValue with custom RegExp type: clean fast path, dirty cold path, over-length truncation (H8)", () => {
+    setupDOM();
+    const p = createPinInput({ length: 6, type: /[0-9A-F]/ });
+    // Clean, at cap: every char matches the pattern and length === cap ->
+    // the H8 fast path returns the input string itself (zero-alloc claim).
+    p.setValue("A1B2C3");
+    assert.equal(p.value(), "A1B2C3");
+    // Dirty for this pattern ("a" is lowercase, rejected by [0-9A-F]): the
+    // cold path filters char-by-char per the existing filter contract.
+    p.setValue("a1");
+    assert.equal(p.value(), "1");
+    // Over-length but otherwise clean: cold path truncates to the cap.
+    p.setValue("A1B2C3D4");
+    assert.equal(p.value(), "A1B2C3");
+    p.destroy();
+    teardownDOM();
+});
+
 test("clear() resets value + position + DOM inputs", () => {
     setupDOM();
     const p = createPinInput({ length: 4 });

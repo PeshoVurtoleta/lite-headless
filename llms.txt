@@ -1,6 +1,6 @@
 # @zakkster/lite-headless
 
-VERSION 1.5.0
+VERSION 1.5.1
 
 59 headless UI primitives on signal-based reactivity (@zakkster/lite-signal).
 Zero styling. Tree-shakable via per-primitive subpath exports. Framework-
@@ -116,6 +116,7 @@ Newest additions: time-picker, separator, clipboard, password-input, alert-dialo
 - happy-dom devDep (pinned ^15.11.0)
 - Per-test setupDOM/teardownDOM; teardown calls window.happyDOM.close()
 - 1633 tests; types.d.ts declares the documented surface (`tsc --noEmit`), while `test/api-surface.test.js` pins the full JS export surface against api-surface-snapshot.json (`npm run api:update` to regenerate); the undocumented allowlist is empty and the gate enforces that every live export is declared in its own subpath's `declare module` block -- the sole attribution rule is that for the bare "." specifier a file-top-level declaration (VERSION) counts as the barrel's own
+- Zero-GC gate `npm run torture` (--expose-gc), three phases: A retention (lite-leak, default 1024-node registry, tracker.size()==0), B GC budget (lite-gc-profiler, 0 major / <=4ms pause), C transient witness (new-space bump-allocator used-bytes delta around a GC-free loop, min-of-N to reject one-off runtime noise). Phase C GATES 5 ENGINE windows at <=16384 B/50000 ops (~0 B/op: E2 stepper, E3 pin-input setValue, E4 time-picker spin, E5s positioner steady tick, E6 floating-adapter tick) and RECORDS 5 DOM windows over a per-run happy-dom setAttribute floor (printed on the GATE line) with pinned ratchets = ceil(max*1.25)+4096 (E1 combobox highlight, E5 positioner moving tick, D1 slider, D2 time-picker attached, D3 dialog toggle). Fail-closed: a negative new-space delta (mid-window scavenge) voids. Controls: TORTURE_CONTROL=1 (retained alloc, Phase B kills) and TORTURE_CONTROL=transient (dead per-op garbage only Phase C sees; A/B report clean); both exit non-zero
 
 ## Ecosystem and recipes
 

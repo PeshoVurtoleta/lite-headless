@@ -257,7 +257,7 @@ Classes 1-3 are outputs the primitive writes; class 4 are inputs the wrapper rea
 
 | Export           | Meaning                                                           |
 | ---------------- | ---------------------------------------------------------------- |
-| `VERSION`        | Package version string (`"1.5.0"`), also mirrored in `llms.txt`. |
+| `VERSION`        | Package version string (`"1.5.1"`), also mirrored in `llms.txt`. |
 | status values    | `"closed"` -> `"opening"` -> `"open"` -> `"closing"` (per overlay). |
 | generated id ns  | `lh-dialog-`, `lh-popover-`, ... namespaced per primitive.        |
 
@@ -345,8 +345,8 @@ The two hot paths -- a slider drag and a positioner reflow -- run at pointer rat
 | ---------------------------------- | ------------------------ |
 | `slider.setValue` same-value drag  | **0** (early-exit before slice) |
 | `slider.setValue` step-crossing    | one array (signal contract; see below) |
-| positioner `update()` no-op diff   | **0**                    |
-| positioner `update()` with rewrite | **0** (mutates injected scratch) |
+| positioner `update()` no-op diff   | **0** (gated: window E5s) |
+| positioner `update()` moving tick  | one transform string (recorded: window E5; DOM contract) |
 | option validation (`checkOptions`) | cold path only, never per event |
 | `destroy()` seal + pool return     | cold path only (frozen stand-ins built at teardown) |
 
@@ -357,13 +357,30 @@ Three decisions carry that table:
 - **`checkOptions` is cold-path only.** The fail-closed validator runs once per factory call, at construction, never in a frame loop. Its membership test is an allocation-free bounded `indexOf` scan over a pipe-delimited key string (no `split`, no `Set`), and the two-row Levenshtein `suggest()` is reached only after a key has already failed and a throw is committed.
 - **`destroy()` seals signals back into the pool (H-12).** lite-signal pools its nodes in a fixed-capacity registry (default 1024, fail-fast), and a signal that is never disposed occupies a slot forever -- pool-ledger accumulation that lite-leak cannot see (the handles ARE collected). Every factory therefore holds its owned signals in `let` bindings that accessors resolve at call time; `destroy()` disposes each pooled node and swaps the binding to a frozen stand-in (`src/_overlay/seal.js`), so create/destroy churn runs indefinitely on the default registry while a destroyed handle keeps answering its final `open()`/`status()`/`value()` (writes stay no-ops). Per-item nodes return on their removal paths too (kanban column order, file-upload entry progress, radio-group item disabled). Consumer-supplied controlled signals are never touched. Pinned by `test/signal-pool.test.js`, which churns every factory on a 256-node fixed registry asserting exact pool return after every destroy.
 
-The gate is `test/torture.mjs` (`@zakkster/lite-leak` + `@zakkster/lite-gc-profiler`, run under `--expose-gc`), in two phases. **Phase A (retention):** churn every overlay and non-overlay primitive through create/attach/open/close/destroy inside a disposable signal owner; disposing the owner must untrack it, and any listener/timer/observer that outlives the owner surfaces as a finding. Phase A runs on lite-signal's default fixed 1024-node registry on purpose: a factory that stops returning its signal nodes on destroy fails fast with a `CapacityError` (H-12). **Phase B (GC budget):** drive the slider and the positioner `update()` tick with instances built outside the loop, sampling the heap; the gate is zero major collections and no pause over 4ms. The committed result:
+The gate is `test/torture.mjs` (`@zakkster/lite-leak` + `@zakkster/lite-gc-profiler`, run under `--expose-gc`), in three phases. **Phase A (retention):** churn every overlay and non-overlay primitive through create/attach/open/close/destroy inside a disposable signal owner; disposing the owner must untrack it, and any listener/timer/observer that outlives the owner surfaces as a finding. Phase A runs on lite-signal's default fixed 1024-node registry on purpose: a factory that stops returning its signal nodes on destroy fails fast with a `CapacityError` (H-12). **Phase B (GC budget):** drive the slider and the positioner `update()` tick with instances built outside the loop, sampling the heap; the gate is zero major collections and no pause over 4ms. **Phase C (transient witness):** V8's new space is a bump allocator, so the used-bytes delta around a GC-free synchronous loop is exactly the per-op transient garbage that loop produced -- the one thing Phase B (its GC entries are event-loop-deferred) and a gc-bracketed delta (reclaims transients by construction) both miss. Each window is measured min-of-N and keeps the smallest valid delta, so reproducible per-op garbage survives but one-off runtime noise cannot survive an immediate retry.
+
+Phase C splits by the happy-dom trap. **ENGINE windows** drive a primitive's state machine with no DOM crossing and are GATED at a hard **16384 B / 50000 ops (~0 B/op)** budget. **DOM windows** must cross happy-dom, so they are RECORDED against a once-per-run empty-op calibration floor (F0 -- happy-dom's own `setAttribute` cost, printed on the GATE line, varies per run) with a pinned literal ratchet = `ceil(max_measured * 1.25) + 4096` that catches regression, not zero. Every window fails closed: a negative new-space delta means a scavenge ran mid-window and the measurement is void.
+
+| Window | Class | Bytes (green run) | Ops | Ratchet |
+| ------ | ----- | ----------------- | --- | ------- |
+| E2 stepper spin | ENGINE gated | 6760 | 50000 | budget 16384 |
+| E3 pin-input setValue | ENGINE gated | 2872 | 50000 | budget 16384 |
+| E4 time-picker spin | ENGINE gated | 2888 | 50000 | budget 16384 |
+| E5s positioner steady tick | ENGINE gated | 7392 | 50000 | budget 16384 |
+| E6 floating-adapter tick | ENGINE gated | 3072 | 50000 | budget 16384 |
+| E1 combobox highlight | DOM recorded | 1890112 | 256 | 2365376 |
+| E5 positioner moving tick | DOM recorded | 117640 | 512 | 151166 |
+| D1 slider setValue mix | DOM recorded | 1856768 | 512 | 2345436 |
+| D2 time-picker attached spin | DOM recorded | 2505464 | 256 | 3135926 |
+| D3 dialog open/close toggle | DOM recorded | 2278096 | 32 | 2857066 |
+
+The five ENGINE windows are held to the 16384 B budget (the byte figures above are illustrative min-of-N measurements well under it); the five DOM windows are recorded over the per-run floor and gated by their pinned ratchet. A committed GATE line:
 
 ```
-GATE leak=size 0/0 findings=0 warnings=3 | gc major=0 minor=22 maxMs=0.21 | ok
+GATE leak=size 0/0 findings=0 warnings=3 | gc major=0 minor=79 maxMs=0.23 | alloc=0 B/op | transient gated=5/5 budget=16384B/50000ops worst=7392B(E5s) | transient rec=5 floor=1485816B/512ops | ok
 ```
 
-Zero retained primitives, zero orphan findings, zero major GCs across 200000 hot iterations per path, a worst pause of 0.21ms. `npm run torture:control` injects a per-iteration retained allocation and drops one tracker registration; it must exit non-zero -- a gate that cannot fail is not a gate.
+Two negative controls keep the gate honest. `npm run torture:control` (`TORTURE_CONTROL=1`) injects a per-iteration retained allocation and drops one tracker registration; it must exit non-zero on the Phase B GC gate. `npm run torture:control:transient` (`TORTURE_CONTROL=transient`) injects dead per-op garbage into an ENGINE window that Phase A and Phase B report clean past (`leak=size 0/0`, `major=0`) -- only the Phase C witness catches it. A gate that cannot fail is not a gate.
 
 </details>
 
@@ -387,8 +404,9 @@ Zero retained primitives, zero orphan findings, zero major GCs across 200000 hot
 ```bash
 npm test             # 1633 node:test cases (per-primitive + composition layers)
 npm run types        # tsc --noEmit against types.d.ts (silent on success)
-npm run torture      # @zakkster/lite-leak + lite-gc-profiler: retention + 0-major-GC
-npm run torture:control  # the negative control; must exit non-zero
+npm run torture      # @zakkster/lite-leak + lite-gc-profiler: retention + GC + transient witness
+npm run torture:control  # retained-allocation control; must exit non-zero
+npm run torture:control:transient  # transient-garbage control; only Phase C sees it; must exit non-zero
 npm run verify       # test + types + torture, the publish gate
 npm run test:browser # Playwright, real-layout cases (safe-triangle, drag, flip)
 ```

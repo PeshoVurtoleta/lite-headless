@@ -193,6 +193,9 @@ one-reveal-gate wiring). H12 is independent of everything but H8.
 
 ===============================================================================
 # H8 -- lite-headless v1.5.1 -- the gate learns to see
+# STATUS: SHIPPED as 1.5.1, 2026-09-06 (slot claimed per section 5; witness
+# lane live -- 5 gated + 5 recorded windows; pin-input paydown; E1 -> DOM
+# ruling; toast churn deferred to H9)
 ===============================================================================
 
 ```markdown

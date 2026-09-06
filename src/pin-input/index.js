@@ -136,6 +136,19 @@ export function createPinInput(options = {}) {
     // Validate + trim initial value.
     function _filter(s) {
         if (typeof s !== "string" || s.length === 0) return "";
+        // Clean-input fast path: scan only, no allocation. If every char is
+        // accepted and the string is within the length cap, the filtered value
+        // is byte-identical to the input -- return the input string ITSELF
+        // (identity; strings are immutable, so this is semantically invisible
+        // and allocates nothing, no `out += c` intermediates).
+        if (s.length <= length) {
+            let clean = true;
+            for (let i = 0; i < s.length; i++) {
+                if (!_pattern.test(s.charAt(i))) { clean = false; break; }
+            }
+            if (clean) return s;
+        }
+        // Cold path: rejected/dirty/over-length input. Build the filtered result.
         let out = "";
         for (let i = 0; i < s.length && out.length < length; i++) {
             const c = s.charAt(i);
@@ -257,6 +270,10 @@ export function createPinInput(options = {}) {
     }
 
     function _repaintInputs() {
+        // Early-out before creating the Map iterator when nothing is attached
+        // (the ENGINE drive path has no inputs; an empty-Map for-of still
+        // allocates an iterator per call).
+        if (_inputs.size === 0) return;
         const v = _value.peek();
         for (const [i, rec] of _inputs) {
             const desired = i < v.length ? v.charAt(i) : "";
