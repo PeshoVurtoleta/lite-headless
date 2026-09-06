@@ -1,14 +1,15 @@
-# lite-headless -- enriched roadmap (H8-H12)
+# lite-headless -- enriched roadmap (H8-H13)
 
-Five sessions continuing the package's own H-numbering (H1-H7 shipped 1.0.0
+Six sessions continuing the package's own H-numbering (H1-H7 shipped 1.0.0
 through 1.5.0). lite-headless is a HEALTHY package: 59 ARIA-correct primitives,
 1633 node:test cases + playwright + type tests, an api-surface snapshot gate
 with a may-only-shrink undocumented allowlist, per-primitive llms.txt, an
 H-numbered ruling system, and a torture gate with a control mode. Nothing here
 is a rescue. What this roadmap does is (a) close the gap between what the gate
 CLAIMS and what it can SEE, (b) pay the package's own recorded debts, and
-(c) land the two integration seams the rest of the suite is about to need
-(lite-query async options, lite-form 1.3.0 async validation).
+(c) land the integration seams the rest of the suite needs (lite-query async
+options; the lite-form 1.3.0 forms seam -- H11 + H13, a parallel forms track
+added 2026-09-06 when lite-form 1.3.0 shipped its S3).
 
 **Evidence discipline.** Unlike the lite-form roadmap, the findings below were
 NOT reproduced by live probe. Each is tagged: [self] = the package's own
@@ -24,7 +25,7 @@ line, not silently skipped.
 | **Correctness (shallow)** | Strong. 1633 tests, playwright browser lane, type tests, api-surface snapshot diffed both directions, ascii-law test, exact-pixel positioner contract. |
 | **Correctness (adversarial)** | Two self-recorded fail-open edges: per-CALL option bags unvalidated (their H-04b) while construction bags throw with did-you-mean; 3 dangling type re-exports alive only under skipLibCheck. |
 | **Gate** | The weak axis. Phase A (lite-leak retention) + Phase B (checkNoGc, maxMajor 0 / maxPause 4ms) cover exactly TWO hot paths (slider update, positioner tick) out of 59 primitives' worth -- and BOTH lanes are structurally blind to per-op transient garbage (the suite-wide lesson that falsified lite-project 1.4.0 at ~40 B/op and exposed 47x debt in lite-store). "Zero-GC hot paths" ships in the npm description with no witness that can see the class. One control exists (TORTURE_CONTROL=1); it flips only the lanes that are blind. |
-| **Ecosystem fit** | Value-lane lite-form integration documented (README composability, datepicker llms). The error lane and the coming lite-form 1.3.0 async-validation lane have no landing surface (form-field has no pending state). Combobox async/remote options -- the lite-query pairing its own docs gesture at -- is recorded deferred. |
+| **Ecosystem fit** | Value-lane lite-form integration documented (README composability, datepicker llms). The error lane and the lite-form 1.3.0 async-validation lane (shipped 2026-09-06) have no landing surface (form-field has no pending state), and the 1.3.0 server-data surface (merge reinitialize, patch submit) has no recipe (LH-11). Combobox async/remote options -- the lite-query pairing its own docs gesture at -- is recorded deferred. |
 
 The one sentence this roadmap turns on:
 
@@ -43,7 +44,7 @@ The one sentence this roadmap turns on:
 | `@zakkster/lite-element` | optional peer `^1.0.0` | */element wrappers only. Untouched by this roadmap. |
 | `@zakkster/lite-floating` | optional peer `^1.1.0` | hover-card + floating-adapter. Untouched. |
 | `@zakkster/lite-observe` | optional peer `^1.0.1` | transitive via lite-floating. Untouched. |
-| `@zakkster/lite-form` | ecosystem, not a dep | 1.2.0 published; 1.3.0 (async validation, per-field `isValidating`) in flight as its S3. H11 is GATED on it shipping. |
+| `@zakkster/lite-form` | ecosystem, not a dep | 1.3.0 SHIPPED (S3 complete 2026-09-06): per-field/form `isValidating`, `validatorsAsync` + `asyncSources`, merge `reinitialize(next, policy)`, `reconcile`, `submit(ev, {patch:true})`. Registry visibility is re-verified fail-closed at every forms-track session start -- the H11/H13 gate. |
 | `@zakkster/lite-query` | ecosystem, not a dep | catalog says 2.2.0; VERIFY on npm at H10 start before any recipe test imports it (devDep only if a test does). |
 | happy-dom `^15.11.0` (pinned), playwright, typescript `^5.9.3`, `@zakkster/lite-gc-profiler` `^1.16.0`, `@zakkster/lite-leak` `^1.10.0` | dev stack | The torture harness sets up happy-dom ONCE (test/torture.mjs:45). See the trap in section 4. |
 
@@ -93,6 +94,7 @@ reads it before writing. api-surface-snapshot.json is regenerated ONLY via
 | **LH-08** | S3 (docs) | [registry] 2026-09-06 | **npm description says "58 ARIA-correct factories"**; 59 shipped in 1.5.0. Description edits change the npm listing -- deliberate edit at the next publish. |
 | **LH-09** | S3 (note) | [inspected] package.json:521 | lite-signal peer floor `^1.2.0` predates the owner API; fine today, a trap for any future lazy-alloc-under-effect feature. Raise only when a session needs it. |
 | **LH-10** | S3 (ledger) | [inspected] grep over repo | **G-03 is unaccounted**: of H7's gap ledger, G-01/04/10 shipped, G-02/05-09/12 became recipes, G-11 landed inside crud-list-page -- G-03 appears nowhere in the repo. Its content exists only in the out-of-repo H7 brief. Recover it or retire the number formally. |
+| **LH-11** | S3 (docs) | [inspected] docs/recipes/ vs lite-form 1.3.0 CHANGELOG, 2026-09-06 | **The lite-form 1.3.0 server-data surface has no lite-headless landing.** lite-form now ships merge `reinitialize(next, policy)` (drafts survive a server refresh), `toPatch()` / `submit(ev, {patch:true})` (minimal-diff submit), `reconcile`, and strict-false-while-pending submit -- and no recipe shows a headless form surviving a refresh mid-edit, painting the conflict list, posting the minimal patch, or gating the submit button on `isSubmitting`/`isValidating`. |
 
 ---
 
@@ -144,25 +146,46 @@ and a NEW lane that the OLD controls already flip proves nothing.
 ## 5. Session order
 
 ```
-H8 ---> H9 ---> H10 ---> H12
- |       |        |
-1.5.1  1.6.0   1.7.0    1.9.0
-gate   fail-   combobox  canon
-truth  closed  async     prims
-        |
-        +----> H11 (1.8.0, form seam)
-               GATED on lite-form >= 1.3.0 published
+main lane                              forms track (parallel lane)
+H8 ---> H9 ---> H10 ---> H12           H11 ---> H13
+ |       |        |       |             |         |
+1.5.1  1.6.0   1.7.0    1.9.0          1.8.0    1.10.0
+gate   fail-   combobox  canon         form     server-data
+truth  closed  async     prims         seam     recipes
+                                       gate: lite-form >= 1.3.0
+                                       registry-visible (verify at start)
 ```
 
-H8 blocks everything: every later session's "zero-GC" claim is unwitnessable
-until the lane exists, and H8's re-baseline may itself produce the next
-session's paydown list. H9 is the fail-closed brand. H10 is the biggest
-user-visible feature and the lite-query pairing. H11 is small but time-gated
-on lite-form 1.3.0 (its S3 pipeline is running as this roadmap is written).
-H12 is elective breadth. H11 and H12 are independent of each other and of
-H10; only H8 -> H9 ordering is load-bearing (H9's per-call validation must
-be written against witnessed hot paths so the validation itself proves
-allocation-free).
+H8 blocks the MAIN lane: every later session's "zero-GC" claim is
+unwitnessable until the lane exists, and H8's re-baseline may itself produce
+the next session's paydown list. H9 is the fail-closed brand. H10 is the
+biggest user-visible feature and the lite-query pairing. H12 is elective
+breadth.
+
+**The forms track (H11 -> H13) is a parallel lane**, added 2026-09-06 when
+lite-form 1.3.0 shipped its S3 (merge reinitialize, async validation lane,
+patch submit): startable immediately, independent of H8-H10, so lite-headless
+forms work can run while lite-form's own roadmap continues on its side. Two
+rulings make the lane legal:
+
+1. **H8 is SOFTENED for this track only.** H11's old `depends_on: [H8]` is
+   downgraded to soft ordering: pending-state wiring flips per async
+   settlement, not per keystroke -- it is not a keystroke-class hot path, so
+   it does not need the transient witness to ship honestly. Whatever the
+   forms track adds enters the H8 window ledger when H8 lands, like every
+   other pre-H8 surface. The hard gate stays and is fail-closed: lite-form
+   >= 1.3.0 must be registry-visible, verified at session start with a
+   cache-busted query -- not visible means the session does not start.
+2. **Version slots are claimed at ship time.** Each brief's version_target
+   assumes the default order; whichever session actually ships next takes
+   the next free version (patch for H8, minor for the rest), and this file
+   records the actual beside the slot after each /release. Two lanes, one
+   ladder, no collisions.
+
+Load-bearing orderings: H8 -> H9 (per-call validation must be written
+against witnessed hot paths so the validation itself proves allocation-free)
+and H11 -> H13 (the server-data recipes consume H11's pending paint and its
+one-reveal-gate wiring). H12 is independent of everything but H8.
 
 ---
 
@@ -342,24 +365,41 @@ DONE WHEN
 ```
 
 ===============================================================================
-# H11 -- lite-headless v1.8.0 -- the lite-form seam (GATED)
+# H11 -- lite-headless v1.8.0 -- the lite-form seam (forms track, startable)
 ===============================================================================
 
 ```markdown
 ---
 package: "@zakkster/lite-headless"
-version_target: 1.8.0
+version_target: 1.8.0 (slot -- ship-time version rule, section 5)
 findings: [LH-05, LH-06]
-depends_on: [H8, "lite-form >= 1.3.0 PUBLISHED (per-field isValidating)"]
+depends_on: ["lite-form >= 1.3.0 registry-visible, verified fail-closed at session start", "H8 SOFT (section 5 ruling: pending wiring is not keystroke-class; enters the H8 ledger when H8 lands)"]
 ---
 
 # form-field learns pending; the error lane gets its recipe
 
 PURPOSE
-  lite-form 1.3.0 ships per-field isValidating designed with createFormField
-  as the intended consumer. Land the consumer: a pending state on form-field
-  (aria-busy + data-validating paint), and the documented error-lane wiring
-  that today every integrator improvises.
+  lite-form 1.3.0 (shipped 2026-09-06) ships per-field isValidating designed
+  with createFormField as the intended consumer. Land the consumer: a pending
+  state on form-field (aria-busy + data-validating paint), and the documented
+  error-lane wiring that today every integrator improvises.
+
+THE 1.3.0 SURFACE (verified against the shipped API -- no archaeology needed)
+  - field.isValidating: ReadSignal<boolean> -- true exactly while the LATEST
+    async check is unsettled. Sync-only fields share ONE frozen false
+    (identity-stable; safe to wire unconditionally).
+  - form.isValidating: ReadSignal<boolean> -- any field pending.
+  - Ordering law: stale settlements (resolve AND reject) are dropped whole --
+    pending never flashes off early; the latest rejection surfaces as the
+    field error, never silent validity.
+  - isValid is STRICT-FALSE while any check is pending, so form.submit()
+    refuses by itself during validation -- consumers paint WHY (pending),
+    they do not add a second gate.
+  - field.error() is reveal-gated display, field.rawError() always-live
+    validity; form.submitAttempted (writable) force-reveals; the reveal mode
+    is validateOn: "change" | "blur" | "submit".
+  - Debounce is caller-side by design (no timers in lite-form): asyncSources
+    + lite-debounce -- `username: (fld) => debounce(() => fld.value(), 300)`.
 
 TASKS
   - form-field: pending signal + setPending(bool), painted data-validating,
@@ -379,6 +419,9 @@ ASSERTIONS
     flash pending off early (drive with lite-form's own deferred-based
     tests as the oracle pattern); destroy() during pending seals cleanly
     (H-12).
+  - submit() during pending resolves false with zero onSubmit calls (the
+    strict-false gate is lite-form's; the wiring defers to it) -- asserted
+    once from the consumer side.
   - The recipe test runs against PUBLISHED lite-form >= 1.3.0 (devDep), not
     a symlink -- this session proves the seam as consumers will install it.
 
@@ -438,11 +481,106 @@ DONE WHEN
   missing", for every X a Radix/Ark user would ask about
 ```
 
+===============================================================================
+# H13 -- lite-headless v1.10.0 -- server-data form recipes (forms track)
+===============================================================================
+
+```markdown
+---
+package: "@zakkster/lite-headless"
+version_target: 1.10.0 (slot -- ship-time version rule, section 5)
+findings: [LH-11]
+depends_on: [H11, "lite-form >= 1.3.0 registry-visible, verified fail-closed at session start"]
+---
+
+# the refresh-while-editing story, composed and proven
+
+PURPOSE
+  lite-form 1.3.0's server-data engine is complete: merge reinitialize keeps
+  drafts through a refresh, toPatch()/submit({patch:true}) posts the minimal
+  diff, strict-false-while-pending makes submit self-refusing. None of it has
+  a lite-headless composition -- integrators improvise exactly the wiring
+  this package exists to make canonical. Land it as recipes (docs/recipes/ +
+  fast tests); source changes only if a recipe exposes a missing paint hook.
+
+THE 1.3.0 SURFACE THIS SESSION COMPOSES (verified against the shipped API)
+  - reinitialize(next, policy?): default mode only. The merge table: a
+    pristine field ADOPTS the server value; dirty + (Object.is(n, d) or
+    policy(n, d) === true) ECHOES (overlay cleared, pristine at n); anything
+    else is a CONFLICT -- the draft stays visible, the baseline re-seeds
+    underneath (field.reset() lands the server value; toPatch().from is the
+    server value). Deep-copied payloads mean object leaves never auto-echo
+    under the default policy -- recipes pass a structural policy for
+    object-valued fields.
+  - The policy is PURE: any mutating form call inside the merge window
+    throws TypeError (lite-form's re-entrancy latch). Recipe policies are
+    (n, d) => boolean, nothing else.
+  - Source-mode forms refresh via reconcile(policy?) instead; the 2-arg
+    reinitialize throws there by design. One recipe paragraph, not a lane.
+  - submit(ev, { patch: true }) posts toPatch() -- [{path, from, to}] of
+    exactly the dirty paths; an empty patch still submits [].
+  - Server field errors: NO setFieldError exists, on purpose -- the shipped
+    pattern merges a caller-owned serverErrors signal into `validate` (the
+    "Surfacing server errors WITHOUT a setFieldError API" recipe in
+    lite-form's llms.txt).
+
+DECISIONS TO RECORD (session ADR, before coding)
+  - Refresh-while-editing safety is BY CONSTRUCTION, so the recipe documents
+    rather than defends: a focused input's in-progress draft is a dirty
+    overlay, and a merge never overwrites a dirty conflict -- the recipe's
+    job is the AFTERMATH: paint the conflict list from toPatch(), offer
+    keep-mine (no-op) vs take-server (field.reset(), which lands the server
+    value post-merge).
+  - Busy submit: the button disables on isSubmitting() OR isValidating();
+    isValid is strict-false while pending so submit() already refuses -- the
+    recipe paints WHY instead of adding a second gate (the H11 one-gate law,
+    extended to submit).
+  - Whether H13 ships any source change at all: if the recipes need zero
+    code, they ride the next release instead of forcing an empty minor --
+    record the ruling.
+
+TASKS
+  - docs/recipes/lite-form-server-data.md + fast test: a form-field-wired
+    form takes reinitialize(next) mid-edit (poll/socket tick simulated); the
+    focused field's draft survives; pristine siblings adopt silently; the
+    conflict list paints from toPatch() with per-row keep/take actions.
+  - docs/recipes/lite-form-patch-submit.md (or one combined recipe file):
+    submit(ev, {patch:true}) posting the minimal diff; the 409 lane reusing
+    the serverErrors-signal pattern; busy-button wiring off
+    isSubmitting/isValidating (+ H11's pending paint on the field).
+  - CSS contract appendix regen ONLY if a painted attribute is added.
+
+ASSERTIONS
+  - The refresh test drives a real attached form-field input (happy-dom)
+    mid-edit through reinitialize: the input's value never flickers (the
+    merge is one batch -- no transient adopt), pristine siblings show the
+    server value, and after take-server the input shows it too.
+  - Patch submit posts exactly the dirty paths, asserted against a captured
+    onSubmit; an empty patch posts [].
+  - A throwing policy leaves the recipe's form byte-identical (atomicity is
+    lite-form's; asserted once from the consumer side).
+  - All recipe tests run against PUBLISHED lite-form >= 1.3.0 (devDep, not a
+    symlink) -- the same law as H11.
+  - api-surface snapshot unchanged if the zero-code ruling holds.
+
+NON-GOALS
+  No transport/fetch machinery beyond a stubbed poster. No lite-form changes
+  (one package at a time). No conflict-resolution UI framework -- a list and
+  two actions is the honest scope. No undo (lite-undo's job).
+
+DONE WHEN
+  an integrator can copy two recipes and have a headless form that survives
+  server refreshes mid-edit, posts minimal patches, and explains its own
+  pending/busy state -- every gating decision documented, none improvised
+```
+
 ---
 
 ## 7. How to run it
 
-In order, H8 first, `status: planned -> shipped` after each /release. Author
+Main lane in order, H8 first; the forms track (H11 -> H13) runs in parallel
+whenever wanted (section 5 rulings). `status: planned -> shipped` after each
+/release, actual version recorded beside the slot. Author
 BRIEF.md in the package from the session block, then planner -> coder ->
 reviewer -> qa; reviewer REJECTED goes back to coder. Every session runs
 `npm run verify` (tests + types + torture) and, after H8, the witness lane is
@@ -455,8 +593,9 @@ part of "no gate output is a FAIL". /sync-card after every /release.
    (two packages, two real finds).
 2. **H9 second** -- fail-closed is the suite's brand, and both halves are
    debts the package already owes itself in writing.
-3. **H10 or H11 by calendar**: H10 is the feature users hit daily; H11 is
-   small and unblocks the moment lite-form 1.3.0 publishes.
+3. **H10 or the forms track by calendar**: H10 is the feature users hit
+   daily; the forms track (H11 -> H13) is unblocked as of 2026-09-06 and is
+   the lane to run in parallel with lite-form's own S4.
 4. **H12 is elective** -- breadth, not depth.
 
 ### The habit this roadmap is built around
