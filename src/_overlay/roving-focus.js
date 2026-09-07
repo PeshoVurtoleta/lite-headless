@@ -105,7 +105,12 @@ export function createRovingFocus(opts) {
     function enabledIndices(items) {
         const out = [];
         for (let i = 0; i < items.length; i++) {
-            if (!items[i].disabled) out.push(i);
+            // Skip disabled AND hidden. `hidden` is set by the combobox filter
+            // recompute (src/combobox/index.js) so navigation walks only visible
+            // options; menu/tree/etc. never set it, so the clause is inert there
+            // (a `hidden` read is undefined -> falsy). Do NOT overload
+            // `disabled` for hidden -- different ARIA meaning.
+            if (!items[i].disabled && !items[i].hidden) out.push(i);
         }
         return out;
     }

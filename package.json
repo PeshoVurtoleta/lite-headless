@@ -1,6 +1,6 @@
 {
   "name": "@zakkster/lite-headless",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "description": "Zero-dependency headless UI primitives -- 59 ARIA-correct factories + custom-element wrappers, with explicit state-attribute CSS contract. Zero-GC hot paths; reactive accessors via lite-signal.",
   "type": "module",
   "main": "./src/index.js",
@@ -534,6 +534,7 @@
     "@zakkster/lite-gc-profiler": "^1.16.0",
     "@zakkster/lite-leak": "^1.10.0",
     "@zakkster/lite-observe": "^1.0.1",
+    "@zakkster/lite-query": "^2.2.0",
     "@zakkster/lite-signal": "^1.2.2",
     "happy-dom": "^15.11.0",
     "typescript": "^5.9.3"

@@ -26,20 +26,33 @@
 //     ArrowDown / ArrowUp / Enter / Space        open
 //     <printable char>                           open + typeahead
 //
-// What this is NOT (deferred):
-//   - editable combobox (input + filtering): out of scope for v0.2 single-select
-//   - multi-select: deferred
-//   - async / remote options: deferred (attach items as they arrive works fine)
+// Async (attach-native, ADR 0006 -- the primitive does NOT render):
+//   - filter(entry, query) -> boolean : LOCAL sync predicate, zero-alloc
+//     recompute per setQuery; hidden items skip navigation.
+//   - onQueryChange(query, generation) : REMOTE notification; the caller fetches
+//     (its IO) and re-attaches results under generation semantics.
+//   - setQuery(str, reason) / query() : the no-DOM query seam.
+//   - setLoading(bool) / loading() : aria-busy + data-loading on the listbox;
+//     never blocks typing or dismiss.
+//   - generation() : stale-commit guard token; selectIndex no-ops against a
+//     superseded option set.
+//   filter (local) and onQueryChange (remote) are mutually exclusive.
+//
+// What this is NOT:
+//   - a data-model combobox: it renders nothing; consumers own item DOM (ADR 0006)
 //   - virtualization: pair with @zakkster/lite-virtual when needed
 //
 // API:
 //   combo.attachTrigger(buttonEl)
+//   combo.attachInput(inputEl)    -- editable query seam (setQuery on input)
 //   combo.attachListbox(ulEl)
 //   combo.attachItem(liEl, { value, label })
 //   combo.attachInside(el)        -- extend outside-click ignore list
 //   combo.value()                 -- current selected value
 //   combo.setValue(v, reason)     -- programmatic selection
-//   combo.open, status, setOpen, toggle, destroy
+//   combo.setQuery(str, reason)   -- drive the query (filter or onQueryChange)
+//   combo.setLoading(bool)        -- paint aria-busy + data-loading
+//   combo.open, status, setOpen, toggle, query, loading, generation, destroy
 
 import { signal, effect } from "@zakkster/lite-signal";
 import { sealSignal } from "../_overlay/seal.js";
@@ -51,7 +64,7 @@ import { uniqueId, setAttr, toggleAttr, ensureId, addIdToken, removeIdToken } fr
 import { createRovingFocus, STRATEGY_ACTIVE_DESCENDANT } from "../_overlay/roving-focus.js";
 import { checkOptions, checkPositioner, checkPositionerHandle } from "../_validate.js";
 
-const OPTION_KEYS = "open|defaultOpen|onOpenChange|value|defaultValue|onValueChange|multiple|placement|offset|flip|shift|boundary|typeahead|typeaheadTimeout|loop|autoFocus|closeOnSelect|closeOnEscape|closeOnOutsideClick|container|transition|positioner";
+const OPTION_KEYS = "open|defaultOpen|onOpenChange|value|defaultValue|onValueChange|multiple|filter|onQueryChange|placement|offset|flip|shift|boundary|typeahead|typeaheadTimeout|loop|autoFocus|closeOnSelect|closeOnEscape|closeOnOutsideClick|container|transition|positioner";
 
 export function createCombobox(options = {}) {
     checkOptions("createCombobox", options, OPTION_KEYS);
@@ -59,14 +72,21 @@ export function createCombobox(options = {}) {
         open, defaultOpen = false, onOpenChange,
         value: valueOpt, defaultValue = null, onValueChange,
 
+        // Async, attach-native (ADR 0006). `filter` is a LOCAL sync predicate
+        // run per setQuery; `onQueryChange` is a REMOTE notification the caller
+        // fetches against. They are MUTUALLY EXCLUSIVE (async filtering IS the
+        // remote pattern) -- supplying both is a construction TypeError.
+        filter,
+        onQueryChange,
+
         // Construction-time multi-select flag. When true the combobox tracks a
         // Set of selected values instead of a single scalar; item clicks and
         // toggleValue() add/remove membership, chips render the selection, and
         // Backspace on an empty trigger deselects the last value. The single-
         // value surface (value/setValue) is untouched; multi state lives in a
         // parallel Set + snapshot so the single-select hot paths keep their
-        // exact byte shape. See src/combobox/llms.txt for the supported /
-        // deferred surface (filter/loading/onQueryChange are DEFERRED).
+        // exact byte shape. See src/combobox/llms.txt for the full surface
+        // (filter/onQueryChange/setQuery/loading landed in 1.7.0, ADR 0006).
         multiple = false,
 
         placement = "bottom-start",
@@ -86,6 +106,13 @@ export function createCombobox(options = {}) {
 
         positioner,
     } = options;
+
+    // Fail closed before any work: local filter and remote onQueryChange are
+    // two names for the same seam (query -> new visible set); one combobox
+    // cannot own both. Diction matches checkOptions' did-you-mean voice.
+    if (filter && onQueryChange) {
+        throw new TypeError('createCombobox: "filter" (local) and "onQueryChange" (remote) are mutually exclusive; supply one.');
+    }
 
     checkPositioner("createCombobox", positioner);
     // Resolve the positioning engine ONCE, at construction: the default path
@@ -114,6 +141,76 @@ export function createCombobox(options = {}) {
         else _internalValue.set(v);
         if (onValueChange) onValueChange(v, reason || "select");
     };
+
+    // ---- query + loading + generation (async, ADR 0006) ------------------
+    // `let`: destroy() seals both (H-12); query()/loading() resolve the binding
+    // at call time so an in-flight remote flow can be torn down and the reads
+    // still freeze at the final value.
+    let _query = signal("");
+    let _loading = signal(false);
+    // Plain integer guard token, NOT a signal (it gates commits; it is not
+    // reactive state). Bumped only by a REMOTE setQuery; stays 0 in local/no-
+    // async mode so the selectIndex guard is vacuously true and single-select
+    // stays byte-shaped.
+    let _generation = 0;
+    // Re-entrancy latch: a setQuery inside onQueryChange must not re-fire it in
+    // the same tick.
+    let _inQueryChange = false;
+    // Reused visible-index buffer for the filter recompute (grown by doubling on
+    // attach only). Never a per-call array. Null unless `filter` is set.
+    let _visible = filter ? new Int32Array(8) : null;
+    let _visLen = 0;
+
+    // Local-mode filter recompute. Walks _items ONCE, dirty-checks visibility
+    // against entry.hidden, and paints hidden + data-hidden ONLY when it flips
+    // (mirrors stopValueReflect's dirty-check). No per-call allocation: the
+    // visible indices land in the reused Int32Array. If a flip hides the current
+    // highlight, reset to the first visible item.
+    function _recomputeFilter(q) {
+        let vlen = 0;
+        let flipped = false;
+        for (let i = 0; i < _items.length; i++) {
+            const it = _items[i];
+            const vis = !!filter(it, q);
+            if (vis) _visible[vlen++] = i;
+            // entry.hidden === true means "not visible"; a mismatch is a flip.
+            if (vis === it.hidden) {
+                it.hidden = !vis;
+                setAttr(it.el, "hidden", vis ? null : "");
+                toggleAttr(it.el, "data-hidden", !vis);
+                flipped = true;
+            }
+        }
+        _visLen = vlen;
+        if (flipped) {
+            const hi = roving.index;
+            if (hi >= 0 && hi < _items.length && _items[hi].hidden) {
+                setHighlight(vlen > 0 ? _visible[0] : -1);
+            }
+        }
+    }
+
+    // setQuery(str, reason): the no-DOM query seam. LOCAL mode runs the filter
+    // recompute; REMOTE mode bumps generation + fires onQueryChange once. Writes
+    // the query signal in both. Coerces non-strings to "" fail-closed.
+    function setQuery(str, reason) {
+        if (core.destroyed) return;
+        const q = typeof str === "string" ? str : "";
+        _query.set(q);
+        if (filter) { _recomputeFilter(q); return; }
+        if (onQueryChange) {
+            if (_inQueryChange) return;   // no re-entrant re-fire in the same tick
+            _inQueryChange = true;
+            _generation = (_generation + 1) | 0;
+            try { onQueryChange(q, _generation); }
+            finally { _inQueryChange = false; }
+        }
+    }
+
+    function setLoading(b) {
+        if (core.destroyed) return;
+        _loading.set(!!b);
+    }
 
     // ---- multi-select set (construction-time) ---------------------------
     // ONE reused Set holds membership; a snapshot array is rebuilt only on
@@ -149,6 +246,7 @@ export function createCombobox(options = {}) {
 
     // ---- registry --------------------------------------------------------
     let _trigger = null;
+    let _input = null;            // editable query host (attachInput)
     let _listbox = null;
     let _restorePortal = null;
     let _positioner = null;
@@ -166,7 +264,9 @@ export function createCombobox(options = {}) {
     const roving = createRovingFocus({
         getItems: () => _items,
         strategy: STRATEGY_ACTIVE_DESCENDANT,
-        getFocusHost: () => _trigger,
+        // The editable input, when present, hosts aria-activedescendant; else
+        // the trigger button (one `||`, inert when attachInput is unused).
+        getFocusHost: () => _input || _trigger,
         loop,
         typeahead,
         typeaheadTimeout,
@@ -183,6 +283,11 @@ export function createCombobox(options = {}) {
 
     function selectIndex(idx) {
         if (idx < 0 || idx >= _items.length) return;
+        // Stale-commit guard (ADR 0006): an item stamped under a superseded
+        // generation belongs to an option set the user is no longer looking at
+        // -- never commit it. In local/no-async mode _generation is 0 and every
+        // entry.gen is 0, so this is a constant-true branch (byte-stable).
+        if (_items[idx].gen !== _generation) return;
         writeValue(_items[idx].value, "select");
         if (closeOnSelect) core.setOpen(false, "select");
     }
@@ -331,6 +436,27 @@ export function createCombobox(options = {}) {
     }) : null;
     if (stopMultiReflect) core._addCleanup(stopMultiReflect);
 
+    // loading -> aria-busy + data-loading on the listbox. One dep (the loading
+    // signal), dialog/popover discipline. loading NEVER blocks typing or
+    // dismiss -- it only paints. Always created (loading is a core signal); the
+    // effect early-returns when no listbox is attached, so it costs the single-
+    // select path one no-op run at construction.
+    const stopLoading = effect(() => {
+        const busy = _loading();
+        if (!_listbox) return;
+        setAttr(_listbox, "aria-busy", busy ? "true" : null);
+        toggleAttr(_listbox, "data-loading", busy);
+    });
+    core._addCleanup(stopLoading);
+
+    // mirror open -> aria-expanded onto the editable input (the trigger button
+    // is painted by doOpen/doClose). One dep; inert until attachInput is used.
+    const stopInputAria = effect(() => {
+        const isOpen = core.open();
+        if (_input) setAttr(_input, "aria-expanded", isOpen ? "true" : "false");
+    });
+    core._addCleanup(stopInputAria);
+
     // ---- attach* methods ------------------------------------------------
     function attachTrigger(el) {
         if (!el || core.destroyed) return noop;
@@ -428,8 +554,15 @@ export function createCombobox(options = {}) {
         setAttr(el, "aria-hidden", core.open() ? null : "true");
         toggleAttr(el, "data-open", core.open());
         setAttr(el, "data-status", core.status());
+        // Retro-paint the current loading state: stopLoading reads the
+        // non-reactive _listbox, so a setLoading(true) BEFORE attachListbox
+        // would otherwise not surface here (paint current state on attach, like
+        // data-open/data-status above).
+        setAttr(el, "aria-busy", _loading.peek() ? "true" : null);
+        toggleAttr(el, "data-loading", _loading.peek());
         core._setContentForTransitions(el);
         if (_trigger) addIdToken(_trigger, "aria-controls", el.id);
+        if (_input) addIdToken(_input, "aria-controls", el.id);
 
         if (closeOnOutsideClick) {
             const _insidesScratch = [];
@@ -437,6 +570,7 @@ export function createCombobox(options = {}) {
                 _insidesScratch.length = 0;
                 if (_listbox) _insidesScratch.push(_listbox);
                 if (_trigger) _insidesScratch.push(_trigger);
+                if (_input) _insidesScratch.push(_input);
                 for (let i = 0; i < _extraInsides.length; i++) _insidesScratch.push(_extraInsides[i]);
                 return _insidesScratch;
             });
@@ -448,12 +582,15 @@ export function createCombobox(options = {}) {
         const off = () => {
             if (_listbox === el) {
                 if (_trigger) removeIdToken(_trigger, "aria-controls", el.id);
+                if (_input) removeIdToken(_input, "aria-controls", el.id);
                 el.removeAttribute("role");
                 el.removeAttribute("aria-hidden");
                 el.removeAttribute("data-open");
                 el.removeAttribute("data-status");
                 el.removeAttribute("data-side");
                 el.removeAttribute("data-align");
+                el.removeAttribute("aria-busy");
+                el.removeAttribute("data-loading");
                 _listbox = null;
             }
             if (_outsideOff) { _outsideOff(); _outsideOff = null; }
@@ -472,6 +609,10 @@ export function createCombobox(options = {}) {
         const entry = {
             el, id: el.id, value,
             label: label != null ? String(label) : (el.textContent || "").trim(),
+            // hidden: filter recompute paints/clears it; false = visible.
+            // gen: the generation this item was attached under (ADR 0006).
+            hidden: false,
+            gen: _generation,
         };
         _items.push(entry);
 
@@ -479,6 +620,21 @@ export function createCombobox(options = {}) {
         const isSelected = multiple ? _selected.has(value) : (value === readValue());
         setAttr(el, "aria-selected", isSelected ? "true" : "false");
         toggleAttr(el, "data-selected", isSelected);
+
+        // Local-filter initial visibility: apply the current query to the new
+        // item so a late-attached option honors the active filter immediately.
+        // The reused buffer grows (doubling) only here, never per setQuery.
+        if (filter) {
+            if (_items.length > _visible.length) {
+                let cap = _visible.length;
+                while (cap < _items.length) cap = cap << 1;
+                _visible = new Int32Array(cap);
+            }
+            const vis = !!filter(entry, _query.peek());
+            entry.hidden = !vis;
+            setAttr(el, "hidden", vis ? null : "");
+            toggleAttr(el, "data-hidden", !vis);
+        }
 
         const onClick = (e) => {
             e.preventDefault();
@@ -522,6 +678,40 @@ export function createCombobox(options = {}) {
         const off = () => {
             const i = _extraInsides.indexOf(el);
             if (i !== -1) _extraInsides.splice(i, 1);
+        };
+        core._addCleanup(off);
+        return off;
+    }
+
+    // attachInput(el): the editable query seam. Wires the element's `input`
+    // event to setQuery(el.value, "input"); sets role="combobox",
+    // aria-autocomplete="list", the aria-expanded mirror (via stopInputAria),
+    // and aria-controls to the listbox. It becomes the aria-activedescendant
+    // host (getFocusHost prefers _input). OPTIONAL: setQuery works without it.
+    // Ruling (ADR 0006): if attachInput and attachTrigger are both used, the
+    // input is the query host and the button a secondary toggle -- attach BOTH
+    // to the SAME element for a keyboard-navigable editable combobox (pair with
+    // typeahead:false so printable keys type into the field instead of cycling).
+    function attachInput(el) {
+        if (!el || core.destroyed) return noop;
+        _input = el;
+        ensureId(el, "lh-combobox-input");
+        setAttr(el, "role", "combobox");
+        setAttr(el, "aria-autocomplete", "list");
+        setAttr(el, "aria-expanded", core.open() ? "true" : "false");
+        if (_listbox && _listbox.id) addIdToken(el, "aria-controls", _listbox.id);
+
+        const onInput = () => setQuery(typeof el.value === "string" ? el.value : "", "input");
+        el.addEventListener("input", onInput);
+
+        const off = () => {
+            el.removeEventListener("input", onInput);
+            el.removeAttribute("role");
+            el.removeAttribute("aria-autocomplete");
+            el.removeAttribute("aria-expanded");
+            el.removeAttribute("aria-activedescendant");
+            if (_listbox && _listbox.id) removeIdToken(el, "aria-controls", _listbox.id);
+            if (_input === el) _input = null;
         };
         core._addCleanup(off);
         return off;
@@ -578,6 +768,10 @@ export function createCombobox(options = {}) {
         // controlled mode (readValue falls back to it), and the consumer's
         // external signal is never touched.
         _internalValue = sealSignal(_internalValue);
+        // seal the async signals too (H-12): query()/loading() freeze at their
+        // final value; a destroy() during a pending remote flow does not throw.
+        _query = sealSignal(_query);
+        _loading = sealSignal(_loading);
     }
 
     return {
@@ -587,6 +781,13 @@ export function createCombobox(options = {}) {
         toggle: core.toggle,
         value: () => readValue(),
         setValue: (v, reason) => writeValue(v, reason || "api"),
+        // async surface (attach-native, ADR 0006)
+        query: () => _query(),
+        setQuery: (str, reason) => setQuery(str, reason || "api"),
+        loading: () => _loading(),
+        setLoading,
+        generation: () => _generation,
+        attachInput,
         // multi-select surface (no-op / empty when `multiple` is false)
         multiple,
         values: () => _selectedSnapshot.slice(),

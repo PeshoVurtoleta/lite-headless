@@ -862,6 +862,41 @@ check(
 if (_e7Total > _gatedWorst) { _gatedWorst = _e7Total; _gatedWorstName = "E7"; }
 console.log("transient E7 checkOptionsHot=" + _e7Total + "B/" + ENGINE_OPS + "ops ok");
 
+// ---- E8: combobox filter recompute (ENGINE gated) --------------------------
+// H10 (LH-04, ADR 0006): the local `filter` predicate runs per setQuery over the
+// attached _items ONCE, dirty-checked against entry.hidden, painting DOM ONLY
+// when visibility flips. This window drives setQuery over a FIXED 32-item set
+// with TWO queries (qA, qB) that both match the SAME visible set -- every item
+// contains both substrings, so the predicate runs on every item every call but
+// NO visibility ever flips -> ZERO DOM paint -> pure compute. That isolates the
+// per-keystroke recompute cost and proves it is zero-alloc (reused Int32Array
+// buffer, no per-call array, no signal subscribers on _query). No listbox
+// attach/open is needed: setQuery is a no-DOM seam. HONEST: a module-level
+// filter-call counter MUST have incremented by loop end (the predicate ran) --
+// a dead window that never called the predicate is caught here.
+let _e8calls = 0;
+const _e8 = createCombobox({ filter: (it, q) => { _e8calls++; return it.label.indexOf(q) !== -1; } });
+_e8.attachListbox(el("div"));
+for (let _i = 0; _i < 32; _i++) {
+    const _li = el("div");
+    _e8.attachItem(_li, { value: "v" + _i, label: "alpha-beta-" + _i });
+}
+const E8_QA = "alpha";
+const E8_QB = "beta";
+function _e8Window(i) {
+    _e8.setQuery(E8_QA, "input");
+    _e8.setQuery(E8_QB, "input");
+}
+const _e8Total = allocTotalMin(_e8Window, ENGINE_OPS, ENGINE_WARMUP, 3, ENGINE_BUDGET);
+if (_e8calls === 0) die("E8 combobox-filter: predicate never ran (dishonest window)");
+_e8.destroy();
+check(
+    _e8Total <= ENGINE_BUDGET,
+    () => "E8 combobox-filter " + _e8Total + " B of transient garbage over " + ENGINE_OPS + " ops (budget 16384 B total, ~0 B/op)",
+);
+if (_e8Total > _gatedWorst) { _gatedWorst = _e8Total; _gatedWorstName = "E8"; }
+console.log("transient E8 combobox-filter=" + _e8Total + "B/" + ENGINE_OPS + "ops ok");
+
 // ============================================================================
 // DOM-recorded windows (D1-D4). Each crosses happy-dom every op, so it is
 // RECORDED over the F0 floor, not gated at zero. Op counts are per-window,
@@ -977,22 +1012,67 @@ check(
 );
 console.log("transient D4 toast=" + _d4Total + "B/" + D4_OPS + "ops record floor=" + _floorBytes + "B");
 
+// ---- D5: combobox option-replace churn (DOM recorded) ----------------------
+// H10 (LH-04, ADR 0006): the remote-options replace cycle. One op = setQuery
+// (bumps generation + fires onQueryChange) -> detach ALL current items -> attach
+// a fresh batch of K items STAMPED at the new generation -> setLoading toggle.
+// Every op crosses happy-dom (attach/detach item listeners + attribute writes +
+// appendChild), so this is DOM-recorded over the F0 floor, not gated at zero.
+// Op count sized ceiling-safe under happy-dom's per-op write floor (8 fresh
+// elements + listeners/op is ~133 KB/op, so 16 ops ~= 2.1 MB stays under the
+// new-space scavenge ceiling like D2/D3/D4). MEASURED (three full torture runs):
+// 2155272, 2155272, 2141336 B / 16 ops. RATCHET = ceil(2155272 * 1.25) + 4096
+// = 2698186. HONEST: onQueryChange bumps the generation every op; the post-
+// window probe asserts the generation advanced.
+const D5_OPS = 16;
+const D5_K = 8;
+const D5_RATCHET = 2698186;
+let _d5qc = 0;
+const _d5 = createCombobox({ onQueryChange: () => { _d5qc++; } });
+_d5.attachTrigger(el("input"));
+const _d5lb = el("div");
+_d5.attachListbox(_d5lb);
+_d5.setOpen(true);
+const _d5offs = [];
+function _d5Window(i) {
+    _d5.setQuery("q" + (i & 255), "input");
+    for (let k = 0; k < _d5offs.length; k++) _d5offs[k]();
+    _d5offs.length = 0;
+    for (let k = 0; k < D5_K; k++) {
+        const _li = el("div");
+        _d5lb.appendChild(_li);
+        _d5offs.push(_d5.attachItem(_li, { value: "v" + k, label: "L" + k }));
+    }
+    _d5.setLoading(true);
+    _d5.setLoading(false);
+}
+const _d5g0 = _d5.generation();
+const _d5Total = allocTotalMin(_d5Window, D5_OPS, DOM_WARMUP, 2, D5_RATCHET);
+if (_d5.generation() === _d5g0) die("D5 combobox-replace: generation did not advance (dishonest window)");
+if (_d5qc === 0) die("D5 combobox-replace: onQueryChange never fired (dishonest window)");
+_d5.destroy();
+check(
+    _d5Total <= D5_RATCHET,
+    () => "D5 combobox-replace " + _d5Total + " B over " + D5_OPS + " ops (ratchet " + D5_RATCHET + " B) -- regression past pinned floor+replace",
+);
+console.log("transient D5 combobox-replace=" + _d5Total + "B/" + D5_OPS + "ops record floor=" + _floorBytes + "B");
+
 // keep the control buffer reachable past summary() so it cannot be collected
 // early and hide the pressure it is meant to create.
 if (CONTROL && _ctrlBuf[HOT - 1] === null) throw new Error("unreachable");
 
 const ok = report.ok && live === 0 && leaks.length === 0 && findings.length === 0 && _faHeapOk;
-// T9/H9: gated = E2,E3,E4,E6,E5s,E7 (6 -- E7 is H9's checkOptionsHot
-// success-path window); rec = E1,E5,D1,D2,D3,D4 (6 -- D4 is H9's toast
-// show/dismiss window).
+// T9/H9/H10: gated = E2,E3,E4,E6,E5s,E7,E8 (7 -- E8 is H10's combobox filter
+// recompute window); rec = E1,E5,D1,D2,D3,D4,D5 (7 -- D5 is H10's combobox
+// option-replace window).
 console.log(
     "GATE leak=size " + live + "/0 findings=" + findings.length +
     " warnings=" + warns.length +
     " | gc major=" + s.gc.major + " minor=" + s.gc.minor +
     " maxMs=" + s.gc.maxMs.toFixed(2) +
     " | alloc=" + _faAllocPerOp + " B/op" +
-    " | transient gated=6/6 budget=16384B/50000ops worst=" + _gatedWorst + "B(" + _gatedWorstName + ")" +
-    " | transient rec=6 floor=" + _floorBytes + "B/512ops " +
+    " | transient gated=7/7 budget=16384B/50000ops worst=" + _gatedWorst + "B(" + _gatedWorstName + ")" +
+    " | transient rec=7 floor=" + _floorBytes + "B/512ops " +
     "| " + (ok ? "ok" : "FAIL"),
 );
 if (!ok) {

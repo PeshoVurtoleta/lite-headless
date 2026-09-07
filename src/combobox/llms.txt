@@ -16,6 +16,21 @@ attribute names the highlighted item's id).
 - defaultValue: any = null
 - onValueChange(next, reason)           -- reason: 'select'|'api'
 
+- filter(item, query): boolean          -- LOCAL sync predicate (1.7.0). Runs
+                        -- per setQuery over each attached item entry
+                        -- ({el,id,value,label}) + the current query string;
+                        -- non-matching items get `hidden` + `data-hidden` and
+                        -- are skipped by keyboard navigation. Zero-alloc
+                        -- recompute (reused Int32Array, dirty-checked paint).
+- onQueryChange(query, generation)      -- REMOTE notification (1.7.0). Fires
+                        -- once per committed setQuery with the query + a
+                        -- monotonic generation; the caller does the IO and
+                        -- re-attaches results, guarding stale applies with
+                        -- generation(). filter and onQueryChange are MUTUALLY
+                        -- EXCLUSIVE: supplying both throws TypeError
+                        -- 'createCombobox: "filter" (local) and "onQueryChange"
+                        -- (remote) are mutually exclusive; supply one.'
+
 - placement: string = 'bottom-start'    -- 12 placements; same as popover.
                         -- Built-in engine also accepts RTL aliases
                         -- 'inline-start'/'inline-end' (-> left/right per anchor
@@ -83,9 +98,53 @@ steady-state allocation per keystroke. In multiple mode value()/setValue()
 still operate on the single scalar seam (untouched); the multi surface is
 parallel.
 
-DEFERRED (NOT in this slice -- do not rely on them yet): filter, loading,
-onQueryChange, and any async/remote-options surface. attach items as they
-arrive (already supported). Editable input filtering is out of scope for R1.
+## Async (1.7.0, ADR 0006 -- attach-native; the primitive renders NOTHING)
+
+The combobox does not own rendering; consumers attach item DOM. The async
+surface is therefore query + generation, not a data-ingesting setOptions.
+
+- setQuery(str, reason): void            -- the no-DOM query seam. LOCAL mode
+                        -- (filter set) runs the filter recompute; REMOTE mode
+                        -- (onQueryChange set) bumps generation + fires
+                        -- onQueryChange once (non-re-entrant). Coerces a
+                        -- non-string to "". Also driven by attachInput's input
+                        -- event. reason defaults to 'api' ('input' from
+                        -- attachInput).
+- query(): string                        -- ReadSignal of the current query;
+                        -- sealed at its final value on destroy (H-12).
+- setLoading(bool): void                 -- set the loading flag.
+- loading(): boolean                     -- ReadSignal; while true the listbox
+                        -- paints aria-busy="true" + data-loading. loading NEVER
+                        -- blocks typing or dismiss -- the only commit guard is
+                        -- the generation, independent of loading.
+- generation(): number                   -- monotonic guard token (starts 0,
+                        -- NOT a signal). A REMOTE setQuery bumps it. STALE-
+                        -- COMMIT LAW: attachItem stamps the current generation
+                        -- onto each item; selectIndex no-ops if the item's
+                        -- generation != the current one, so a commit against a
+                        -- superseded option set (a list the user has moved past)
+                        -- can never select. In local/no-async mode generation
+                        -- stays 0 and single-select is byte-unchanged.
+                        -- FOOTGUN: a REMOTE setQuery bumps the generation, so
+                        -- items attached under the old generation become stale
+                        -- and their commits silently no-op. Always RE-ATTACH the
+                        -- option DOM after onQueryChange (even for an unchanged
+                        -- result set) so the visible items carry the current
+                        -- generation. This is fail-SAFE (a stale commit is
+                        -- dropped, never a wrong value) but a "same results ->
+                        -- skip re-attach" optimization strands the list.
+- attachInput(el): off                   -- editable query seam: wires the
+                        -- element's `input` event to setQuery(el.value); sets
+                        -- role="combobox", aria-autocomplete="list", mirrors
+                        -- aria-expanded, and hosts aria-activedescendant. When
+                        -- attachInput and attachTrigger wrap the SAME element,
+                        -- pair with typeahead:false so printable keys type into
+                        -- the field instead of cycling.
+
+Remote flow: onQueryChange(q, gen) -> caller fetches (e.g. @zakkster/lite-query)
+-> `if (combo.generation() === gen) { detach old items; attach results }` ->
+setLoading(false). A superseded fetch is a no-op by the caller guard AND the
+stale-commit law. See docs/recipes/combobox-remote-options.md.
 
 ## Returned
 
@@ -96,12 +155,18 @@ arrive (already supported). Editable input filtering is out of scope for R1.
     toggle(),
     value(): currentValue,
     setValue(value, reason),
+    query(): string,                    -- current query (ReadSignal)
+    setQuery(value, reason),            -- drive filter / onQueryChange (no-DOM)
+    loading(): boolean,                 -- loading flag (ReadSignal)
+    setLoading(bool),                   -- paint aria-busy + data-loading
+    generation(): number,               -- stale-commit guard token (ADR 0006)
     multiple,                           -- resolved flag
     values(): any[],                    -- multi-select snapshot (empty unless multiple)
     has(value): boolean,                -- multi-select membership
     toggleValue(value, reason),         -- multi-select add/remove
     attachChip(el, value),              -- multi-select chip (no-op unless multiple)
     attachTrigger(buttonEl),
+    attachInput(inputEl),               -- editable query seam (role=combobox)
     attachListbox(ulEl),
     attachItem(liEl, { value, label }),
     attachInside(el)                    -- mark external control as "inside" for outside-click
@@ -146,7 +211,14 @@ When CLOSED:
 - aria-selected: 'true' when value matches; 'false' otherwise
 - data-selected: present when value matches (for CSS hooks)
 - data-highlighted: present on the keyboard-highlighted item
-- aria-activedescendant on trigger: the highlighted item's id
+- hidden + data-hidden: present on an item filtered out by `filter` (1.7.0);
+  hidden items skip keyboard navigation
+- aria-activedescendant on trigger/input: the highlighted item's id
+
+## States exposed on the listbox
+
+- aria-busy: 'true' while loading() is true (1.7.0)
+- data-loading: present while loading() is true (for CSS hooks)
 
 ## CSS contract
 

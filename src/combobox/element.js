@@ -70,9 +70,11 @@ define("lite-combobox", (host, scope) => {
     roles = createRoleObserver(host, ROLE_SEL, wire);
     roles.rescan();   // initial sweep -- safe to call once `roles` is bound
 
-    host.setOpen  = (v, reason) => combo.setOpen(v, reason);
-    host.setValue = (v, reason) => combo.setValue(v, reason);
-    host.toggle   = () => combo.toggle();
+    host.setOpen    = (v, reason) => combo.setOpen(v, reason);
+    host.setValue   = (v, reason) => combo.setValue(v, reason);
+    host.setQuery   = (v, reason) => combo.setQuery(v, reason);
+    host.setLoading = (v) => combo.setLoading(v);
+    host.toggle     = () => combo.toggle();
 
     scope.onCleanup(() => {
         roles.disconnect();

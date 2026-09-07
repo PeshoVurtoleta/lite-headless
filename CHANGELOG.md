@@ -1,5 +1,54 @@
 # Changelog
 
+## 1.7.0 -- 2026-09-07
+
+### Added
+
+- combobox async surface (LH-04, the G-01 completion), attach-native per ADR
+  0006 -- the primitive still renders nothing; consumers own item DOM:
+  - `filter(item, query) -> boolean` -- LOCAL sync predicate, run per `setQuery`
+    over each attached item entry (`{el,id,value,label}`) + the current query.
+    Non-matching items get `hidden` + `data-hidden` and are skipped by keyboard
+    navigation. Zero-alloc recompute (reused `Int32Array`, dirty-checked paint),
+    proven by a gated ENGINE torture window (E8, `<= 16384 B / 50000 ops`).
+  - `onQueryChange(query, generation)` -- REMOTE query notification; fires once
+    per committed `setQuery` with a monotonic generation. `filter` and
+    `onQueryChange` are MUTUALLY EXCLUSIVE (construction `TypeError`).
+  - `setQuery(str, reason)` / `query()` -- the no-DOM query seam (also driven by
+    `attachInput`); `query()` is a `ReadSignal`, sealed on destroy (H-12).
+  - `setLoading(bool)` / `loading()` -- paints `aria-busy` + `data-loading` on
+    the listbox; never blocks typing or dismiss.
+  - `generation()` -- monotonic stale-commit guard token.
+  - `attachInput(el)` -- editable query seam (`role="combobox"`,
+    `aria-autocomplete="list"`); its `input` event drives `setQuery`.
+- `docs/recipes/combobox-remote-options.md` + `test/combobox-remote-options.test.js`,
+  the `@zakkster/lite-query` pairing proven against the PUBLISHED package
+  (devDep `^2.2.0`): `onQueryChange` -> lite-query fetch -> `generation()`-guarded
+  apply, with a stale-fetch race asserted deterministically.
+
+### Changed
+
+- `selectIndex` is generation-guarded: a commit (Enter/click) against an item
+  stamped under a superseded generation is a no-op, so a stale option set can
+  never be selected. In local/no-async mode `generation` stays 0 and every item
+  is stamped 0, so single-select hot paths are byte-unchanged (the existing E1/D
+  torture windows are unmoved).
+- `src/_overlay/roving-focus.js` `enabledIndices` skips `hidden` items in
+  addition to `disabled`. The `hidden` flag is set only by the combobox filter
+  recompute; menu/tree/etc. never set it, so the clause is inert there.
+
+### Notes
+
+- ADR 0006 (attach-native async): the H10 brief's `setOptions(next)` is realized
+  as `setQuery` + `generation()` + a caller-side guard, NOT a data-ingesting
+  render method -- lite-headless does not own rendering. The remote flow is
+  `onQueryChange -> caller fetches -> if generation() matches, re-attach items`.
+- Torture: E8 combobox-filter ENGINE-gated (`<= 16384 B / 50000 ops`); D5
+  combobox-replace DOM-recorded, ratchet `2698186 B / 16 ops`
+  (`ceil(2155272 * 1.25) + 4096`). GATE line: `transient gated=7/7`,
+  `transient rec=7`. Both controls (`TORTURE_CONTROL=1`,
+  `TORTURE_CONTROL=transient`) still fail closed.
+
 ## 1.6.0 -- 2026-09-07
 
 ### Added

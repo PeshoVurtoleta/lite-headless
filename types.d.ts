@@ -335,7 +335,15 @@ declare module "@zakkster/lite-headless/combobox" {
         items?: T[];
         getKey?: (item: T) => string;
         getLabel?: (item: T) => string;
-        filter?: (item: T, query: string) => boolean;
+        /** Local sync filter predicate, run per setQuery over each attached
+         *  item entry ({ value, label, el }) + the current query. Mutually
+         *  exclusive with onQueryChange (construction TypeError). */
+        filter?: (item: { readonly value: T; readonly label: string; readonly el: Element }, query: string) => boolean;
+        /** Remote query notification: fires once per committed setQuery with the
+         *  query + a monotonic generation. The caller fetches and re-attaches
+         *  results, guarding stale applies with generation(). Mutually exclusive
+         *  with filter. */
+        onQueryChange?: (query: string, generation: number) => void;
         initialValue?: T | null;
         onValueChange?: (value: T | null, reason?: string) => void;
         onOpenChange?: (open: boolean, reason?: string) => void;
@@ -352,6 +360,22 @@ declare module "@zakkster/lite-headless/combobox" {
         setOpen(open: boolean, reason?: string): void;
         toggle(reason?: string): void;
         setValue(value: T | null, reason?: string): void;
+        /** Current query string (driven by setQuery / attachInput). */
+        query: ReactiveAccessor<string>;
+        /** Drive the query: local filter recompute, or remote onQueryChange
+         *  with a bumped generation. No-DOM seam (also used by attachInput). */
+        setQuery(query: string, reason?: string): void;
+        /** Loading flag; paints aria-busy + data-loading on the listbox and
+         *  never blocks typing or dismiss. */
+        loading: ReactiveAccessor<boolean>;
+        /** Set the loading flag. */
+        setLoading(loading: boolean): void;
+        /** Monotonic generation token; a commit against a superseded generation
+         *  is a no-op (stale-commit guard, ADR 0006). */
+        generation(): number;
+        /** Wire an editable input as the query seam (role=combobox,
+         *  aria-autocomplete=list); its input event drives setQuery. */
+        attachInput(el: Element): OffFn;
         /** Resolved multi-select flag. */
         readonly multiple: boolean;
         /** Multi-select: snapshot of selected values (empty unless multiple). */
