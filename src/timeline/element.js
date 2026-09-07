@@ -34,9 +34,9 @@ define("lite-timeline", (host, scope) => {
     host.setItemType = (el, type) => tl.setItemType(el, type);
     Object.defineProperty(host, "itemCount", { get: () => tl.itemCount, configurable: true });
 
-    return () => {
+    scope.onCleanup(() => {
         roles.disconnect();
         offRoot();
         tl.destroy();
-    };
+    });
 });

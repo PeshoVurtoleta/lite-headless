@@ -1,5 +1,32 @@
 # Changelog
 
+## 1.9.1 -- 2026-09-07
+
+### Fixed
+
+- Custom-element teardown leak in 16 wrappers (affix, anchor, backtop, badge,
+  button, card, color-picker, descriptions, empty-state, meter, radio-group,
+  result, tag, timeline, toolbar, tour). They registered disconnect teardown as
+  a returned `() => {...}` arrow, which `@zakkster/lite-element` 1.1.0 discards
+  (`mount()` drops setup's return value; only `scope.onCleanup` callbacks run on
+  disconnect). The factory instance was never destroyed and the wrapper's
+  MutationObserver(s)/role observer never disconnected on unmount, so churned
+  mount/unmount leaked lite-signal nodes and walked the fixed registry to a
+  CapacityError. Converted all 16 to `scope.onCleanup(() => {...})`, matching
+  the 43 wrappers already on that pattern.
+- `empty-state`, `radio-group`, and `toolbar` additionally called a nonexistent
+  `roles.destroy()` (`createRoleObserver` exposes `disconnect`, not `destroy`);
+  corrected to `roles.disconnect()`.
+
+### Added
+
+- `test/element-teardown.test.js` -- element-level H-12 witness. Mounts and
+  unmounts each of the 16 wrappers and asserts `instance.destroyed` on
+  disconnect (the whole cleanup closure ran) and `activeNodes` back to baseline
+  (per-item signals returned): bare mounts for all 16, role-children mounts for
+  the observer wrappers, a 300-cycle churn, and a control self-check. Verified
+  to fail on the pre-fix code.
+
 ## 1.9.0 -- 2026-09-07
 
 ### Added

@@ -45,9 +45,9 @@ define("lite-toolbar", (host, scope) => {
     host.focusFirst      = () => tb.focusFirst();
     host.focusLast       = () => tb.focusLast();
 
-    return () => {
-        roles.destroy();
+    scope.onCleanup(() => {
+        roles.disconnect();
         offRoot();
         tb.destroy();
-    };
+    });
 });

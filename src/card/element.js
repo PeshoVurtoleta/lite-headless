@@ -135,7 +135,7 @@ define("lite-card", (host, scope) => {
     Object.defineProperty(host, "isCollapsed", { get: () => card.isCollapsed(), configurable: true });
     Object.defineProperty(host, "isDismissed", { get: () => card.isDismissed(), configurable: true });
 
-    return () => {
+    scope.onCleanup(() => {
         stopMirror();
         mo.disconnect();
         attrMo.disconnect();
@@ -144,5 +144,5 @@ define("lite-card", (host, scope) => {
         if (_dismissOff) _dismissOff();
         offRoot();
         card.destroy();
-    };
+    });
 });

@@ -96,9 +96,9 @@ define("lite-tour", (host, scope) => {
     Object.defineProperty(host, "isLast",     { get: () => tour.isLast(),   configurable: true });
     Object.defineProperty(host, "count",      { get: () => tour.count(),    configurable: true });
 
-    return () => {
+    scope.onCleanup(() => {
         host.removeEventListener("click", onClick);
         offRoot();
         tour.destroy();
-    };
+    });
 });

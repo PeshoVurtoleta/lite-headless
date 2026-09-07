@@ -88,9 +88,9 @@ define("lite-button", (host, scope) => {
     Object.defineProperty(host, "isDisabled", { get: () => btn.isDisabled(), configurable: true });
     Object.defineProperty(host, "canPress",   { get: () => btn.canPress(),   configurable: true });
 
-    return () => {
+    scope.onCleanup(() => {
         attrMo.disconnect();
         offRoot();
         btn.destroy();
-    };
+    });
 });

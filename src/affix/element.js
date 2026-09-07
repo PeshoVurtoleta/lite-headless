@@ -33,8 +33,8 @@ define("lite-affix", (host, scope) => {
     Object.defineProperty(host, "isPinned",  { get: () => aff.isPinned(),  configurable: true });
     Object.defineProperty(host, "offsetTop", { get: () => aff.offsetTop(), configurable: true });
 
-    return () => {
+    scope.onCleanup(() => {
         offRoot();
         aff.destroy();
-    };
+    });
 });

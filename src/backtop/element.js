@@ -66,10 +66,10 @@ define("lite-backtop", (host, scope) => {
     Object.defineProperty(host, "isVisible", { get: () => bt.isVisible(), configurable: true });
     Object.defineProperty(host, "threshold", { get: () => bt.threshold(), configurable: true });
 
-    return () => {
+    scope.onCleanup(() => {
         mo.disconnect();
         if (_btnOff) _btnOff();
         offTarget();
         bt.destroy();
-    };
+    });
 });

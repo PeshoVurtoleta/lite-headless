@@ -41,9 +41,9 @@ define("lite-descriptions", (host, scope) => {
     Object.defineProperty(host, "columns",  { get: () => d.columns,  configurable: true });
     Object.defineProperty(host, "bordered", { get: () => d.bordered, configurable: true });
 
-    return () => {
+    scope.onCleanup(() => {
         roles.disconnect();
         offRoot();
         d.destroy();
-    };
+    });
 });

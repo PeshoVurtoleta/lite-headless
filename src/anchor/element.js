@@ -76,11 +76,11 @@ define("lite-anchor", (host, scope) => {
     Object.defineProperty(host, "activeKey", { get: () => a.activeKey(), configurable: true });
     Object.defineProperty(host, "linkCount", { get: () => a.linkCount, configurable: true });
 
-    return () => {
+    scope.onCleanup(() => {
         mo.disconnect();
         for (const off of _linkOffs.values()) try { off(); } catch {}
         _linkOffs.clear();
         offRoot();
         a.destroy();
-    };
+    });
 });

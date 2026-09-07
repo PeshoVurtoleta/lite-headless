@@ -56,10 +56,10 @@ define("lite-empty-state", (host, scope) => {
     };
     Object.defineProperty(host, "variant", { get: () => es.variant(), configurable: true });
 
-    return () => {
-        roles.destroy();
+    scope.onCleanup(() => {
+        roles.disconnect();
         attrMo.disconnect();
         offRoot();
         es.destroy();
-    };
+    });
 });

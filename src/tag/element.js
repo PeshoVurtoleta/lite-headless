@@ -58,11 +58,11 @@ define("lite-tag", (host, scope) => {
     Object.defineProperty(host, "intent",    { get: () => tag.intent(),    configurable: true });
     Object.defineProperty(host, "isRemoved", { get: () => tag.isRemoved(), configurable: true });
 
-    return () => {
+    scope.onCleanup(() => {
         mo.disconnect();
         attrMo.disconnect();
         if (_closeOff) _closeOff();
         offRoot();
         tag.destroy();
-    };
+    });
 });

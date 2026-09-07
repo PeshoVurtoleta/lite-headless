@@ -65,7 +65,7 @@ define("lite-result", (host, scope) => {
     host._resultInstance = r;
     Object.defineProperty(host, "status", { get: () => r.status, configurable: true });
 
-    return () => {
+    scope.onCleanup(() => {
         mo.disconnect();
         if (_iconOff) _iconOff();
         if (_titleOff) _titleOff();
@@ -73,5 +73,5 @@ define("lite-result", (host, scope) => {
         if (_actionsOff) _actionsOff();
         offRoot();
         r.destroy();
-    };
+    });
 });

@@ -46,9 +46,9 @@ define("lite-badge", (host, scope) => {
     Object.defineProperty(host, "count",     { get: () => b.count(),     configurable: true });
     Object.defineProperty(host, "displayed", { get: () => b.displayed(), configurable: true });
 
-    return () => {
+    scope.onCleanup(() => {
         attrMo.disconnect();
         offRoot();
         b.destroy();
-    };
+    });
 });

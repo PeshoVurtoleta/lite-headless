@@ -82,10 +82,10 @@ define("lite-radio-group", (host, scope) => {
     Object.defineProperty(host, "isDisabled",  { get: () => rg.isDisabled(),  configurable: true });
     Object.defineProperty(host, "itemCount",   { get: () => rg.itemCount,     configurable: true });
 
-    return () => {
-        roles.destroy();
+    scope.onCleanup(() => {
+        roles.disconnect();
         attrMo.disconnect();
         offRoot();
         rg.destroy();
-    };
+    });
 });

@@ -166,12 +166,12 @@ define("lite-color-picker", (host, scope) => {
     Object.defineProperty(host, "brightness", { get: () => cp.brightness(), configurable: true });
     Object.defineProperty(host, "alpha",      { get: () => cp.alpha(),      configurable: true });
 
-    return () => {
+    scope.onCleanup(() => {
         mo.disconnect();
         attrMo.disconnect();
         offRoot();
         for (const off of _attached.values()) { try { off(); } catch {} }
         _attached.clear();
         cp.destroy();
-    };
+    });
 });

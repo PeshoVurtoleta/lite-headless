@@ -94,12 +94,12 @@ define("lite-meter", (host, scope) => {
     Object.defineProperty(host, "fraction", { get: () => m.fraction(), configurable: true });
     Object.defineProperty(host, "state",    { get: () => m.state(),    configurable: true });
 
-    return () => {
+    scope.onCleanup(() => {
         mo.disconnect();
         attrMo.disconnect();
         for (const off of _fillOffs.values()) { try { off(); } catch {} }
         _fillOffs.clear();
         offRoot();
         m.destroy();
-    };
+    });
 });
