@@ -43,6 +43,10 @@ define("lite-form-field", (host, scope) => {
     });
 
     ff.attachRoot(host);
+    // `validating` is an observed INPUT attribute (mirrors `required`); the
+    // painted OUTPUT is data-validating on the host via attachRoot (mirrors
+    // invalid vs data-invalid). Seed the initial state once after ff exists.
+    ff.setPending(host.hasAttribute("validating"));
 
     const _attached = {
         label: null, labelOff: null,
@@ -96,6 +100,8 @@ define("lite-form-field", (host, scope) => {
             const name = muts[i].attributeName;
             if (name === "required") {
                 ff.setRequired(host.hasAttribute("required"));
+            } else if (name === "validating") {
+                ff.setPending(host.hasAttribute("validating"));
             } else if (name === "invalid" || name === "error") {
                 touchValidity = true;
             }
@@ -109,17 +115,19 @@ define("lite-form-field", (host, scope) => {
             }
         }
     });
-    attrMo.observe(host, { attributes: true, attributeFilter: ["required", "invalid", "error"] });
+    attrMo.observe(host, { attributes: true, attributeFilter: ["required", "validating", "invalid", "error"] });
 
     host._formFieldInstance = ff;
     host.setValid    = (v, m) => ff.setValid(v, m);
     host.setRequired = (r) => ff.setRequired(r);
     host.setTouched  = (t) => ff.setTouched(t);
+    host.setPending  = (p) => ff.setPending(p);
     host.reset       = () => ff.reset();
     Object.defineProperty(host, "valid",        { get: () => ff.valid(),        configurable: true });
     Object.defineProperty(host, "errorMessage", { get: () => ff.errorMessage(), configurable: true });
     Object.defineProperty(host, "required",     { get: () => ff.required(),     configurable: true });
     Object.defineProperty(host, "touched",      { get: () => ff.touched(),      configurable: true });
+    Object.defineProperty(host, "pending",      { get: () => ff.pending(),      configurable: true });
 
     scope.onCleanup(() => {
         mo.disconnect();

@@ -58,6 +58,11 @@ export function createFormField(options = {}) {
     let _errorMessage = makeSignal(defaultErrorMessage);
     let _required = makeSignal(!!defaultRequired);
     let _touched = makeSignal(!!defaultTouched);
+    // Transient async state: true while a paired validator (e.g. lite-form's
+    // field.isValidating) has an unsettled check. Driven ONLY by setPending --
+    // there is deliberately no defaultPending option and no onPendingChange
+    // callback (see docs/decisions/0007). reset() flips it back to false.
+    let _pending = makeSignal(false);
 
     // ----- public accessors ----------------------------------------------
 
@@ -65,6 +70,7 @@ export function createFormField(options = {}) {
     function errorMessage() { return _errorMessage(); }
     function required()     { return _required(); }
     function touched()      { return _touched(); }
+    function pending()      { return _pending(); }
 
     // Derived: whether errors should be VISIBLY shown right now.
     function showsError() {
@@ -103,12 +109,20 @@ export function createFormField(options = {}) {
         }
     }
 
+    function setPending(p) {
+        if (_destroyed) return;
+        const next = !!p;
+        if (next === _pending()) return;
+        _pending.set(next);
+    }
+
     function reset() {
         if (_destroyed) return;
         _valid.set(!!defaultValid);
         _errorMessage.set(defaultErrorMessage);
         _required.set(!!defaultRequired);
         _touched.set(!!defaultTouched);
+        _pending.set(false);
     }
 
     // ----- registered elements -------------------------------------------
@@ -131,6 +145,7 @@ export function createFormField(options = {}) {
             toggleAttr(el, "data-required", _required());
             toggleAttr(el, "data-touched", _touched());
             toggleAttr(el, "data-shows-error", showsError());
+            toggleAttr(el, "data-validating", _pending());
         });
         addCleanup(stop);
         const off = () => {
@@ -140,6 +155,7 @@ export function createFormField(options = {}) {
                 el.removeAttribute("data-required");
                 el.removeAttribute("data-touched");
                 el.removeAttribute("data-shows-error");
+                el.removeAttribute("data-validating");
                 _root = null;
             }
         };
@@ -192,12 +208,19 @@ export function createFormField(options = {}) {
         const stopAriaRequired = effect(() => {
             setAttr(el, "aria-required", _required() ? "true" : "false");
         });
+        // aria-busy mirrors the pending flag on the control (string literals,
+        // zero alloc -- like aria-invalid/aria-required). Re-runs per async
+        // settlement, not per keystroke: not a keystroke-class hot path.
+        const stopAriaBusy = effect(() => {
+            setAttr(el, "aria-busy", _pending() ? "true" : "false");
+        });
         // Helper id stays in describedby as long as helper is present.
         // attachHelperText handles its own add/remove; we re-add here in
         // case it was attached before the control.
         if (_helper) addIdToken(el, "aria-describedby", _helper.id);
         addCleanup(stopAriaInvalid);
         addCleanup(stopAriaRequired);
+        addCleanup(stopAriaBusy);
 
         // Touch on blur (mark the field as interacted with).
         const onBlur = () => setTouched(true);
@@ -206,10 +229,12 @@ export function createFormField(options = {}) {
         const off = () => {
             stopAriaInvalid();
             stopAriaRequired();
+            stopAriaBusy();
             el.removeEventListener("blur", onBlur);
             if (_control === el) {
                 el.removeAttribute("aria-invalid");
                 el.removeAttribute("aria-required");
+                el.removeAttribute("aria-busy");
                 if (_helper)  removeIdToken(el, "aria-describedby", _helper.id);
                 if (_errorEl) removeIdToken(el, "aria-describedby", _errorEl.id);
                 _control = null;
@@ -299,13 +324,14 @@ export function createFormField(options = {}) {
         _errorMessage = sealSignal(_errorMessage);
         _required = sealSignal(_required);
         _touched = sealSignal(_touched);
+        _pending = sealSignal(_pending);
     }
 
     return {
         // reactive
-        valid, errorMessage, required, touched, showsError,
+        valid, errorMessage, required, touched, pending, showsError,
         // mutations
-        setValid, setRequired, setTouched, reset,
+        setValid, setRequired, setTouched, setPending, reset,
         // attach
         attachRoot, attachLabel, attachControl,
         attachHelperText, attachErrorText,

@@ -31,6 +31,7 @@ ff.valid()         // boolean
 ff.errorMessage()  // string | null
 ff.required()      // boolean
 ff.touched()       // boolean
+ff.pending()       // boolean -- true while a paired async validator is unsettled
 ff.showsError()    // boolean -- derived; true when invalid AND (touched OR showErrorsBeforeTouched)
 ```
 
@@ -40,8 +41,17 @@ ff.showsError()    // boolean -- derived; true when invalid AND (touched OR show
 ff.setValid(true | false, errorMessage)
 ff.setRequired(true | false)
 ff.setTouched(true | false)
-ff.reset()
+ff.setPending(true | false)   // paint the pending/validating state
+ff.reset()                    // also clears pending back to false
 ```
+
+`pending` is a transient async state driven ONLY by `setPending` -- there is no
+`defaultPending` option and no `onPendingChange` callback (see
+`docs/decisions/0007-form-field-pending-and-one-reveal-gate.md`). Wire it to a
+validation engine's async flag, e.g. `@zakkster/lite-form`'s `field.isValidating`
+(see the `docs/recipes/lite-form-field.md` one-reveal-gate recipe). `pending` is
+orthogonal to `showsError()`: a stale revealed error stays visible while a
+re-validation is pending -- the spinner paints beside it, the error is not blanked.
 
 ## Attach
 
@@ -63,6 +73,7 @@ both pieces are present.
 - `data-required`        (when required)
 - `data-touched`         (when touched)
 - `data-shows-error`     (when showsError() is true)
+- `data-validating`      (when pending() is true)
 
 ### Label (attachLabel)
 - `for="<control.id>"`
@@ -72,6 +83,7 @@ both pieces are present.
 - `id="lh-ff-control-*"` (auto-assigned)
 - `aria-invalid="true|false"`
 - `aria-required="true|false"`
+- `aria-busy="true|false"` (mirrors pending())
 - `aria-describedby="<helper.id> <error.id>?"` (error id only when shown)
 
 ### Error text (attachErrorText)
@@ -96,12 +108,14 @@ host.valid             // accessor: boolean
 host.errorMessage      // accessor: string | null
 host.required          // accessor: boolean
 host.touched           // accessor: boolean
-host.setValid(v, msg) / .setRequired(r) / .setTouched(t) / .reset()
+host.pending           // accessor: boolean
+host.setValid(v, msg) / .setRequired(r) / .setTouched(t) / .setPending(p) / .reset()
 host._formFieldInstance
 ```
 
 ### Host attributes
 - `required`                     -- mirrors setRequired(true)
+- `validating`                    -- mirrors setPending(true); paints data-validating + aria-busy
 - `invalid`                       -- mirrors setValid(false)
 - `error="<message>"`             -- mirrors setValid(false, "<message>")
 - `show-errors-immediately`       -- bypass the touched gate

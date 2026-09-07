@@ -3,7 +3,7 @@
 > AUTO-GENERATED from `src/**/*.js` on each release. Do not hand-edit.
 > Run `npm run gen:appendix` to regenerate.
 
-**Coverage:** 59 primitives - 206 distinct `data-*` - 31 distinct `aria-*` - 23 distinct CSS custom properties.
+**Coverage:** 59 primitives - 207 distinct `data-*` - 31 distinct `aria-*` - 23 distinct CSS custom properties.
 
 ## `lite-accordion`
 
@@ -281,6 +281,8 @@ _(no painted attributes -- primitive operates purely on JS API)_
 **ARIA attributes painted:**
 
 - `aria-activedescendant`
+- `aria-autocomplete`
+- `aria-busy`
 - `aria-expanded`
 - `aria-haspopup`
 - `aria-hidden`
@@ -292,13 +294,15 @@ _(no painted attributes -- primitive operates purely on JS API)_
 - `data-chip`
 - `data-chip-value`
 - `data-count`
+- `data-hidden`
 - `data-highlighted`
+- `data-loading`
 - `data-open`
 - `data-selected`
 - `data-side`
 - `data-status`
 
-**Other attributes set:** `role`, `tabindex`
+**Other attributes set:** `hidden`, `role`, `tabindex`
 
 
 ## `lite-command-palette`
@@ -459,6 +463,7 @@ _(no painted attributes -- primitive operates purely on JS API)_
 
 **ARIA attributes painted:**
 
+- `aria-busy`
 - `aria-invalid`
 - `aria-live`
 - `aria-required`
@@ -470,6 +475,7 @@ _(no painted attributes -- primitive operates purely on JS API)_
 - `data-required`
 - `data-shows-error`
 - `data-touched`
+- `data-validating`
 
 **Other attributes set:** `role`
 

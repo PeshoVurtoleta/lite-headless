@@ -1,5 +1,42 @@
 # Changelog
 
+## 1.8.0 -- 2026-09-07
+
+### Added
+
+- form-field pending state (LH-05) -- the landing surface for lite-form 1.3.0's
+  per-field `isValidating`:
+  - `pending()` -- `ReadSignal<boolean>`, sealed on destroy (H-12).
+  - `setPending(bool)` -- fail-closed (silent no-op after destroy), deduped.
+    Deliberately no `defaultPending` option and no `onPendingChange` callback
+    (ADR 0007): pending is a transient async state driven only by `setPending`;
+    `reset()` returns it to false.
+  - Painted attributes: `data-validating` on the root and `aria-busy` on the
+    control (string-literal writes, zero per-run alloc); both re-run per async
+    settlement, not per keystroke, so no new torture window is added (H8 SOFT).
+- `<lite-form-field>` gains a `validating` observed attribute (drives
+  `setPending`; the painted output stays `data-validating`, mirroring `invalid`
+  vs `data-invalid`), a `host.setPending` method, and a `pending` getter.
+- `docs/recipes/lite-form-field.md` + `test/lite-form-field.test.js` -- the
+  error-lane wiring (LH-06) proven against the PUBLISHED `@zakkster/lite-form`
+  (devDep `^1.3.0`, resolved 1.4.0): a single reveal gate -- form-field defers to
+  lite-form (`showErrorsBeforeTouched: true`; `setValid` <- reveal-gated
+  `field.error()`, `setTouched` <- `field.touched`, `setPending` <-
+  `field.isValidating`). Asserts submit self-refuses while pending (zero
+  `onSubmit` calls), out-of-order settlements never flash pending off early, and
+  a stale error stays visible during re-validation.
+- ADR 0007 (form-field pending state + the one-reveal-gate law).
+
+### Notes
+
+- `showsError()` is unchanged by design: a revealed error stays visible while a
+  field is pending, with the spinner (`data-validating` / `aria-busy`) painted
+  beside it (ADR 0007). form-field has no other behaviour change.
+- `@zakkster/lite-form` is added as a devDependency (`^1.3.0`) for the recipe
+  test only; it is not a runtime or peer dependency.
+- Gate: 1729 node:test cases (0 fail); torture `gated=7/7 rec=7 ... ok` (no
+  window added -- form-field pending flips per settlement, not per keystroke).
+
 ## 1.7.0 -- 2026-09-07
 
 ### Added

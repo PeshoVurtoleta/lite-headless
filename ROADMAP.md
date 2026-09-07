@@ -311,6 +311,15 @@ DONE WHEN
 
 ===============================================================================
 # H10 -- lite-headless v1.7.0 -- combobox async (the G-01 completion)
+# STATUS: SHIPPED as 1.7.0, 2026-09-07 (slot claimed per section 5; LH-04 closed --
+# combobox async is ATTACH-NATIVE per ADR 0006: the primitive never renders items,
+# so setOptions became setQuery + a generation guard, not a data-ingesting method.
+# filter (LOCAL sync predicate) XOR onQueryChange (REMOTE) mutually exclusive at
+# construction; setQuery/query + setLoading/loading (aria-busy + data-loading, never
+# blocks input) + generation() stale-commit guard + attachInput. Torture E8 filter
+# engine-gated + D5 replace DOM-recorded (ratchet 2698186); combobox-remote-options
+# recipe proven vs PUBLISHED lite-query 2.2.0; stale-commit class dead under interleave
+# fuzz (A1: 300 steps, 59 stale no-ops, 0 violations); single-select off-cost byte-stable)
 ===============================================================================
 
 ```markdown

@@ -1916,10 +1916,12 @@ declare module "@zakkster/lite-headless/form-field" {
         errorMessage: ReactiveAccessor<string>;
         required: ReactiveAccessor<boolean>;
         touched: ReactiveAccessor<boolean>;
+        pending: ReactiveAccessor<boolean>;
         showsError: ReactiveAccessor<boolean>;
         setValid(valid: boolean, errorMessage?: string): void;
         setRequired(required: boolean): void;
         setTouched(touched: boolean): void;
+        setPending(pending: boolean): void;
         reset(): void;
         attachRoot(el: Element): OffFn;
         attachLabel(el: Element): OffFn;

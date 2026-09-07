@@ -1,6 +1,6 @@
 # @zakkster/lite-headless
 
-VERSION 1.7.0
+VERSION 1.8.0
 
 59 headless UI primitives on signal-based reactivity (@zakkster/lite-signal).
 Zero styling. Tree-shakable via per-primitive subpath exports. Framework-
@@ -128,8 +128,11 @@ Newest additions: time-picker, separator, clipboard, password-input, alert-dialo
 - End-to-end compositions that cross package boundaries live in docs/recipes/:
   crud-list-page (lite-table + lite-query + pagination + toolbar),
   date-range-presets, transfer-list, autosave (isDirty + lite-debounce +
-  lite-query), bulk-actions-bar, tree-checkbox-cascade, and
-  textarea-autosize-and-indeterminate-checkbox.
+  lite-query), bulk-actions-bar, tree-checkbox-cascade,
+  textarea-autosize-and-indeterminate-checkbox, combobox-remote-options
+  (async listbox + generation guard + lite-query), and lite-form-field
+  (the one-reveal-gate wiring: form-field pending/aria-busy driven by
+  lite-form's field.isValidating).
 
 ## License
 
