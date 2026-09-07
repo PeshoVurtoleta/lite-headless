@@ -1,7 +1,7 @@
 {
   "name": "@zakkster/lite-headless",
-  "version": "1.8.0",
-  "description": "Zero-dependency headless UI primitives -- 59 ARIA-correct factories + custom-element wrappers, with explicit state-attribute CSS contract. Zero-GC hot paths; reactive accessors via lite-signal.",
+  "version": "1.9.0",
+  "description": "Zero-dependency headless UI primitives -- 62 ARIA-correct factories + custom-element wrappers, with explicit state-attribute CSS contract. Zero-GC hot paths; reactive accessors via lite-signal.",
   "type": "module",
   "main": "./src/index.js",
   "module": "./src/index.js",
@@ -114,6 +114,22 @@
     "./carousel/element": {
       "types": "./types.d.ts",
       "import": "./src/carousel/element.js"
+    },
+    "./checkbox": {
+      "types": "./types.d.ts",
+      "import": "./src/checkbox/index.js"
+    },
+    "./checkbox/element": {
+      "types": "./types.d.ts",
+      "import": "./src/checkbox/element.js"
+    },
+    "./checkbox-group": {
+      "types": "./types.d.ts",
+      "import": "./src/checkbox-group/index.js"
+    },
+    "./checkbox-group/element": {
+      "types": "./types.d.ts",
+      "import": "./src/checkbox-group/element.js"
     },
     "./clipboard": {
       "types": "./types.d.ts",
@@ -326,6 +342,14 @@
     "./result/element": {
       "types": "./types.d.ts",
       "import": "./src/result/element.js"
+    },
+    "./select": {
+      "types": "./types.d.ts",
+      "import": "./src/select/index.js"
+    },
+    "./select/element": {
+      "types": "./types.d.ts",
+      "import": "./src/select/element.js"
     },
     "./separator": {
       "types": "./types.d.ts",

@@ -318,6 +318,47 @@ import { createButton } from "@zakkster/lite-headless/button";
 });
 
 // =============================================================================
+// Select, Checkbox, CheckboxGroup (H12 canon primitives)
+// =============================================================================
+
+import { createSelect } from "@zakkster/lite-headless/select";
+import { createCheckbox } from "@zakkster/lite-headless/checkbox";
+import { createCheckboxGroup } from "@zakkster/lite-headless/checkbox-group";
+
+(function testCanonPrimitives() {
+    const sel = createSelect({ defaultValue: "a", placement: "bottom-start", loop: true, autoFocus: "selected" });
+    const selOpen: boolean = sel.open();
+    const selVal: string | null = sel.value();
+    sel.setValue("b", "api");
+    sel.setOpen(true);
+    sel.toggle();
+    sel.attachTrigger(el);
+    sel.attachListbox(el);
+    sel.attachItem(el, { value: "a", label: "A", disabled: false });
+    sel.attachInside(el);
+
+    const cb = createCheckbox({ defaultChecked: false, defaultIndeterminate: true });
+    const cbChecked: boolean = cb.checked();
+    const cbMixed: boolean = cb.indeterminate();
+    cb.setChecked(true);
+    cb.setIndeterminate(false);
+    cb.toggle("click");
+    cb.attachRoot(el);
+    cb.attachLabel(el);
+
+    const cg = createCheckboxGroup({ onChange: (vals: string[]) => void vals });
+    const cgState: "true" | "false" | "mixed" = cg.state();
+    const cgVals: string[] = cg.value();
+    const member = cg.register("a", { defaultChecked: true });
+    cg.setAll(true);
+    cg.attachMaster(el);
+    member.off();
+
+    void sel; void selOpen; void selVal; void cb; void cbChecked; void cbMixed;
+    void cg; void cgState; void cgVals; void member;
+});
+
+// =============================================================================
 // Card, Tag, Badge, Timeline, Descriptions, Result
 // =============================================================================
 

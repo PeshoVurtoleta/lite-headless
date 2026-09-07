@@ -43,6 +43,7 @@ export function setupDOM() {
     globalThis.PointerEvent = window.PointerEvent;
     globalThis.CustomEvent = window.CustomEvent;
     globalThis.customElements = window.customElements;
+    globalThis.MutationObserver = window.MutationObserver;
     // getComputedStyle: needed by the positioner's findClippingAncestor walk
     // and by any source that reads computed styles. happy-dom's implementation
     // reflects inline `el.style.*` correctly for the properties we use

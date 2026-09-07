@@ -1,5 +1,73 @@
 # Changelog
 
+## 1.9.0 -- 2026-09-07
+
+### Added
+
+- `createSelect` (LH-07) -- headless single-select listbox-button (WAI-ARIA APG
+  select-only combobox): button trigger + listbox popup, typeahead, Home/End,
+  disabled-skip, Arrow wrap, Enter/Space select, Escape dismiss. NO text editing
+  (that is `combobox`). Reuses the shared `_overlay` seams (core state machine,
+  roving-focus active-descendant highlight, positioner, dismiss, portal, aria)
+  minus the editable-input lane (ADR 0008); `combobox` source is unchanged. Ships
+  `<lite-select>` + `src/select/llms.txt`.
+- `createCheckbox` (LH-07) -- tri-state `role="checkbox"` on ONE 3-valued signal
+  in {"true","false","mixed"} painted straight to `aria-checked` (no mapping
+  branch); `checked()` / `indeterminate()` derive from it. `attachRoot` /
+  `attachLabel` / `attachInput` (native form submission). Ships `<lite-checkbox>`
+  + llms.txt.
+- `createCheckboxGroup` (LH-07) -- aggregate with a DERIVED tri-state (never a
+  stored aggregate): `state()` "true|false|mixed", `value()` (checked members),
+  `register(value, opts)` (allocates the member's checkbox at register time, not
+  inside an effect -- peer floor stays `^1.2.0`), `attachMaster` select-all,
+  `setAll`. Ships `<lite-checkbox-group>` + llms.txt.
+- ADR 0008 (select consumes the shared overlay seams; checkbox tri-state is one
+  3-valued signal; peer floor unchanged; context-menu recorded out; select
+  multi-select deferred as LH-12).
+- Torture windows: E9 (select highlight) and E10 (checkbox toggle), engine-gated
+  `<= 16384 B / 50000 ops`; D6 (select open/close) and D7 (checkbox aria paint),
+  DOM-recorded.
+- `test/checkbox-element-teardown.test.js` -- mounting and unmounting
+  `<lite-checkbox-group>` / `<lite-checkbox>` returns every owned lite-signal node
+  to the registry (H-12 witness on the custom-element path).
+
+### Changed
+
+- Catalog count 59 -> 62 primitives (`llms.txt`, `package.json` description,
+  `README.md`, `demo/index.html`).
+- `docs/recipes/tree-checkbox-cascade.md` and
+  `docs/recipes/textarea-autosize-and-indeterminate-checkbox.md` refactored to
+  consume `createCheckbox` / `createCheckboxGroup` (shared law 5) instead of
+  hand-painting native `indeterminate`; the native property is kept as the
+  documented zero-dependency fallback.
+- `createCheckboxGroup.setAll` / master toggle emits the group `onChange` exactly
+  once (batched), not once per member.
+- `src/_overlay/roving-focus.js`: the two `writeDomState` option bags
+  (`{block:"nearest"}`, `{preventScroll:true}`) are hoisted to frozen module-scope
+  constants (zero per-move allocation; behaviour byte-identical; shared with
+  combobox).
+
+### Fixed
+
+- `<lite-checkbox-group>` unmount cleanup called a non-existent `roles.destroy()`
+  (the role observer exposes `disconnect`); the throw aborted teardown before
+  `group.destroy()` ran, leaking observers and member signal nodes. Now
+  `roles.disconnect()`.
+- `createCheckboxGroup.register` shadowed the group's `value()` accessor with its
+  `value` parameter, so the member `onChange` delivered `null` instead of the
+  derived array. Parameter renamed.
+
+### Notes
+
+- `test/_setup.js` now exposes `globalThis.MutationObserver` so element wrappers
+  can be unit-tested across mount/unmount.
+- `<lite-select>` reflects open/value via lite-element `scope.prop`, whose
+  per-instance prop signals are pooled by lite-element; select's own factory
+  teardown is H-12 clean.
+- Gate: 1768 node:test cases (0 fail); `tsc --noEmit` clean; torture
+  `gated=9/9 rec=9 ... ok` (D6 ratchet 3447686, D7 ratchet 3026206, both under the
+  4194304 shrink ceiling).
+
 ## 1.8.0 -- 2026-09-07
 
 ### Added

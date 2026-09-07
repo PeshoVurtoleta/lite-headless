@@ -1,0 +1,162 @@
+# @zakkster/lite-headless/select
+
+Headless single-select listbox-button (the WAI-ARIA APG "select-only combobox"
+/ listbox-button pattern). A button trigger opens a listbox popup; the user
+picks one option. NO text editing -- that is what `combobox` is for. Focus stays
+on the trigger; the highlighted option rides `aria-activedescendant`.
+
+WAI-ARIA APG: https://www.w3.org/WAI/ARIA/apg/patterns/combobox/examples/combobox-select-only/
+
+Reuses the shared overlay seams (core state machine, roving-focus highlight +
+typeahead, positioner, dismiss, portal, aria) MINUS the editable-input lane
+(ADR 0008). Consumers own the option DOM; the primitive coordinates state, ARIA,
+keyboard, highlight, and placement (attach-model, ADR 0006).
+
+## Quick example
+
+```js
+import { createSelect } from "@zakkster/lite-headless/select";
+
+const select = createSelect({
+    defaultValue: "apple",
+    onValueChange: (v, reason) => console.log("picked", v, "via", reason),
+});
+
+select.attachTrigger(triggerButtonEl);   // role=button, aria-haspopup=listbox
+select.attachListbox(ulEl);               // role=listbox
+select.attachItem(li1, { value: "apple",  label: "Apple" });
+select.attachItem(li2, { value: "banana", label: "Banana" });
+select.attachItem(li3, { value: "cherry", label: "Cherry", disabled: true });
+```
+
+## Options
+
+| Option                | Default          | Notes                                                        |
+| --------------------- | ---------------- | ------------------------------------------------------------ |
+| `open`                | -                | Signal<boolean> for controlled open state                   |
+| `defaultOpen`         | `false`          | Uncontrolled initial open state                             |
+| `onOpenChange`        | -                | `(open, reason) => void`                                     |
+| `value`               | -                | Signal for controlled selected value                        |
+| `defaultValue`        | `null`           | Uncontrolled initial value                                  |
+| `onValueChange`       | -                | `(value, reason) => void`                                    |
+| `placement`           | `"bottom-start"` | Listbox placement                                           |
+| `offset`              | `4`              | Gap between trigger and listbox (px)                        |
+| `flip` / `shift`      | `true`           | Positioning behaviour                                        |
+| `boundary`            | `"clipping"`     | Positioning boundary                                        |
+| `typeahead`           | `true`           | Type-to-select first-letter match                          |
+| `typeaheadTimeout`    | `500`            | Buffer reset (ms)                                           |
+| `loop`                | `true`           | Arrow-key wrap at the ends                                 |
+| `autoFocus`           | `"selected"`     | Initial highlight: `"selected"` \| `"first"` \| `"none"`    |
+| `closeOnSelect`       | `true`           | Close listbox after a selection                            |
+| `closeOnEscape`       | `true`           | Escape dismisses                                            |
+| `closeOnOutsideClick` | `true`           | Outside pointerdown dismisses                               |
+| `container`           | `document.body`  | Portal target for the listbox                              |
+| `transition`          | `false`          | Await transitionend before the status flip                 |
+| `positioner`          | -                | Pluggable positioning engine (combobox/menu parity)        |
+
+`reason` values: `"trigger"`, `"select"`, `"escape"`, `"tab"`, `"outside"`,
+`"api"`.
+
+## API
+
+```
+select.open()                    -- ReadSignal<boolean>
+select.status()                  -- "closed" | "opening" | "open" | "closing"
+select.setOpen(open, reason?)
+select.toggle(reason?)
+select.value()                   -- current selected value (or null)
+select.setValue(value, reason?)
+select.attachTrigger(el)         -- role=button, aria-haspopup=listbox, listeners
+select.attachListbox(el)         -- role=listbox
+select.attachItem(el, { value, label?, disabled? })  -- role=option
+select.attachInside(el)          -- extend the outside-click ignore list
+select.destroy()
+select.destroyed                 -- boolean
+```
+
+## Keyboard (APG parity)
+
+| Key                        | State  | Action                              |
+| -------------------------- | ------ | ----------------------------------- |
+| ArrowDown / ArrowUp / Enter / Space | closed | Open the listbox                    |
+| printable char             | closed | Open + typeahead                    |
+| ArrowDown / ArrowUp        | open   | Move highlight (wraps if `loop`)    |
+| Home / End                 | open   | First / last enabled option         |
+| Enter / Space              | open   | Select highlighted, close           |
+| Escape                     | open   | Close without selecting             |
+| Tab                        | open   | Close, continue normal tab flow     |
+| printable char             | open   | Typeahead (buffered, timeout-reset) |
+
+Disabled options are skipped by navigation and typeahead and cannot be selected.
+
+## Painted-attribute (CSS) contract
+
+Trigger (`[data-trigger]`):
+```
+role="button"
+aria-haspopup="listbox"
+aria-expanded="true|false"
+aria-controls="<listbox id>"
+aria-activedescendant="<highlighted option id>"   (while open)
+```
+
+Listbox (`[data-listbox]`):
+```
+role="listbox"
+aria-hidden="true"        (when closed)
+data-open                 (present when open)
+data-status="closed|opening|open|closing"
+data-side / data-align    (from the positioner)
+```
+
+Option (`[data-item]`):
+```
+role="option"
+aria-selected="true|false"
+data-selected             (present when selected)
+data-highlighted          (present when highlighted)
+aria-disabled="true"      (when disabled)
+data-disabled             (when disabled)
+```
+
+## Custom element wrapper
+
+```html
+<lite-select value="apple">
+    <button data-trigger>Apple</button>
+    <ul data-listbox>
+        <li data-item data-value="apple">Apple</li>
+        <li data-item data-value="banana">Banana</li>
+        <li data-item data-value="cherry" data-disabled>Cherry</li>
+    </ul>
+</lite-select>
+```
+
+### Attributes
+
+| Attribute      | Effect                                                  |
+| -------------- | ------------------------------------------------------ |
+| `value`        | Reactive selected value (reflected)                    |
+| `open`         | Reactive open state (reflected)                        |
+| `placement`    | Listbox placement                                      |
+| `offset`       | Gap (px)                                               |
+| `no-flip` / `no-shift` / `no-loop` / `no-typeahead` | Disable the behaviour        |
+| `auto-focus`   | `"selected"` \| `"first"` \| `"none"`                  |
+| `no-close-on-select` / `no-escape` / `no-outside`   | Disable dismissal            |
+| `transition`   | Await transitionend before the status flip             |
+| `container`    | Portal target selector (`self`/`none` to keep in place)|
+
+### Imperative API on host
+
+```js
+host.setOpen(bool, reason?)
+host.setValue(value, reason?)
+host.toggle()
+```
+
+## What this is NOT
+
+- editable: no text field, no query. Use `combobox` for the editable pattern.
+- multi-select: single-select is the shipped scope; multi is deferred (LH-12).
+- a data-model select: it renders nothing; you own the option DOM (ADR 0006).
+- virtualization: pair with `@zakkster/lite-virtual` when needed.

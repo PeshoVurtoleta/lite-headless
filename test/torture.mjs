@@ -115,6 +115,8 @@ import { createDialog } from "../src/dialog/index.js";
 import { createPopover } from "../src/popover/index.js";
 import { createMenu } from "../src/menu/index.js";
 import { createCombobox } from "../src/combobox/index.js";
+import { createSelect } from "../src/select/index.js";
+import { createCheckbox } from "../src/checkbox/index.js";
 import { createDrawer } from "../src/drawer/index.js";
 import { createSlider } from "../src/slider/index.js";
 import { createTabs } from "../src/tabs/index.js";
@@ -218,6 +220,11 @@ churn(
 churn(
     () => createCombobox(),
     (x) => { x.attachTrigger(el("input")); x.attachListbox(el("div")); x.attachItem(el("div"), { value: "a" }); x.setOpen(true); x.setOpen(false); },
+    512,
+);
+churn(
+    () => createSelect(),
+    (x) => { x.attachTrigger(el("button")); x.attachListbox(el("div")); x.attachItem(el("div"), { value: "a" }); x.setOpen(true); x.setOpen(false); },
     512,
 );
 churn(
@@ -897,6 +904,66 @@ check(
 if (_e8Total > _gatedWorst) { _gatedWorst = _e8Total; _gatedWorstName = "E8"; }
 console.log("transient E8 combobox-filter=" + _e8Total + "B/" + ENGINE_OPS + "ops ok");
 
+// ---- E9: select highlight move (ENGINE gated) ------------------------------
+// H12 (LH-07, ADR 0008): select consumes the same roving-focus/highlight lane
+// as combobox. E1's combobox highlight is DOM-recorded because the ONLY public
+// way to move it is a real KeyboardEvent dispatch. Select exposes an internal
+// highlight-move (_setHighlight) that the DOM-free drive calls directly, and the
+// items are plain-object fakes whose setAttribute/removeAttribute/scrollIntoView
+// are no-ops, so the roving write path crosses NO happy-dom -- pure engine.
+// setIndex short-circuits when idx === current, so the drive ALTERNATES between
+// two distinct enabled indices to move every op. No trigger is attached, so the
+// aria-activedescendant host write (getFocusHost) is skipped. HONEST: the post-
+// window probe moves to a third index and asserts the highlight advanced.
+function _selFakeEl(text) {
+    return {
+        id: undefined,
+        textContent: text,
+        getAttribute(n) { return n === "id" ? (this.id || null) : null; },
+        setAttribute(n, v) { if (n === "id") this.id = v; },
+        removeAttribute() {},
+        hasAttribute() { return false; },
+        addEventListener() {},
+        removeEventListener() {},
+        scrollIntoView() {},
+    };
+}
+const _e9 = createSelect();
+for (let _i = 0; _i < 8; _i++) _e9.attachItem(_selFakeEl("opt" + _i), { value: "v" + _i, label: "L" + _i });
+function _e9Window(i) { _e9._setHighlight((i & 1) === 0 ? 2 : 5); }
+const _e9Total = allocTotalMin(_e9Window, ENGINE_OPS, ENGINE_WARMUP, 3, ENGINE_BUDGET);
+const _e9h0 = _e9._highlightIndex();
+_e9._setHighlight(_e9h0 === 6 ? 1 : 6);
+if (_e9._highlightIndex() === _e9h0) die("E9 select: highlight did not move (dishonest window)");
+_e9.destroy();
+check(
+    _e9Total <= ENGINE_BUDGET,
+    () => "E9 select-highlight " + _e9Total + " B of transient garbage over " + ENGINE_OPS + " ops (budget 16384 B total, ~0 B/op)",
+);
+if (_e9Total > _gatedWorst) { _gatedWorst = _e9Total; _gatedWorstName = "E9"; }
+console.log("transient E9 select-highlight=" + _e9Total + "B/" + ENGINE_OPS + "ops ok");
+
+// ---- E10: checkbox toggle (ENGINE gated) -----------------------------------
+// H12 (LH-07, ADR 0008): checkbox is one 3-valued signal. With NO root attached
+// the paint effect reads _state()/_disabled() but crosses no happy-dom (both
+// `if (_rootEl)` / `if (_inputEl)` branches are false), so toggle() on a detached
+// checkbox is a pure ENGINE path -- gated at zero. toggle() alternates
+// false<->true every op (never short-circuits), so every op mutates. HONEST: the
+// post-window probe toggles once more and asserts checked() flipped.
+const _e10 = createCheckbox();
+function _e10Window(i) { _e10.toggle(); }
+const _e10Total = allocTotalMin(_e10Window, ENGINE_OPS, ENGINE_WARMUP, 3, ENGINE_BUDGET);
+const _e10c0 = _e10.checked();
+_e10.toggle();
+if (_e10.checked() === _e10c0) die("E10 checkbox: toggle did not change checked (dishonest window)");
+_e10.destroy();
+check(
+    _e10Total <= ENGINE_BUDGET,
+    () => "E10 checkbox-toggle " + _e10Total + " B of transient garbage over " + ENGINE_OPS + " ops (budget 16384 B total, ~0 B/op)",
+);
+if (_e10Total > _gatedWorst) { _gatedWorst = _e10Total; _gatedWorstName = "E10"; }
+console.log("transient E10 checkbox-toggle=" + _e10Total + "B/" + ENGINE_OPS + "ops ok");
+
 // ============================================================================
 // DOM-recorded windows (D1-D4). Each crosses happy-dom every op, so it is
 // RECORDED over the F0 floor, not gated at zero. Op counts are per-window,
@@ -1057,22 +1124,80 @@ check(
 );
 console.log("transient D5 combobox-replace=" + _d5Total + "B/" + D5_OPS + "ops record floor=" + _floorBytes + "B");
 
+// ---- D6: select open/close toggle (DOM recorded) ---------------------------
+// H12 (LH-07, ADR 0008): fresh select with trigger + listbox + 4 items attached
+// (real happy-dom els). One op is a FULL toggle: setOpen(true) then
+// setOpen(false). Each open portals the listbox, builds + destroys a positioner,
+// and paints aria-expanded/aria-hidden/data-open/data-status; each close tears
+// the positioner down and restores the portal -- every op crosses happy-dom, so
+// this is DOM-recorded over the F0 floor, not gated at zero. Op count sized
+// ceiling-safe: 48 ops keeps BOTH the total (~2.75 MB) and the ratchet under the
+// harness SHRINK_CEILING (4194304) with min-of-2 spike headroom (64 ops put the
+// ratchet over the ceiling, making the check dead -- reviewer finding). MEASURED
+// (two full torture runs): 2754872, 2754872 B / 48 ops. RATCHET = ceil(max*1.25)+4096.
+const D6_OPS = 48;
+const D6_RATCHET = 3447686;
+const _d6 = createSelect();
+_d6.attachTrigger(el("button"));
+const _d6lb = el("div");
+_d6.attachListbox(_d6lb);
+for (let _i = 0; _i < 4; _i++) _d6.attachItem(el("div"), { value: "v" + _i, label: "L" + _i });
+function _d6Window(i) {
+    _d6.setOpen(true);
+    _d6.setOpen(false);
+}
+const _d6s0 = _d6.status();
+_d6.setOpen(true);
+if (_d6.status() === _d6s0) die("D6 select: status did not cycle on open (dishonest window)");
+_d6.setOpen(false);
+const _d6Total = allocTotalMin(_d6Window, D6_OPS, DOM_WARMUP, 2, D6_RATCHET);
+_d6.destroy();
+check(
+    _d6Total <= D6_RATCHET,
+    () => "D6 select " + _d6Total + " B over " + D6_OPS + " ops (ratchet " + D6_RATCHET + " B) -- regression past pinned floor+open/close",
+);
+console.log("transient D6 select=" + _d6Total + "B/" + D6_OPS + "ops record floor=" + _floorBytes + "B");
+
+// ---- D7: checkbox attached toggle paint (DOM recorded) ---------------------
+// H12 (LH-07, ADR 0008): fresh checkbox with a REAL happy-dom root attached. One
+// op is toggle(), which rewrites aria-checked and toggles data-checked /
+// data-indeterminate on the root -- the aria-checked string write is unavoidable
+// DOM cost, so this is DOM-recorded over the F0 floor, not gated at zero. Op
+// count sized ceiling-safe under happy-dom's per-op write floor. MEASURED (two
+// full torture runs): 2417472, 2417688 B / 512 ops. RATCHET = ceil(max * 1.25) + 4096.
+const D7_OPS = 512;
+const D7_RATCHET = 3026206;
+const _d7 = createCheckbox();
+_d7.attachRoot(el("div"));
+function _d7Window(i) { _d7.toggle(); }
+const _d7c0 = _d7.checked();
+_d7.toggle();
+if (_d7.checked() === _d7c0) die("D7 checkbox: toggle did not change checked (dishonest window)");
+_d7.toggle();
+const _d7Total = allocTotalMin(_d7Window, D7_OPS, DOM_WARMUP, 2, D7_RATCHET);
+_d7.destroy();
+check(
+    _d7Total <= D7_RATCHET,
+    () => "D7 checkbox " + _d7Total + " B over " + D7_OPS + " ops (ratchet " + D7_RATCHET + " B) -- regression past pinned floor+aria paint",
+);
+console.log("transient D7 checkbox=" + _d7Total + "B/" + D7_OPS + "ops record floor=" + _floorBytes + "B");
+
 // keep the control buffer reachable past summary() so it cannot be collected
 // early and hide the pressure it is meant to create.
 if (CONTROL && _ctrlBuf[HOT - 1] === null) throw new Error("unreachable");
 
 const ok = report.ok && live === 0 && leaks.length === 0 && findings.length === 0 && _faHeapOk;
-// T9/H9/H10: gated = E2,E3,E4,E6,E5s,E7,E8 (7 -- E8 is H10's combobox filter
-// recompute window); rec = E1,E5,D1,D2,D3,D4,D5 (7 -- D5 is H10's combobox
-// option-replace window).
+// T9/H9/H10/H12: gated = E2,E3,E4,E6,E5s,E7,E8,E9,E10 (9 -- E9/E10 are H12's
+// select-highlight + checkbox-toggle windows); rec = E1,E5,D1,D2,D3,D4,D5,D6,D7
+// (9 -- D6/D7 are H12's select open/close + checkbox aria-paint windows).
 console.log(
     "GATE leak=size " + live + "/0 findings=" + findings.length +
     " warnings=" + warns.length +
     " | gc major=" + s.gc.major + " minor=" + s.gc.minor +
     " maxMs=" + s.gc.maxMs.toFixed(2) +
     " | alloc=" + _faAllocPerOp + " B/op" +
-    " | transient gated=7/7 budget=16384B/50000ops worst=" + _gatedWorst + "B(" + _gatedWorstName + ")" +
-    " | transient rec=7 floor=" + _floorBytes + "B/512ops " +
+    " | transient gated=9/9 budget=16384B/50000ops worst=" + _gatedWorst + "B(" + _gatedWorstName + ")" +
+    " | transient rec=9 floor=" + _floorBytes + "B/512ops " +
     "| " + (ok ? "ok" : "FAIL"),
 );
 if (!ok) {

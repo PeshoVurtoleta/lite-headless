@@ -1,0 +1,107 @@
+# @zakkster/lite-headless/checkbox-group
+
+Aggregate of member checkboxes with a DERIVED tri-state and an optional
+"select all" master. The group's own all / none / some state is NEVER stored as
+an aggregate that can drift from its members -- it is computed on read from the
+members' live signals (ADR 0008). A master derives "mixed" when members are
+partial; setting the master sets every member.
+
+WAI-ARIA APG: https://www.w3.org/WAI/ARIA/apg/patterns/checkbox/
+
+PEER FLOOR (ADR 0008). Each member's record AND its own `createCheckbox` are
+allocated at `register()` time -- an imperative call the consumer makes OUTSIDE
+any live tracking context / effect. No member signal is lazily allocated inside a
+running effect, so the LF-04 zombie-signal class is not reachable and the
+lite-signal `^1.2.0` peer floor is NOT raised.
+
+## Quick example
+
+```js
+import { createCheckboxGroup } from "@zakkster/lite-headless/checkbox-group";
+
+const group = createCheckboxGroup({
+    onChange: (values, reason) => console.log(values),  // array of checked values
+});
+group.attachMaster(document.querySelector("#select-all"));
+
+const a = group.register("a");
+a.checkbox.attachRoot(document.querySelector("#opt-a"));
+const b = group.register("b", { defaultChecked: true });
+b.checkbox.attachRoot(document.querySelector("#opt-b"));
+
+group.state();  // "mixed"  (one of two checked)
+group.value();  // ["b"]
+```
+
+## Options
+
+- `disabled?: boolean`  -- group-wide disabled (cascades to members via setAll path)
+- `required?: boolean`  -- paints aria-required on the master
+- `onChange?: (values, reason) => void`  -- `values` is the derived array of
+                                            checked member values
+
+Unknown option keys throw TypeError (did-you-mean); null / non-object rejected;
+undefined / no-arg legal.
+
+## API
+
+- `state()` -> "true" | "false" | "mixed"   -- DERIVED (all checked / none / some)
+- `value()` -> string[]                      -- array of checked member values
+- `disabled()` -> boolean
+- `register(value, memberOptions?)` -> `{ checkbox, off }`
+    - allocates the member's own `createCheckbox` HERE (never in an effect)
+    - `memberOptions`: `defaultChecked`, `defaultIndeterminate`, `disabled`
+    - `checkbox` is a full checkbox instance (attach it to DOM yourself)
+    - `off()` removes the member, pool-returns its signal nodes (H-12), and bumps
+      the group so `state()`/`value()` readers re-derive
+- `setAll(checked, reason?)`   -- setChecked on every member
+- `setDisabled(bool)`          -- group + every member
+- `attachMaster(el)`           -- role=checkbox select-all; paints group state
+                                 (aria-checked "true|false|mixed" + data-*);
+                                 click / Space flips all-on <-> all-off
+- `destroy()`                  -- seals owned signals + destroys every member (H-12)
+- `destroyed` (getter), `memberCount` (getter)
+
+## CSS contract
+
+The master gets:
+- `aria-checked="true|false|mixed"`  -- painted STRAIGHT from `state()`
+- `data-checked`                     -- present when all members checked
+- `data-indeterminate`               -- present when partial ("mixed")
+- `data-disabled`                    -- present when disabled
+
+Each member paints its own checkbox contract (see `checkbox` llms.txt).
+
+## Custom element wrapper
+
+`import "@zakkster/lite-headless/checkbox-group/element"` registers
+`<lite-checkbox-group>`. Members are `[data-checkbox]` with a `value`; the master
+is `[data-select-all]`.
+
+```html
+<lite-checkbox-group>
+    <span data-select-all></span>
+    <label><span data-checkbox value="a"></span> Apple</label>
+    <label><span data-checkbox value="b" checked></span> Banana</label>
+    <label><span data-checkbox value="c" disabled></span> Cherry</label>
+</lite-checkbox-group>
+```
+
+### Attributes
+
+- `disabled` -- observed; cascades to members
+- `required`
+
+### Imperative API on host
+
+`host.setAll(v, reason?)`, `host.setDisabled(v)`; getters `host.value`,
+`host.state`, `host.memberCount`.
+
+### Dispatched events
+
+- `valuechange` -- `{ detail: { values, reason } }`
+
+## Comparison
+
+- `radio-group`: one-of-N (single selection). `checkbox-group`: any-of-N, with a
+  derived tri-state master. Both aggregate items and expose a group value.

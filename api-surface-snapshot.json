@@ -62,6 +62,8 @@
         "createCalendar",
         "createCard",
         "createCarousel",
+        "createCheckbox",
+        "createCheckboxGroup",
         "createClipboard",
         "createColorPicker",
         "createCombobox",
@@ -88,6 +90,7 @@
         "createRadioGroup",
         "createRating",
         "createResult",
+        "createSelect",
         "createSeparator",
         "createSkeleton",
         "createSlider",
@@ -279,6 +282,32 @@
     "./carousel/element": {
       "defines": [
         "lite-carousel"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./checkbox": {
+      "kind": "module",
+      "names": [
+        "createCheckbox"
+      ]
+    },
+    "./checkbox-group": {
+      "kind": "module",
+      "names": [
+        "createCheckboxGroup"
+      ]
+    },
+    "./checkbox-group/element": {
+      "defines": [
+        "lite-checkbox-group"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./checkbox/element": {
+      "defines": [
+        "lite-checkbox"
       ],
       "kind": "element",
       "names": []
@@ -652,6 +681,19 @@
     "./result/element": {
       "defines": [
         "lite-result"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./select": {
+      "kind": "module",
+      "names": [
+        "createSelect"
+      ]
+    },
+    "./select/element": {
+      "defines": [
+        "lite-select"
       ],
       "kind": "element",
       "names": []

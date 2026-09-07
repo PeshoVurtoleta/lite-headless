@@ -1,0 +1,113 @@
+# @zakkster/lite-headless/checkbox
+
+Tri-state checkbox with WAI-ARIA `role="checkbox"` semantics. Unlike `switch` (a
+boolean instant-commit toggle), a checkbox is a selection-state form control that
+also supports the INDETERMINATE ("mixed") state -- the building block of a
+checkbox group.
+
+WAI-ARIA APG: https://www.w3.org/WAI/ARIA/apg/patterns/checkbox/
+
+TRI-STATE MODEL (ADR 0008). ONE 3-valued signal `_state` in
+{"true","false","mixed"}. Those three tokens ARE the `aria-checked` values, so
+the paint effect writes `aria-checked = _state()` with NO mapping branch. The
+derived booleans `checked()` / `indeterminate()` can never disagree with the
+painted attribute -- the reason a single signal is used instead of a
+boolean-checked + boolean-indeterminate pair (which can be set to the incoherent
+checked:true + indeterminate:true combination).
+
+## Quick example
+
+```js
+import { createCheckbox } from "@zakkster/lite-headless/checkbox";
+
+const cb = createCheckbox({ defaultChecked: false });
+cb.attachRoot(document.querySelector("#agree"));
+cb.attachLabel(document.querySelector("#agree-label"));
+// Space or click on root/label toggles; aria-checked + data-* paint on the root.
+```
+
+## Options
+
+- `defaultChecked?: boolean`        -- initial checked state (default false)
+- `defaultIndeterminate?: boolean`  -- seed "mixed" (wins over defaultChecked)
+- `disabled?: boolean`              -- initial disabled state
+- `required?: boolean`              -- paints aria-required on the root
+- `onChange?: (checked, reason) => void`  -- `checked` is a boolean; fires on
+                                             every committed state change
+
+Unknown option keys throw TypeError with a did-you-mean hint; null / non-object
+are rejected; undefined / no-arg is legal (fail-closed construction).
+
+## API
+
+- `checked()` -> boolean            -- `_state() === "true"`
+- `indeterminate()` -> boolean      -- `_state() === "mixed"`
+- `disabled()` -> boolean
+- `setChecked(checked, reason?)`    -- clears mixed (true -> "true", false -> "false")
+- `setIndeterminate(v, reason?)`    -- true -> "mixed"; false resolves "mixed" to
+                                       "false" (leaves a non-mixed state untouched)
+- `toggle(reason?)`                 -- APG: mixed -> true, false -> true, true -> false
+- `setDisabled(bool)`
+- `destroy()`                       -- seals owned signals (H-12); reads freeze at
+                                       the final value, writes become no-ops
+- `destroyed` (getter) -> boolean
+
+## Attachment methods
+
+- `attachRoot(el)`   -- role=checkbox, tabindex, Space/click listeners, ARIA +
+                        data-* painting. Paints current state immediately.
+- `attachLabel(el)`  -- aria-labelledby auto-wired; clicking the label toggles
+                        and focuses the root.
+- `attachInput(el)`  -- optional native `<input type="checkbox">` for form
+                        submission; kept in sync (checked + indeterminate);
+                        its change event drives setChecked.
+
+## CSS contract
+
+Root gets:
+- `aria-checked="true|false|mixed"`  -- painted STRAIGHT from `_state`
+- `data-checked`                     -- present when checked (`_state` "true")
+- `data-indeterminate`               -- present when "mixed"
+- `data-disabled`                    -- present when disabled
+- `aria-disabled="true"`             -- when disabled
+- `aria-required="true"`             -- when required
+
+## Keyboard (per ARIA APG)
+
+- Space: toggle. An indeterminate checkbox becomes CHECKED on the user's toggle.
+
+## Custom element wrapper
+
+`import "@zakkster/lite-headless/checkbox/element"` registers `<lite-checkbox>`.
+
+```html
+<lite-checkbox default-checked name="terms">
+    <span data-checkbox-root></span>
+    <span data-checkbox-label>Accept terms</span>
+</lite-checkbox>
+```
+
+### Attributes
+
+- `default-checked` / `default-indeterminate` -- seed state
+- `checked` / `indeterminate` -- observed + reflected (set/remove to control)
+- `disabled` -- observed
+- `required`
+- `name` -- auto-creates a visually-hidden native input for `<form>` submission
+- `value` -- value of that input (default "on")
+
+### Imperative API on host
+
+`host.toggle(reason?)`, `host.setChecked(v, reason?)`,
+`host.setIndeterminate(v, reason?)`, `host.setDisabled(v)`; getters
+`host.checked`, `host.indeterminate`, `host.disabled`.
+
+### Dispatched events
+
+- `change` -- `{ detail: { checked, indeterminate, reason } }`
+
+## Comparison to switch / radio
+
+- `switch`: boolean on/off, no mixed state, instant-commit toggle semantics.
+- `checkbox`: three states (checked / unchecked / mixed), the group building block.
+- radio (via `radio-group`): one-of-N selection; a checkbox group is any-of-N.

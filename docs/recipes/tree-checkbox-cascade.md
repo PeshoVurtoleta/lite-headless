@@ -2,8 +2,10 @@
 
 > G-06 (planner ruling R4). Tri-state parent/child checkbox cascade layered
 > ON TOP of the existing `createTree` primitive -- this is a recipe, NOT a tree
-> code change. The tree owns expand/collapse + roving focus; the cascade is a
-> checked-Set you maintain alongside it and paint onto each node's checkbox.
+> code change. The tree owns expand/collapse + roving focus. Since H12 (v1.9.0)
+> each node's checkbox is a `createCheckbox` instance (shared law 5: the recipe
+> consumes the primitive that now exists), so the tri-state ARIA + paint are the
+> primitive's job -- the recipe owns only the cascade DERIVATION over a leaf Set.
 
 ## The model
 
@@ -57,33 +59,51 @@ function toggleNode(id) {
 }
 ```
 
-## Paint the checkboxes (native indeterminate)
+## Paint the checkboxes with `createCheckbox`
 
-Use the platform's real `indeterminate` property on `<input type=checkbox>` --
-it is not an attribute, so set it via the DOM property.
+One `createCheckbox` per node owns the tri-state ARIA (`aria-checked="mixed"`),
+`data-checked` / `data-indeterminate`, and Space/click -- so a node's checkbox can
+be any styled element, not only a native `<input>`. The recipe drives each one
+from the derived cascade state; the primitive never stores an incoherent
+checked+indeterminate pair.
 
 ```js
 import { effect } from "@zakkster/lite-signal";
+import { createCheckbox } from "@zakkster/lite-headless/checkbox";
 
 const tree = createTree();
 tree.attachRoot(document.querySelector("[data-tree]"));
 // ... attachNode / attachLabel per your markup ...
 
+// One checkbox per node. A USER toggle (reason "click" / "keyboard") cascades to
+// the leaves; PROGRAMMATIC syncs from the effect below use reason "set" and are
+// ignored here, so there is no feedback loop.
+const boxes = new Map();   // id -> checkbox instance
+for (const id of allIds) {
+    const el = document.querySelector(`[data-node-check="${id}"]`);
+    if (!el) continue;
+    const cb = createCheckbox({
+        onChange: (_checked, reason) => { if (reason !== "set") toggleNode(id); },
+    });
+    cb.attachRoot(el);
+    boxes.set(id, cb);
+}
+
+// Drive every node's checkbox from the derived cascade state. setChecked clears
+// mixed; setIndeterminate(true) paints "mixed". Unchanged nodes short-circuit.
 effect(() => {
-    checkedLeaves();  // subscribe
-    for (const id of allIds) {
-        const box = document.querySelector(`[data-node-check="${id}"]`);
-        if (!box) continue;
+    checkedLeaves();   // subscribe
+    for (const [id, cb] of boxes) {
         const s = stateOf(id);
-        box.checked = s === "checked";
-        box.indeterminate = s === "indeterminate";
+        if (s === "indeterminate") cb.setIndeterminate(true);
+        else cb.setChecked(s === "checked");
     }
 });
-
-for (const box of document.querySelectorAll("[data-node-check]")) {
-    box.addEventListener("change", () => toggleNode(box.dataset.nodeCheck));
-}
 ```
+
+Reach for the native `el.indeterminate` DOM property (see the textarea recipe)
+only when your nodes are real `<input type=checkbox>` and you do not need the
+managed ARIA / keyboard; for styled node rows, `createCheckbox` owns that surface.
 
 The tree primitive is untouched: it still owns expansion (`expand` / `collapse`
 / `toggleExpanded`) and keyboard roving. The cascade is a pure derivation over a

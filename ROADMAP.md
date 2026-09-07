@@ -383,6 +383,13 @@ DONE WHEN
 
 ===============================================================================
 # H11 -- lite-headless v1.8.0 -- the lite-form seam (forms track, startable)
+# STATUS: SHIPPED as 1.8.0, 2026-09-07 (slot claimed per section 5; LH-05 form-field
+# pending() + setPending painting data-validating (root) + aria-busy (control),
+# showsError UNCHANGED per ADR 0007 -- a stale revealed error stays visible while
+# pending; <lite-form-field> validating observed attr; LH-06 one-reveal-gate recipe
+# + fast test proven vs PUBLISHED @zakkster/lite-form 1.3.0 devDep; H8-SOFT held --
+# pending flips per async settlement, not per keystroke, so no new gated window; gate
+# 1729 tests + torture 7/7 gated)
 ===============================================================================
 
 ```markdown

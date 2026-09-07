@@ -49,6 +49,14 @@
 
 const noop = () => {};
 
+// Reused options bags for the two scroll/focus DOM calls in writeDomState.
+// Hoisted to module scope so a highlight MOVE allocates nothing: an inline
+// `{ block: "nearest" }` / `{ preventScroll: true }` would build a fresh object
+// per move, which the gated select-highlight witness (E9) charges to the
+// workload. Frozen so a callee cannot mutate the shared instance.
+const SCROLL_OPTS = Object.freeze({ block: "nearest" });
+const FOCUS_OPTS = Object.freeze({ preventScroll: true });
+
 export const STRATEGY_DOM_FOCUS = "dom-focus";
 export const STRATEGY_ACTIVE_DESCENDANT = "active-descendant";
 
@@ -130,9 +138,9 @@ export function createRovingFocus(opts) {
             }
             if (idx >= 0 && items[idx]) {
                 items[idx].el.setAttribute(itemAttr, "");
-                try { items[idx].el.focus({ preventScroll: true }); }
+                try { items[idx].el.focus(FOCUS_OPTS); }
                 catch { try { items[idx].el.focus(); } catch { /* noop */ } }
-                try { items[idx].el.scrollIntoView({ block: "nearest" }); }
+                try { items[idx].el.scrollIntoView(SCROLL_OPTS); }
                 catch { /* noop */ }
             }
         } else {
@@ -143,7 +151,7 @@ export function createRovingFocus(opts) {
             if (idx >= 0 && items[idx]) {
                 items[idx].el.setAttribute(itemAttr, "");
                 if (host && items[idx].id) host.setAttribute("aria-activedescendant", items[idx].id);
-                try { items[idx].el.scrollIntoView({ block: "nearest" }); }
+                try { items[idx].el.scrollIntoView(SCROLL_OPTS); }
                 catch { /* noop */ }
             } else if (host) {
                 host.removeAttribute("aria-activedescendant");

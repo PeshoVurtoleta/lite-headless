@@ -14,7 +14,7 @@
 // If bundle size matters at scale, prefer the subpath imports.
 
 // Three-place version sync: package.json, this const, llms.txt.
-export const VERSION = "1.8.0";
+export const VERSION = "1.9.0";
 
 export { createAccordion } from "./accordion/index.js";
 export { createAffix } from "./affix/index.js";
@@ -29,6 +29,8 @@ export { createButton } from "./button/index.js";
 export { createCalendar } from "./calendar/index.js";
 export { createCard } from "./card/index.js";
 export { createCarousel } from "./carousel/index.js";
+export { createCheckbox } from "./checkbox/index.js";
+export { createCheckboxGroup } from "./checkbox-group/index.js";
 export { createClipboard } from "./clipboard/index.js";
 export { createColorPicker } from "./color-picker/index.js";
 export { createCombobox } from "./combobox/index.js";
@@ -55,6 +57,7 @@ export { createProgress } from "./progress/index.js";
 export { createRadioGroup } from "./radio-group/index.js";
 export { createRating } from "./rating/index.js";
 export { createResult } from "./result/index.js";
+export { createSelect } from "./select/index.js";
 export { createSeparator } from "./separator/index.js";
 export { createSkeleton } from "./skeleton/index.js";
 export { createSlider } from "./slider/index.js";

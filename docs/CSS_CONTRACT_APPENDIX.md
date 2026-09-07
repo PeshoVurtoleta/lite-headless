@@ -3,7 +3,7 @@
 > AUTO-GENERATED from `src/**/*.js` on each release. Do not hand-edit.
 > Run `npm run gen:appendix` to regenerate.
 
-**Coverage:** 59 primitives - 207 distinct `data-*` - 31 distinct `aria-*` - 23 distinct CSS custom properties.
+**Coverage:** 62 primitives - 207 distinct `data-*` - 31 distinct `aria-*` - 23 distinct CSS custom properties.
 
 ## `lite-accordion`
 
@@ -224,6 +224,45 @@ _(no painted attributes -- primitive operates purely on JS API)_
 - `data-playing`
 
 **Other attributes set:** `role`, `tabindex`
+
+
+## `lite-checkbox`
+
+**ARIA attributes painted:**
+
+- `aria-checked`
+- `aria-disabled`
+- `aria-labelledby`
+- `aria-required`
+
+**`data-*` attributes painted:**
+
+- `data-checked`
+- `data-disabled`
+- `data-indeterminate`
+
+**Other attributes set:** `role`, `tabindex`
+
+
+## `lite-checkbox-group`
+
+**ARIA attributes painted:**
+
+- `aria-checked`
+- `aria-disabled`
+- `aria-required`
+
+**`data-*` attributes painted:**
+
+- `data-checked`
+- `data-disabled`
+- `data-indeterminate`
+
+**Other attributes set:** `disabled`, `role`, `tabindex`
+
+**Slot markers read (Class 4 -- consumer-provided):**
+
+- `data-checkbox-label`
 
 
 ## `lite-clipboard`
@@ -783,6 +822,30 @@ _(no painted attributes -- primitive operates purely on JS API)_
 - `data-status`
 
 **Other attributes set:** `role`
+
+
+## `lite-select`
+
+**ARIA attributes painted:**
+
+- `aria-activedescendant`
+- `aria-disabled`
+- `aria-expanded`
+- `aria-haspopup`
+- `aria-hidden`
+- `aria-selected`
+
+**`data-*` attributes painted:**
+
+- `data-align`
+- `data-disabled`
+- `data-highlighted`
+- `data-open`
+- `data-selected`
+- `data-side`
+- `data-status`
+
+**Other attributes set:** `role`, `tabindex`
 
 
 ## `lite-separator`

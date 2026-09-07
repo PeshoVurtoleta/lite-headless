@@ -109,6 +109,9 @@ declare module "@zakkster/lite-headless" {
     export { createPasswordInput } from "@zakkster/lite-headless/password-input";
     export { createAlertDialog } from "@zakkster/lite-headless/alert-dialog";
     export { createHoverCard } from "@zakkster/lite-headless/hover-card";
+    export { createSelect } from "@zakkster/lite-headless/select";
+    export { createCheckbox } from "@zakkster/lite-headless/checkbox";
+    export { createCheckboxGroup } from "@zakkster/lite-headless/checkbox-group";
 
     // --- type re-exports (so `import type { X } from "@zakkster/lite-headless"` resolves) ---
     export type { DialogStatus, DialogOptions, DialogInstance } from "@zakkster/lite-headless/dialog";
@@ -128,6 +131,9 @@ declare module "@zakkster/lite-headless" {
     export type { PaginationItem, PaginationOptions, PaginationInstance } from "@zakkster/lite-headless/pagination";
     export type { RatingOptions, RatingInstance } from "@zakkster/lite-headless/rating";
     export type { SwitchOptions, SwitchInstance } from "@zakkster/lite-headless/switch";
+    export type { SelectStatus, SelectOptions, SelectInstance } from "@zakkster/lite-headless/select";
+    export type { CheckboxOptions, CheckboxInstance } from "@zakkster/lite-headless/checkbox";
+    export type { CheckboxGroupState, CheckboxGroupOptions, CheckboxGroupMemberOptions, CheckboxGroupMember, CheckboxGroupInstance } from "@zakkster/lite-headless/checkbox-group";
     export type { ToggleGroupType, ToggleGroupOrientation, ToggleGroupItem, ToggleGroupOptions, ToggleGroupInstance } from "@zakkster/lite-headless/toggle-group";
     export type { RadioGroupOptions, RadioGroupInstance } from "@zakkster/lite-headless/radio-group";
     export type { MeterState, MeterOptions, MeterInstance } from "@zakkster/lite-headless/meter";
@@ -976,6 +982,125 @@ declare module "@zakkster/lite-headless/radio-group" {
     export function createRadioGroup(opts?: RadioGroupOptions): RadioGroupInstance;
 }
 declare module "@zakkster/lite-headless/radio-group/element" {}
+
+// =============================================================================
+// select / checkbox / checkbox-group (H12 canon primitives)
+// =============================================================================
+
+declare module "@zakkster/lite-headless/select" {
+    export type SelectStatus = "closed" | "opening" | "open" | "closing";
+
+    export interface SelectOptions {
+        defaultOpen?: boolean;
+        onOpenChange?: (open: boolean, reason?: string) => void;
+        defaultValue?: string | null;
+        onValueChange?: (value: string | null, reason?: string) => void;
+        placement?: string;
+        offset?: number;
+        flip?: boolean;
+        shift?: boolean;
+        boundary?: string;
+        typeahead?: boolean;
+        typeaheadTimeout?: number;
+        loop?: boolean;
+        autoFocus?: "first" | "selected" | "none";
+        closeOnSelect?: boolean;
+        closeOnEscape?: boolean;
+        closeOnOutsideClick?: boolean;
+        container?: Element | null;
+        transition?: boolean;
+        positioner?: import("@zakkster/lite-headless/floating-adapter").PositionerFactory;
+    }
+
+    export interface SelectItemMeta {
+        value: string;
+        label?: string;
+        disabled?: boolean;
+    }
+
+    export interface SelectInstance {
+        open: ReactiveAccessor<boolean>;
+        status: ReactiveAccessor<SelectStatus>;
+        value: ReactiveAccessor<string | null>;
+        setOpen(open: boolean, reason?: string): void;
+        toggle(reason?: string): void;
+        setValue(value: string | null, reason?: string): void;
+        attachTrigger(el: Element): OffFn;
+        attachListbox(el: Element): OffFn;
+        attachItem(el: Element, meta?: SelectItemMeta): OffFn;
+        attachInside(el: Element): OffFn;
+        destroy(): void;
+        readonly destroyed: boolean;
+    }
+
+    export function createSelect(opts?: SelectOptions): SelectInstance;
+}
+declare module "@zakkster/lite-headless/select/element" {}
+
+declare module "@zakkster/lite-headless/checkbox" {
+    export interface CheckboxOptions {
+        defaultChecked?: boolean;
+        defaultIndeterminate?: boolean;
+        disabled?: boolean;
+        required?: boolean;
+        onChange?: (checked: boolean, reason?: string) => void;
+    }
+
+    export interface CheckboxInstance {
+        checked: ReactiveAccessor<boolean>;
+        indeterminate: ReactiveAccessor<boolean>;
+        disabled: ReactiveAccessor<boolean>;
+        setChecked(checked: boolean, reason?: string): void;
+        setIndeterminate(indeterminate: boolean, reason?: string): void;
+        toggle(reason?: string): void;
+        setDisabled(disabled: boolean): void;
+        attachRoot(el: Element): OffFn;
+        attachLabel(el: Element): OffFn;
+        attachInput(el: HTMLInputElement): OffFn;
+        destroy(): void;
+        readonly destroyed: boolean;
+    }
+
+    export function createCheckbox(opts?: CheckboxOptions): CheckboxInstance;
+}
+declare module "@zakkster/lite-headless/checkbox/element" {}
+
+declare module "@zakkster/lite-headless/checkbox-group" {
+    export type CheckboxGroupState = "true" | "false" | "mixed";
+
+    export interface CheckboxGroupOptions {
+        disabled?: boolean;
+        required?: boolean;
+        onChange?: (values: string[], reason?: string) => void;
+    }
+
+    export interface CheckboxGroupMemberOptions {
+        defaultChecked?: boolean;
+        defaultIndeterminate?: boolean;
+        disabled?: boolean;
+    }
+
+    export interface CheckboxGroupMember {
+        checkbox: import("@zakkster/lite-headless/checkbox").CheckboxInstance | null;
+        off: OffFn;
+    }
+
+    export interface CheckboxGroupInstance {
+        state: ReactiveAccessor<CheckboxGroupState>;
+        value: ReactiveAccessor<string[]>;
+        disabled: ReactiveAccessor<boolean>;
+        register(value: string, options?: CheckboxGroupMemberOptions): CheckboxGroupMember;
+        setAll(checked: boolean, reason?: string): void;
+        setDisabled(disabled: boolean): void;
+        attachMaster(el: Element): OffFn;
+        destroy(): void;
+        readonly destroyed: boolean;
+        readonly memberCount: number;
+    }
+
+    export function createCheckboxGroup(opts?: CheckboxGroupOptions): CheckboxGroupInstance;
+}
+declare module "@zakkster/lite-headless/checkbox-group/element" {}
 
 // =============================================================================
 // meter / progress
