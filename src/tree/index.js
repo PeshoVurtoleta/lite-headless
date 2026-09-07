@@ -60,9 +60,10 @@ import {
     createRovingFocus, STRATEGY_DOM_FOCUS
 } from "../_overlay/roving-focus.js";
 import { sealSignal } from "../_overlay/seal.js";
-import { checkOptions } from "../_validate.js";
+import { checkOptions, checkOptionsHot } from "../_validate.js";
 
 const OPTION_KEYS = "selectionMode|defaultSelected|defaultExpanded|typeahead|loop|onSelectionChange|onExpandedChange";
+const NODE_OPT_KEYS = "hasChildren|disabled";
 
 const noop = () => {};
 
@@ -514,6 +515,7 @@ export function createTree(options = {}) {
     function attachNode(el, key, opts) {
         if (!el || _destroyed) return noop;
         if (key == null) throw new Error("createTree.attachNode: key is required");
+        checkOptionsHot("tree.attachNode", opts, NODE_OPT_KEYS);
         const k = String(key);
         if (!el.id) el.id = uniqueId("lh-tree-node");
         el._lhTreeKey = k;

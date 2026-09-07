@@ -71,6 +71,10 @@ All Date values are stripped to startOfDay (no time-of-day).
     destroy(), destroyed
 }
 
+`attachMonthLabel(el, opts)` fails closed on an unknown key in the object form
+(TypeError with a did-you-mean hint): it knows `formatter|clickToCycle`. A bare
+function argument is the documented back-compat form and is not key-validated.
+
 ## Grid rendering pattern
 
 The consumer owns the markup; the picker attaches behavior:

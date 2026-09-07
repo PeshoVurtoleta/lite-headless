@@ -18,7 +18,7 @@ createTree({
 })
 
   attachRoot(el)                                   // role="tree" container
-  attachNode(el, key, { disabled?, hasChildren? }) // each treeitem
+  attachNode(el, key, { disabled?, hasChildren? }) // each treeitem; unknown opts key throws (did-you-mean)
   attachLabel(el, key)                             // optional: dedicated label
                                                    //   element for typeahead text
 

@@ -108,6 +108,40 @@ export function checkOptions(fnName, options, knownKeys) {
     }
 }
 
+// Per-call variant of checkOptions for hot-adjacent method bags (toast.show,
+// notificationCenter.add, attach* config, ...). Same fail-closed contract as
+// checkOptions -- undefined is legal; null/array/non-object throw; an unknown
+// key throws with a did-you-mean hint (else the "Known options:" form) -- but
+// the SUCCESS PATH IS ZERO-ALLOC: it scans own enumerable keys with a guarded
+// for-in instead of Object.keys, so a validated per-call bag with only known
+// keys allocates nothing. The Object.prototype.hasOwnProperty.call guard is
+// what makes for-in legal here: for-in walks the prototype chain, but the
+// guard rejects every inherited key so only own keys are ever tested (mirrors
+// the :93 note on why checkOptions uses Object.keys). suggest()/split are cold
+// -- reached only after a key has already failed membership and a throw is
+// committed.
+export function checkOptionsHot(fnName, bag, KEYS) {
+    if (bag === undefined) return;
+    if (bag === null || typeof bag !== "object" || Array.isArray(bag)) {
+        const desc = bag === null ? "null"
+            : Array.isArray(bag) ? "array"
+            : typeof bag;
+        throw new TypeError(`${fnName}: options must be a plain object, got ${desc}`);
+    }
+    for (const k in bag) {
+        if (!Object.prototype.hasOwnProperty.call(bag, k)) continue;
+        if (hasKey(KEYS, k)) continue;
+        if (KEYS === "") {
+            throw new TypeError(`${fnName}: unknown option "${k}". This factory takes no options.`);
+        }
+        const best = suggest(KEYS, k);
+        if (best !== null) {
+            throw new TypeError(`${fnName}: unknown option "${k}". Did you mean "${best}"?`);
+        }
+        throw new TypeError(`${fnName}: unknown option "${k}". Known options: ${KEYS.split("|").join(", ")}`);
+    }
+}
+
 // Cross-primitive option-key seam. A shared option-key list needed by more
 // than one primitive lives here, in the private validator module, and is never
 // reachable through an exports subpath (see ADR 0002). dialog and alert-dialog

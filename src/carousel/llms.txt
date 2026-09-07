@@ -87,6 +87,9 @@ For vertical: `scroll-snap-type: y mandatory` and `flex-direction: column`.
 | `attachIndicator(el, idx)`      | cleanup `()`    | role="tab"; tabindex roving        |
 | `attachPlayPause(el)`           | cleanup `()`    | toggle; aria-pressed reactive      |
 
+The `attachRoot(el, opts)` and `attachSlide(el, idx, opts)` opts bags fail closed
+on an unknown key (TypeError with a did-you-mean hint): both know `label`.
+
 ## Imperative API
 
 ```js

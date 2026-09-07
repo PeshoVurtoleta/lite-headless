@@ -136,9 +136,12 @@ import { createNotificationCenter } from "../src/notification-center/index.js";
 import { createTag } from "../src/tag/index.js";
 import { createDatePicker } from "../src/datepicker/index.js";
 import { createTimePicker } from "../src/time-picker/index.js";
+import { createToast } from "../src/toast/index.js";
 // Phase C engine-window drive surfaces (transient witness, Mission 2)
 import { createStepper } from "../src/stepper/index.js";
 import { createPinInput } from "../src/pin-input/index.js";
+// Phase C E7 drive surface (H9 LH-02): the per-call validator success path.
+import { checkOptionsHot } from "../src/_validate.js";
 
 const CONTROL = process.env.TORTURE_CONTROL === "1";
 // T8 transient control: a SEPARATE mode that injects dead transient garbage into
@@ -834,8 +837,33 @@ check(
 if (_e6Total > _gatedWorst) { _gatedWorst = _e6Total; _gatedWorstName = "E6"; }
 console.log("transient E6 floating-adapter=" + _e6Total + "B/" + ENGINE_OPS + "ops ok");
 
+// ---- E7: checkOptionsHot success path (ENGINE gated) -----------------------
+// H9 (LH-02): checkOptionsHot guards the hot-adjacent per-call method bags
+// (toast.show, notificationCenter.add, attach* config, ...). Its SUCCESS PATH
+// must be zero-alloc -- a guarded for-in over own enumerable keys, no
+// Object.keys array, no spread, no template concat. This window drives it over
+// a fixed valid bag (built ONCE outside the loop) at ENGINE_OPS and GATES at
+// the suite budget, so a regression that reintroduces a per-call allocation
+// fails here. The body is small (unlike setValue/positioner), so ENGINE_WARMUP
+// suffices to reach steady state. HONEST: the post-window probe calls it with
+// an UNKNOWN key and asserts it throws -- proof the window exercised a live
+// validator, not a dead no-op the optimizer could elide.
+const _e7keys = "id|urgent|duration|dismissible|announce";
+const _e7bag = { id: "t", urgent: false, duration: 5000 };
+function _e7Window(i) { checkOptionsHot("toast.show", _e7bag, _e7keys); }
+const _e7Total = allocTotalMin(_e7Window, ENGINE_OPS, ENGINE_WARMUP, 3, ENGINE_BUDGET);
+let _e7threw = false;
+try { checkOptionsHot("e7probe", { nope: 1 }, _e7keys); } catch { _e7threw = true; }
+if (!_e7threw) die("E7 checkOptionsHot: did not reject an unknown key (dishonest window)");
+check(
+    _e7Total <= ENGINE_BUDGET,
+    () => "E7 checkOptionsHot " + _e7Total + " B of transient garbage over " + ENGINE_OPS + " ops (budget 16384 B total, ~0 B/op)",
+);
+if (_e7Total > _gatedWorst) { _gatedWorst = _e7Total; _gatedWorstName = "E7"; }
+console.log("transient E7 checkOptionsHot=" + _e7Total + "B/" + ENGINE_OPS + "ops ok");
+
 // ============================================================================
-// DOM-recorded windows (D1-D3). Each crosses happy-dom every op, so it is
+// DOM-recorded windows (D1-D4). Each crosses happy-dom every op, so it is
 // RECORDED over the F0 floor, not gated at zero. Op counts are per-window,
 // sized ceiling-safe under happy-dom's ~2.9 KB/op-and-up write floor (the
 // harness DOM_OPS constant is retired -- see harness comment). Each pins a
@@ -916,21 +944,55 @@ check(
 );
 console.log("transient D3 dialog=" + _d3Total + "B/" + D3_OPS + "ops record floor=" + _floorBytes + "B");
 
+// ---- D4: toast show/dismiss churn (DOM recorded) ---------------------------
+// H9: toast had no H8 window (churn deferred here). One op is a full show(el,
+// opts) + dismiss() cycle on a fresh toast with a real viewport attached. We
+// pass a PRE-BUILT, REUSED element so createElement is out of the loop, but
+// setAttr x5, querySelectorAll, viewport append/removeChild, and the swipe
+// listener wire/unwire all cross happy-dom -- so this is DOM-recorded, not
+// gated. opts is a valid bag, so the window also exercises checkOptionsHot on
+// the show path every op (its zero-alloc claim is proven by E7, not here).
+// announceLive:false + duration:0 keep the live-region setTimeout and the
+// auto-dismiss timer out of the measurement. MEASURED (two full runs): 2878728,
+// 2892016 B / 256 ops. RATCHET = ceil(2892016 * 1.25) + 4096 = 3619116.
+const D4_OPS = 256;
+const D4_RATCHET = 3619116;
+const _d4 = createToast({ announceLive: false, duration: 0 });
+_d4.attachRoot(el("div"));
+const _d4el = el("div");
+const _d4opts = { duration: 0, urgent: false };
+function _d4Window(i) {
+    const ctl = _d4.show(_d4el, _d4opts);
+    ctl.dismiss();
+}
+const _d4Total = allocTotalMin(_d4Window, D4_OPS, DOM_WARMUP, 2, D4_RATCHET);
+const _d4c0 = _d4.count();
+const _d4ctl = _d4.show(_d4el, _d4opts);
+if (_d4.count() !== _d4c0 + 1) die("D4 toast: show did not add an entry (dishonest window)");
+_d4ctl.dismiss();
+if (_d4.count() !== _d4c0) die("D4 toast: dismiss did not remove the entry (dishonest window)");
+check(
+    _d4Total <= D4_RATCHET,
+    () => "D4 toast " + _d4Total + " B over " + D4_OPS + " ops (ratchet " + D4_RATCHET + " B) -- regression past pinned floor+show/dismiss",
+);
+console.log("transient D4 toast=" + _d4Total + "B/" + D4_OPS + "ops record floor=" + _floorBytes + "B");
+
 // keep the control buffer reachable past summary() so it cannot be collected
 // early and hide the pressure it is meant to create.
 if (CONTROL && _ctrlBuf[HOT - 1] === null) throw new Error("unreachable");
 
 const ok = report.ok && live === 0 && leaks.length === 0 && findings.length === 0 && _faHeapOk;
-// T9: gated = E2,E3,E4,E6,E5s (5 -- E3 re-entered the gated set per the
-// per-window-warmup ruling, see the E3 block); rec = E1,E5,D1,D2,D3 (5).
+// T9/H9: gated = E2,E3,E4,E6,E5s,E7 (6 -- E7 is H9's checkOptionsHot
+// success-path window); rec = E1,E5,D1,D2,D3,D4 (6 -- D4 is H9's toast
+// show/dismiss window).
 console.log(
     "GATE leak=size " + live + "/0 findings=" + findings.length +
     " warnings=" + warns.length +
     " | gc major=" + s.gc.major + " minor=" + s.gc.minor +
     " maxMs=" + s.gc.maxMs.toFixed(2) +
     " | alloc=" + _faAllocPerOp + " B/op" +
-    " | transient gated=5/5 budget=16384B/50000ops worst=" + _gatedWorst + "B(" + _gatedWorstName + ")" +
-    " | transient rec=5 floor=" + _floorBytes + "B/512ops " +
+    " | transient gated=6/6 budget=16384B/50000ops worst=" + _gatedWorst + "B(" + _gatedWorstName + ")" +
+    " | transient rec=6 floor=" + _floorBytes + "B/512ops " +
     "| " + (ok ? "ok" : "FAIL"),
 );
 if (!ok) {

@@ -1,5 +1,61 @@
 # Changelog
 
+## 1.6.0 -- 2026-09-07
+
+### Added
+
+- `checkOptionsHot(fnName, bag, KEYS)` in `src/_validate.js`, a per-call variant
+  of `checkOptions` for hot-adjacent method bags. Same fail-closed contract
+  (undefined legal; null/array/non-object -> TypeError "must be a plain object,
+  got X"; unknown key -> TypeError with a did-you-mean hint, else the "Known
+  options:" form) but the success path is ZERO-ALLOC: it scans own enumerable
+  keys with a `hasOwnProperty`-guarded for-in instead of `Object.keys`, so a
+  validated bag with only known keys allocates nothing. `suggest()`/`split` stay
+  cold (reached only once a key has failed and a throw is committed). Proven
+  0 B/op by a dedicated ENGINE torture micro-window (gated `<= 16384 B / 50000
+  ops`).
+
+### Changed
+
+- Per-call method option bags now fail closed on unknown keys (LH-02).
+  Previously an unknown key on a per-call bag was silently ignored -- a
+  silently-lost config typo. Each of the following now validates via
+  `checkOptionsHot` (a near-miss typo throws with a did-you-mean hint;
+  null/array/number throw; undefined/omitted stays legal):
+  - `toast.show(content, opts)` -- `id|urgent|duration|dismissible|announce`
+  - `toast.update(newContent, newOpts)` (the returned control closure) --
+    `duration|urgent`
+  - `notificationCenter.add(notification)` --
+    `id|title|body|kind|timestamp|read|meta`
+  - `notificationCenter.update(id, partial)` --
+    `id|title|body|kind|timestamp|read|meta`
+  - `tour.addStep(step)` -- `id|target|title|description`
+  - `sortable.attachRoot(el, opts)` -- `label`
+  - `sortable.attachItem(el, key, opts)` -- `disabled` (validated after the
+    existing `key == null` throw)
+  - `carousel.attachRoot(el, opts)` -- `label`
+  - `carousel.attachSlide(el, index, opts)` -- `label`
+  - `tree.attachNode(el, key, opts)` -- `hasChildren|disabled`
+  - `datepicker.attachMonthLabel(el, opts)` -- `formatter|clickToCycle`; the
+    documented bare-function back-compat form (`opts` is a formatter function)
+    skips validation.
+
+### Notes
+
+- Two per-call bags are DELIBERATELY excluded from unknown-key validation
+  (ADR 0005): `kanban.addColumn/addCard/updateCard` and
+  `commandPalette.register`. These store the caller's object WHOLESALE and hand
+  it back via `columns()/cards()/getCard()` / `results()`; the extra keys are the
+  consumer's own data (documented passthrough), not lost config. Their existing
+  required-presence guards are unchanged.
+- LH-03 (declaration parity) closed: a consumer-simulation type-test now guards
+  the barrel re-export surface an installer sees; the api-surface `node:test`
+  gate remains the parity mechanism and `skipLibCheck` stays `true` because the
+  `paths` self-map would otherwise emit ~353 structural errors (ADR 0004).
+- LH-10: G-03 (saved views / `createSavedViews`) recovered to the roadmap
+  ledger. It is gated on lite-table shipping `getViewState`/`setViewState` first
+  under the one-package law and is NOT built this session.
+
 ## 1.5.1 -- 2026-09-06
 
 ### Added

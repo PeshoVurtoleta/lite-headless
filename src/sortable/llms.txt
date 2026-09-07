@@ -62,6 +62,10 @@ DOM order will always match `sortable.items()` after a commit.
 | `attachItem(el, key, opts?)` | cleanup `()` | `opts: { disabled }`. tabindex=0 added if absent |
 | `attachHandle(el, key)`      | cleanup `()` | restricts drag start to this element |
 
+The `attachRoot(el, opts)` and `attachItem(el, key, opts)` opts bags fail closed
+on an unknown key (TypeError with a did-you-mean hint): `attachRoot` knows
+`label`, `attachItem` knows `disabled`.
+
 ## Imperative API
 
 ```js

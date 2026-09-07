@@ -43,9 +43,10 @@
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { setAttr, toggleAttr, ensureId } from "../_overlay/aria.js";
 import { sealSignal } from "../_overlay/seal.js";
-import { checkOptions } from "../_validate.js";
+import { checkOptions, checkOptionsHot } from "../_validate.js";
 
 const OPTION_KEYS = "onStepChange|onComplete|onSkip|loop";
+const STEP_KEYS = "id|target|title|description";
 
 function noop() {}
 function removeAttr(el, name) { el.removeAttribute(name); }
@@ -80,7 +81,12 @@ export function createTour(opts = {}) {
     // --- step registry -----------------------------------------------
 
     function addStep(step) {
-        if (_destroyed.v || !step) return null;
+        if (_destroyed.v) return null;
+        // Validate BEFORE the falsy short-circuit so an explicit null/wrong-type
+        // fails closed (undefined stays a legal no-op), uniform with the other
+        // per-call bags (ADR 0005).
+        checkOptionsHot("tour.addStep", step, STEP_KEYS);
+        if (!step) return null;
         const id = typeof step.id === "string" ? step.id : ("step-" + _steps.length);
         if (indexOfId(id) >= 0) return null;    // duplicate id
         _steps.push({

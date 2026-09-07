@@ -40,9 +40,11 @@
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { sealSignal } from "../_overlay/seal.js";
-import { checkOptions } from "../_validate.js";
+import { checkOptions, checkOptionsHot } from "../_validate.js";
 
 const OPTION_KEYS = "orientation|items|onReorder|onDragStart|onDragEnd|applyDOMReorder|disabled|keyboardEnabled|dragStartThreshold|announceLive";
+const ROOT_OPT_KEYS = "label";
+const ITEM_OPT_KEYS = "disabled";
 
 const noop = () => {};
 let _idCounter = 0;
@@ -487,6 +489,7 @@ export function createSortable(options = {}) {
     // ----- public attachments ---------------------------------------
     function attachRoot(el, opts) {
         if (!el || _destroyed) return noop;
+        checkOptionsHot("sortable.attachRoot", opts, ROOT_OPT_KEYS);
         _rootEl = el;
         if (!el.id) el.id = uniqueId("lh-sortable");
         setAttr(el, "role", "listbox");
@@ -517,6 +520,7 @@ export function createSortable(options = {}) {
     function attachItem(el, key, opts) {
         if (!el || _destroyed) return noop;
         if (key == null) throw new Error("attachItem: key is required");
+        checkOptionsHot("sortable.attachItem", opts, ITEM_OPT_KEYS);
         const k = String(key);
         const isDisabled = !!(opts && opts.disabled);
         if (!el.id) el.id = uniqueId("lh-sortable-item");

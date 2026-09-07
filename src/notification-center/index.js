@@ -41,9 +41,10 @@
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { setAttr, toggleAttr, ensureId } from "../_overlay/aria.js";
 import { sealSignal } from "../_overlay/seal.js";
-import { checkOptions } from "../_validate.js";
+import { checkOptions, checkOptionsHot } from "../_validate.js";
 
 const OPTION_KEYS = "defaultNotifications|maxItems|defaultFilter|onChange|onMarkRead|onMarkAllRead|onClear|onClearAll";
+const NOTIFICATION_KEYS = "id|title|body|kind|timestamp|read|meta";
 
 function noop() {}
 
@@ -149,6 +150,7 @@ export function createNotificationCenter(options = {}) {
 
     function add(notification) {
         if (_destroyed) return;
+        checkOptionsHot("notificationCenter.add", notification, NOTIFICATION_KEYS);
         const n = normalizeNotification(notification);
         if (!n || !n.id) return;
         const cur = _items();
@@ -187,7 +189,12 @@ export function createNotificationCenter(options = {}) {
     }
 
     function update(id, partial) {
-        if (_destroyed || id == null || !partial) return;
+        if (_destroyed || id == null) return;
+        // Validate BEFORE the falsy short-circuit so update(id, null) fails
+        // closed like add(null) (undefined stays a legal no-op) -- uniform
+        // null handling within the primitive and across the suite (ADR 0005).
+        checkOptionsHot("notificationCenter.update", partial, NOTIFICATION_KEYS);
+        if (!partial) return;
         const cur = _items();
         let idx = -1;
         for (let i = 0; i < cur.length; i++) {

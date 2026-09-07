@@ -33,9 +33,10 @@
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { uniqueId, setAttr, toggleAttr, ensureId, addIdToken, removeIdToken } from "../_overlay/aria.js";
 import { sealSignal } from "../_overlay/seal.js";
-import { checkOptions } from "../_validate.js";
+import { checkOptions, checkOptionsHot } from "../_validate.js";
 
 const OPTION_KEYS = "mode|value|defaultValue|onValueChange|minDate|maxDate|weekStartsOn|now|today|disabled";
+const MONTH_LABEL_KEYS = "formatter|clickToCycle";
 
 // Module-scoped Intl.DateTimeFormat. Construction is non-trivial (locale
 // resolution + options parsing); doing it on every effect run in the
@@ -1057,6 +1058,9 @@ export function createDatePicker(options = {}) {
     // (the v0.6 signature).
     function attachMonthLabel(el, opts) {
         if (!el || _destroyed) return noop;
+        // A bare formatter function is a documented back-compat form; only the
+        // object form carries option keys to validate.
+        if (typeof opts !== "function") checkOptionsHot("datepicker.attachMonthLabel", opts, MONTH_LABEL_KEYS);
         let formatter = null;
         let clickToCycle = false;
         if (typeof opts === "function") formatter = opts;

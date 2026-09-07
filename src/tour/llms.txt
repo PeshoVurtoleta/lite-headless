@@ -27,6 +27,9 @@ tour.attachStepContent("new", newStepContentEl);
 tour.start();
 ```
 
+`addStep(step)` fails closed on an unknown key (TypeError with a did-you-mean
+hint): it knows `id|target|title|description`.
+
 ## Step shape
 
 ```js

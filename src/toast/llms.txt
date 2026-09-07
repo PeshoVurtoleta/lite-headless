@@ -117,6 +117,10 @@ toast.getEntries()   // [{ id, urgent }, ...]
 toast.destroy()
 ```
 
+`show(content, opts)` and the returned `update(content, opts)` fail closed on an
+unknown option key (TypeError with a did-you-mean hint): `show` knows
+`id|urgent|duration|dismissible|announce`, `update` knows `duration|urgent`.
+
 The control object returned by `show()` is the easiest way to dismiss
 or update a specific toast:
 

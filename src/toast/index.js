@@ -72,9 +72,11 @@
 
 import { signal as makeSignal, effect } from "@zakkster/lite-signal";
 import { sealSignal } from "../_overlay/seal.js";
-import { checkOptions } from "../_validate.js";
+import { checkOptions, checkOptionsHot } from "../_validate.js";
 
 const OPTION_KEYS = "placement|duration|swipeToDismiss|swipeDirection|swipeThreshold|maxStack|pauseOnHover|pauseOnFocus|announceLive|defaultUrgent|onDismiss|onShow";
+const SHOW_KEYS = "id|urgent|duration|dismissible|announce";
+const UPDATE_KEYS = "duration|urgent";
 
 const noop = () => {};
 let _idCounter = 0;
@@ -327,7 +329,6 @@ export function createToast(options = {}) {
 
     function show(contentOrEl, opts) {
         if (_destroyed) return null;
-        opts = opts || {};
         // resolve element
         let el;
         if (typeof contentOrEl === "string") {
@@ -337,6 +338,11 @@ export function createToast(options = {}) {
         } else {
             throw new Error("toast.show: content must be a string or an HTMLElement");
         }
+        // Validate the RAW bag (null/wrong-type throw; undefined is legal) BEFORE
+        // coercing an omitted bag to {} -- keeps null fail-closed, uniform with
+        // checkOptions and the other per-call bags (ADR 0005).
+        checkOptionsHot("toast.show", opts, SHOW_KEYS);
+        opts = opts || {};
 
         const id = opts.id || uniqueId("lh-toast");
         const isUrgent = opts.urgent != null ? !!opts.urgent : defaultUrgent;
@@ -398,7 +404,10 @@ export function createToast(options = {}) {
             id,
             el,
             dismiss: (reason) => _dismissEntry(entry, reason || "manual"),
-            update: (newContent, newOpts) => _updateEntry(entry, newContent, newOpts || {}),
+            update: (newContent, newOpts) => {
+                checkOptionsHot("toast.update", newOpts, UPDATE_KEYS);
+                return _updateEntry(entry, newContent, newOpts || {});
+            },
         };
     }
 

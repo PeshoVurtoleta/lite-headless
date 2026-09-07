@@ -93,7 +93,7 @@ reads it before writing. api-surface-snapshot.json is regenerated ONLY via
 | **LH-07** | S3 (feature) | [inspected] exports map vs APG/ecosystem | **Canon primitives absent**: standalone select/listbox (combobox is the editable pattern only), checkbox (+group, indeterminate -- currently hand-rolled inside two recipes). Lesser: context-menu, menubar, scroll-area. |
 | **LH-08** | S3 (docs) | [registry] 2026-09-06 | **npm description says "58 ARIA-correct factories"**; 59 shipped in 1.5.0. Description edits change the npm listing -- deliberate edit at the next publish. |
 | **LH-09** | S3 (note) | [inspected] package.json:521 | lite-signal peer floor `^1.2.0` predates the owner API; fine today, a trap for any future lazy-alloc-under-effect feature. Raise only when a session needs it. |
-| **LH-10** | S3 (ledger) | [inspected] grep over repo | **G-03 is unaccounted**: of H7's gap ledger, G-01/04/10 shipped, G-02/05-09/12 became recipes, G-11 landed inside crud-list-page -- G-03 appears nowhere in the repo. Its content exists only in the out-of-repo H7 brief. Recover it or retire the number formally. |
+| **LH-10** | S3 (ledger) | [inspected] grep over repo | **G-03 is unaccounted**: of H7's gap ledger, G-01/04/10 shipped, G-02/05-09/12 became recipes, G-11 landed inside crud-list-page -- G-03 appears nowhere in the repo. Its content exists only in the out-of-repo H7 brief. Recover it or retire the number formally. **RECOVERED (H9, 2026-09-07):** G-03 = saved views (`createSavedViews`), deferred because it is gated on lite-table shipping `getViewState`/`setViewState` FIRST under the one-package law -- not built here, tracked for a future lite-table-gated session. Origin checked against lite-form (no G-## ledger there; sole lite-headless cross-ref is the H11 form-field seam). Ledger hole closed. See CHANGELOG 1.6.0 ADR line. |
 | **LH-11** | S3 (docs) | [inspected] docs/recipes/ vs lite-form 1.3.0 CHANGELOG, 2026-09-06 | **The lite-form 1.3.0 server-data surface has no lite-headless landing.** lite-form now ships merge `reinitialize(next, policy)` (drafts survive a server refresh), `toPatch()` / `submit(ev, {patch:true})` (minimal-diff submit), `reconcile`, and strict-false-while-pending submit -- and no recipe shows a headless form surviving a refresh mid-edit, painting the conflict list, posting the minimal patch, or gating the submit button on `isSubmitting`/`isValidating`. |
 
 ---
@@ -254,6 +254,11 @@ DONE WHEN
 
 ===============================================================================
 # H9 -- lite-headless v1.6.0 -- fail-closed completion + declaration parity
+# STATUS: SHIPPED as 1.6.0, 2026-09-07 (slot claimed per section 5; LH-02 per-call
+# validation on 11 envelope bags via checkOptionsHot, kanban + command-palette
+# excluded as wholesale data payloads per ADR 0005; LH-03 closed via consumer
+# type-test ADR 0004 -- allowlist was already 0; LH-10 G-03 recovered = saved
+# views, lite-table-gated)
 ===============================================================================
 
 ```markdown

@@ -30,9 +30,11 @@
 import { signal as makeSignal, effect, untrack } from "@zakkster/lite-signal";
 import { toggleAttr } from "../_overlay/aria.js";
 import { sealSignal } from "../_overlay/seal.js";
-import { checkOptions } from "../_validate.js";
+import { checkOptions, checkOptionsHot } from "../_validate.js";
 
 const OPTION_KEYS = "orientation|autoplay|autoplayBehavior|loop|defaultIndex|uniformSlideWidth|respectReducedMotion|onIndexChange|onPlayingChange|scrollBehavior|observerThresholds";
+const ROOT_OPT_KEYS = "label";
+const SLIDE_OPT_KEYS = "label";
 
 const noop = () => {};
 let _idCounter = 0;
@@ -335,6 +337,7 @@ export function createCarousel(options = {}) {
     // ----- attachments ------------------------------------------------
     function attachRoot(el, opts) {
         if (!el || _destroyed) return noop;
+        checkOptionsHot("carousel.attachRoot", opts, ROOT_OPT_KEYS);
         _rootEl = el;
         if (!el.id) el.id = uniqueId("lh-carousel");
         setAttr(el, "role", "region");
@@ -437,6 +440,7 @@ export function createCarousel(options = {}) {
         if (!Number.isInteger(index) || index < 0) {
             throw new Error(`attachSlide: index must be a non-negative integer, got ${index}`);
         }
+        checkOptionsHot("carousel.attachSlide", opts, SLIDE_OPT_KEYS);
         const label = (opts && opts.label) || null;
         if (!el.id) el.id = uniqueId("lh-carousel-slide");
         el._lhCarouselIdx = index;

@@ -78,6 +78,11 @@ nc.clearAll() / .clearByKind(kind) / .clearRead()
 nc.setFilter({ kind, read }) / .clearFilter()
 ```
 
+`add(notification)` and `update(id, partial)` fail closed on an unknown key
+(TypeError with a did-you-mean hint): both know
+`id|title|body|kind|timestamp|read|meta`. Use `meta` for arbitrary app data --
+unknown top-level keys are rejected, not silently dropped.
+
 ## Attach methods
 
 ```js
