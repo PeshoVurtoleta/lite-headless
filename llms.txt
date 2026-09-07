@@ -131,9 +131,13 @@ Newest additions: select, checkbox, checkbox-group (H12 canon primitives), hover
   date-range-presets, transfer-list, autosave (isDirty + lite-debounce +
   lite-query), bulk-actions-bar, tree-checkbox-cascade,
   textarea-autosize-and-indeterminate-checkbox, combobox-remote-options
-  (async listbox + generation guard + lite-query), and lite-form-field
+  (async listbox + generation guard + lite-query), lite-form-field
   (the one-reveal-gate wiring: form-field pending/aria-busy driven by
-  lite-form's field.isValidating).
+  lite-form's field.isValidating), lite-form-server-data (refresh mid-edit
+  via reinitialize(next, policy) + a conflict list off toPatch, keep-mine/
+  take-server), and lite-form-patch-submit (submit(ev,{patch:true}) minimal
+  diff + the 409 serverErrors lane + a busy submit button mirrored off
+  isSubmitting/isValidating -- one gate, no second guard).
 
 ## License
 
