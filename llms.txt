@@ -137,7 +137,14 @@ Newest additions: select, checkbox, checkbox-group (H12 canon primitives), hover
   via reinitialize(next, policy) + a conflict list off toPatch, keep-mine/
   take-server), and lite-form-patch-submit (submit(ev,{patch:true}) minimal
   diff + the 409 serverErrors lane + a busy submit button mirrored off
-  isSubmitting/isValidating -- one gate, no second guard).
+  isSubmitting/isValidating -- one gate, no second guard). A lite-charts family
+  (compose lite-headless overlays/controls around a canvas chart, driven by its
+  signal facades): lite-charts-tooltip (a DOM hover-card on a lite-floating
+  virtualRef off the crosshair signal), lite-charts-accessible-shell (the a11y
+  layer lite-charts leaves to the consumer: canvas role/label + keyboard ->
+  moveCrosshair + an aria-live announcer + a data-table fallback via lite-table),
+  lite-charts-legend (a checkbox-group bound to seriesVisibility), and
+  lite-charts-time-range (a datepicker -> setView + refreshTheme on a theme toggle).
 
 ## License
 
