@@ -3299,6 +3299,11 @@
             border: 1px solid var(--line);
             border-radius: 0.375rem;
             cursor: ns-resize;
+            /* drag-to-spin: claim the vertical gesture (touch) and never let a
+               drag turn into a text/caret selection */
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
         }
         /* The element paints the value into data-hour / data-minute /
            data-meridiem (ARIA carries the accessible value); the consumer
@@ -11314,6 +11319,7 @@ each segment role="spinbutton"
 ArrowUp / ArrowDown spin
    wraps 0&lt;-&gt;23, 0&lt;-&gt;59
                     </div>
+                    <p class="help-line"><strong>Demo:</strong> wheel or drag a segment to spin &mdash; maps to the same ArrowUp/ArrowDown keydown.</p>
                 </section>
                 <section>
                     <h3>typeahead</h3>
@@ -15246,6 +15252,55 @@ option: role=option
     (function wireTimePicker() {
         const log = $("tp-log");
         const pad = (n) => (n < 10 ? "0" + n : String(n));
+        // Mouse/touch-driven spin. The segments are keyboard spinbuttons
+        // (ArrowUp/Down); both a vertical wheel and a vertical drag over a
+        // segment are translated into that same keydown, so the ns-resize cursor
+        // is honest and the value can be driven without the keyboard. Both reuse
+        // the element's own spin logic (wrap / clamp / minute-step / meridiem)
+        // rather than duplicating it.
+        function spin(seg, dir) {
+            seg.dispatchEvent(new KeyboardEvent("keydown", {
+                key: dir < 0 ? "ArrowDown" : "ArrowUp", bubbles: true,
+            }));
+        }
+        // wheel: time-throttled so a trackpad flick spins at a readable rate;
+        // horizontal scrolls pass through to the scene.
+        let lastSpin = 0;
+        function onWheel(e) {
+            const seg = e.target && e.target.closest ? e.target.closest(".tp-seg") : null;
+            if (!seg) return;                                    // not a segment: scroll normally
+            if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return; // horizontal intent: leave it
+            if (Math.abs(e.deltaY) < 1) return;
+            e.preventDefault();                                  // hijack vertical wheel over a segment
+            if (e.timeStamp - lastSpin < 60) return;             // throttle repeats
+            lastSpin = e.timeStamp;
+            spin(seg, e.deltaY < 0 ? 1 : -1);
+        }
+        // drag: one step per DRAG_STEP px of vertical travel (drag up =
+        // increment, matching the wheel and an iOS-style wheel picker). Pointer
+        // capture keeps the gesture on the segment even if the pointer wanders
+        // off it; the pixel threshold is the throttle, so the move handler
+        // allocates nothing between step crossings.
+        const DRAG_STEP = 12;
+        let dragSeg = null, dragId = -1, anchorY = 0;
+        function onDown(e) {
+            if (e.button !== 0 || !e.isPrimary) return;
+            const seg = e.target && e.target.closest ? e.target.closest(".tp-seg") : null;
+            if (!seg) return;
+            dragSeg = seg; dragId = e.pointerId; anchorY = e.clientY;
+            try { seg.setPointerCapture(e.pointerId); } catch (_) {}
+        }
+        function onMove(e) {
+            if (!dragSeg || e.pointerId !== dragId) return;
+            let dy = anchorY - e.clientY;                        // up (smaller clientY) => increment
+            while (dy >= DRAG_STEP)  { spin(dragSeg,  1); anchorY -= DRAG_STEP; dy -= DRAG_STEP; }
+            while (dy <= -DRAG_STEP) { spin(dragSeg, -1); anchorY += DRAG_STEP; dy += DRAG_STEP; }
+        }
+        function onUp(e) {
+            if (e.pointerId !== dragId) return;
+            if (dragSeg) { try { dragSeg.releasePointerCapture(e.pointerId); } catch (_) {} }
+            dragSeg = null; dragId = -1;
+        }
         function wire(hostId, readoutId, label) {
             const host = $(hostId);
             const out = $(readoutId);
@@ -15260,6 +15315,11 @@ option: role=option
                     pad(e.detail.value.hour) + ":" + pad(e.detail.value.minute) +
                     " (" + e.detail.reason + ")";
             });
+            host.addEventListener("wheel", onWheel, { passive: false });
+            host.addEventListener("pointerdown", onDown);
+            host.addEventListener("pointermove", onMove);
+            host.addEventListener("pointerup", onUp);
+            host.addEventListener("pointercancel", onUp);
             customElements.whenDefined("lite-time-picker").then(() => paint());
         }
         wire("tp-12", "tp-12-readout", "12h");
