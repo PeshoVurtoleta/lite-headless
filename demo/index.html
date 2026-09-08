@@ -114,9 +114,9 @@
             --bg-1: #0d1117;
             --bg-2: #131922;
             --bg-3: #1a2230;
-            --line: rgba(255, 255, 255, 0.06);
-            --line-strong: rgba(255, 255, 255, 0.14);
-            --line-mid: rgba(255, 255, 255, 0.08);
+            --line: rgba(var(--ink), 0.06);
+            --line-strong: rgba(var(--ink), 0.14);
+            --line-mid: rgba(var(--ink), 0.08);
             --text: #d8d6d2;
             --text-dim: #8b8d94;
             --text-faint: #555960;
@@ -130,6 +130,67 @@
             --glow-magenta: 0 0 0.75rem rgba(232, 121, 168, 0.5);
             --glow-amber: 0 0 0.75rem rgba(245, 185, 66, 0.6), 0 0 1.875rem rgba(245, 185, 66, 0.2);
             --glow-cyan: 0 0 0.75rem rgba(125, 211, 252, 0.5);
+
+            /* --- theme tokens (added for the light-mode toggle) --- */
+            /* ink = the tint channel for hairlines/fills/overlays; flips per theme so
+               every white-overlay opacity becomes a near-black overlay in light mode. */
+            --ink: 255, 255, 255;
+            --surface: var(--bg-2);      /* panel backing (was UNDEFINED -> 37 transparent containers) */
+            --surface-2: var(--bg-3);
+            --accent: var(--cyan);       /* was undefined; drove the var(--accent,#7dd3fc) fallbacks */
+            --orange: #fb923c;           /* was undefined; matched the var(--orange,#fb923c) fallbacks */
+            --on-accent: #0a0d12;        /* dark text on bright fills; flips to #fff in light */
+            --bg: var(--bg-0);
+            --border: var(--line-strong);
+            --shadow: rgba(0, 0, 0, 0.45);
+            --overlay-bg: rgba(7, 9, 13, 0.7);   /* translucent stage chips */
+            /* these were referenced but never defined -> the declarations were dropped;
+               defining them fixes latent breakage (e.g. active pagination/toggle fills)
+               in BOTH themes. Ones that alias other tokens flip automatically. */
+            --bg-4: #212c3d;
+            --cyan-dim: #2b6f8f;         /* dimmed cyan: active fills (w/ white text) + borders */
+            --amber-dim: #8a6620;        /* dimmed amber, sibling of --green-dim */
+            --surface-strong: var(--bg-3);
+            --muted: var(--text-dim);
+            --mono: 'JetBrains Mono', ui-monospace, monospace;
+            --font-mono: var(--mono);
+        }
+
+        /* Light theme: override the tokens only -- the structure/opacity design is
+           preserved. --ink flips white overlays to near-black, --on-accent flips
+           fill text to white, and the fill/accent colors darken so both white text on
+           them and thin lines against white stay legible. */
+        :root[data-theme="light"] {
+            --bg-0: #eef1f5;
+            --bg-1: #e6e9ef;
+            --bg-2: #dde2ea;
+            --bg-3: #d2d8e2;
+            --text: #1b1f27;
+            --text-dim: #545b66;
+            --text-faint: #838a95;
+            --green: #15803d;
+            --green-dim: #2e7d54;
+            --cyan: #0369a1;
+            --amber: #b45309;
+            --magenta: #c026a8;
+            --red: #dc2626;
+            --ink: 20, 26, 34;
+            --surface: #ffffff;
+            --surface-2: #f4f6f9;
+            --accent: #0284c7;
+            --orange: #ea580c;
+            --on-accent: #ffffff;
+            --bg: var(--bg-0);
+            --border: rgba(var(--ink), 0.22);
+            --shadow: rgba(20, 26, 34, 0.18);
+            --overlay-bg: rgba(244, 246, 249, 0.82);
+            --bg-4: #c7ceda;
+            --cyan-dim: #0369a1;         /* dark blue: white text + visible border on white */
+            --amber-dim: #b45309;
+            --glow-green:   0 0 0.5rem rgba(21, 128, 61, 0.22);
+            --glow-magenta: 0 0 0.5rem rgba(192, 38, 168, 0.20);
+            --glow-amber:   0 0 0.5rem rgba(180, 83, 9, 0.20);
+            --glow-cyan:    0 0 0.5rem rgba(2, 132, 199, 0.22);
         }
 
         html, body { height: 100%; margin: 0; }
@@ -157,7 +218,7 @@
             content: "";
             position: fixed; inset: 0; pointer-events: none; z-index: 1;
             background: repeating-linear-gradient(0deg, transparent 0, transparent 2px,
-                rgba(255, 255, 255, 0.012) 2px, rgba(255, 255, 255, 0.012) 3px);
+                rgba(var(--ink), 0.012) 2px, rgba(var(--ink), 0.012) 3px);
         }
 
         /* App container -- z-index:0 so portaled surfaces (z-index:100) paint on top.
@@ -204,6 +265,20 @@
             0%, 100% { opacity: 1; }
             50%      { opacity: 0.45; }
         }
+        .top-right { display: flex; align-items: center; gap: 1rem; }
+        .theme-toggle {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 1.9rem; height: 1.9rem; padding: 0; border-radius: 6px;
+            background: var(--bg-2); color: var(--text-dim);
+            border: 1px solid var(--line-strong); cursor: pointer;
+            font-size: 0.95rem; line-height: 1;
+            transition: color .15s ease, background .15s ease, border-color .15s ease;
+        }
+        @media (hover: hover) {
+            .theme-toggle:hover { color: var(--text); background: var(--bg-3); border-color: var(--accent); }
+        }
+        .theme-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+        .theme-toggle .tt-icon { display: block; }
 
         /* ─── tabs (category dropdowns) ──────────────────────────────────
            As the primitive count grew past 10, the flat tab strip ran
@@ -330,15 +405,15 @@
         .stage-grid {
             position: absolute; inset: 0; pointer-events: none;
             background-image:
-                linear-gradient(to right, rgba(255,255,255,0.025) 1px, transparent 1px),
-                linear-gradient(to bottom, rgba(255,255,255,0.025) 1px, transparent 1px);
+                linear-gradient(to right, rgba(var(--ink), 0.025) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(var(--ink), 0.025) 1px, transparent 1px);
             background-size: 2rem 2rem;
         }
         .stage-overlay {
             position: absolute;
             padding: 0.5rem 0.75rem;
             font-size: 0.6875rem;
-            background: rgba(7, 9, 13, 0.7);
+            background: var(--overlay-bg);
             backdrop-filter: blur(4px);
             border: 1px solid var(--line);
             border-radius: 4px;
@@ -557,7 +632,7 @@
         /* ─── primitives shown on the stage ──────────────────────────── */
 
         .demo-trigger {
-            background: linear-gradient(to bottom, #2a3142, #1d2433);
+            background: linear-gradient(to bottom, var(--bg-3), var(--bg-2));
             color: var(--text);
             border: 1px solid var(--line-strong);
             font-family: 'JetBrains Mono', monospace;
@@ -615,7 +690,7 @@
             left: 50%;
             transform: translate(-50%, -50%);
             z-index: 100;
-            background: linear-gradient(to bottom, #1b2230, #131a26);
+            background: linear-gradient(to bottom, var(--surface-2), var(--surface));
             color: var(--text);
             border: 1px solid var(--green-dim);
             border-radius: 6px;
@@ -703,7 +778,7 @@
             position: absolute;
             width: 0.75rem;
             height: 0.75rem;
-            background: linear-gradient(135deg, #1b2230 50%, transparent 50.1%);
+            background: linear-gradient(135deg, var(--surface-2) 50%, transparent 50.1%);
             border: 1px solid var(--green-dim);
         }
         .tip > .arrow {
@@ -1743,12 +1818,12 @@
         }
         .demo-carousel [data-carousel-slide]:nth-child(5n+3) {
             background: linear-gradient(135deg, rgba(255, 80, 120, 0.10), rgba(255, 80, 120, 0.02));
-            color: #ff5078;
+            color: var(--magenta);
             text-shadow: 0 0 6px rgba(255, 80, 120, 0.5);
         }
         .demo-carousel [data-carousel-slide]:nth-child(5n+4) {
             background: linear-gradient(135deg, rgba(120, 200, 80, 0.10), rgba(120, 200, 80, 0.02));
-            color: #78c850;
+            color: var(--green);
             text-shadow: 0 0 6px rgba(120, 200, 80, 0.5);
         }
         .demo-carousel [data-carousel-slide]:nth-child(5n+5) {
@@ -1985,7 +2060,7 @@
         }
         .toast-trigger.success { color: var(--green); }
         .toast-trigger.warn    { color: var(--amber); }
-        .toast-trigger.error   { color: #ff5078; }
+        .toast-trigger.error   { color: var(--red); }
         .toast-trigger.info    { color: var(--cyan); }
 
         /* the lite-toast viewport — positioned bottom-right of the stage */
@@ -2036,7 +2111,7 @@
         }
         .demo-toast-viewport .toast-icon.success { color: var(--green); text-shadow: var(--glow-green); }
         .demo-toast-viewport .toast-icon.warn    { color: var(--amber); text-shadow: var(--glow-amber); }
-        .demo-toast-viewport .toast-icon.error   { color: #ff5078; text-shadow: 0 0 6px rgba(255, 80, 120, 0.5); }
+        .demo-toast-viewport .toast-icon.error   { color: var(--red); text-shadow: 0 0 6px rgba(255, 80, 120, 0.5); }
         .demo-toast-viewport .toast-icon.info    { color: var(--cyan); text-shadow: var(--glow-cyan); }
         .demo-toast-viewport .toast-message { flex: 1; min-width: 0; }
         .demo-toast-viewport [data-toast-close] {
@@ -3214,17 +3289,23 @@
             font-size: 1.5rem;
         }
         .tp-seg {
-            min-inline-size: 2.25rem;
-            padding: 0.35rem 0.5rem;
+            min-inline-size: 2.75rem;
+            padding: 0.4rem 0.6rem;
             text-align: center;
             color: #e6edf3;
             color: var(--text);
             background: #0d1117;
-            background: oklch(0.18 0.02 250);
+            background: var(--bg-3);
             border: 1px solid var(--line);
             border-radius: 0.375rem;
             cursor: ns-resize;
         }
+        /* The element paints the value into data-hour / data-minute /
+           data-meridiem (ARIA carries the accessible value); the consumer
+           renders the glyphs. Without this the segments are empty pills. */
+        .tp-seg[data-hour]::after     { content: attr(data-hour); }
+        .tp-seg[data-minute]::after   { content: attr(data-minute); }
+        .tp-seg[data-meridiem]::after { content: attr(data-meridiem); }
         .tp-seg:focus-visible {
             outline: 2px solid #58a6ff;
             outline: 2px solid var(--accent, #58a6ff);
@@ -3524,7 +3605,7 @@
         }
         [data-drop-zone][data-drag-over="true"] {
             border-color: var(--cyan);
-            background: oklch(20% 0.04 200);
+            background: var(--bg-3);
         }
         .fu-dz-label {
             font-family: 'Space Mono', monospace;
@@ -3940,6 +4021,16 @@
         .n11-hc-stats  { display: flex; gap: 1rem; font-size: 0.75rem; color: var(--text-faint); }
         .n11-hc-stats b { color: var(--text); }
     </style>
+    <!-- Apply the saved theme before first paint so there is no dark->light flash.
+         Default (no attribute) is the dark showcase; only a saved 'light' opts in. -->
+    <script>
+        (function () {
+            try {
+                var t = localStorage.getItem("lh-demo-theme");
+                if (t === "light") document.documentElement.setAttribute("data-theme", "light");
+            } catch (e) {}
+        })();
+    </script>
 </head>
 <body>
 
@@ -3958,7 +4049,7 @@
 <style>
 #boot-loader {
     position: fixed; inset: 0;
-    background: #0a0d12;
+    background: var(--on-accent);
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
     gap: 24px;
@@ -4023,8 +4114,14 @@
             <span class="pkg">@zakkster/lite-headless</span>
             <span class="ver">v1.9.1</span>
         </div>
-        <div class="tagline">
-            <span class="dot"></span>headless primitives · zero-GC · 62 primitives · 1633/1633 tests
+        <div class="top-right">
+            <div class="tagline">
+                <span class="dot"></span>headless primitives · zero-GC · 62 primitives · 1633/1633 tests
+            </div>
+            <button id="theme-toggle" class="theme-toggle" type="button"
+                    aria-label="Toggle light and dark theme" title="Switch to light (T)">
+                <span class="tt-icon" aria-hidden="true">☀</span>
+            </button>
         </div>
     </header>
 
@@ -4353,6 +4450,14 @@
                 <li data-item data-scene="time-picker">
                     <span class="scene-num">63</span><span>Time Picker</span>
                     <span class="scene-desc">spinbutton segments &middot; hour12 &middot; typeahead</span>
+                </li>
+                <li data-item data-scene="checkbox">
+                    <span class="scene-num">64</span><span>Checkbox</span>
+                    <span class="scene-desc">tri-state &middot; group select-all &middot; indeterminate</span>
+                </li>
+                <li data-item data-scene="select">
+                    <span class="scene-num">65</span><span>Select</span>
+                    <span class="scene-desc">listbox-button &middot; typeahead &middot; keyboard</span>
                 </li>
             </ul>
         </lite-menu>
@@ -8473,10 +8578,10 @@ all dispose via owner tree
 
         <!-- Scene 45: Button -->
         <section class="scene" data-scene="button">
-            <div class="stage" style="padding: 24px; display:flex; align-items:flex-start; justify-content:center;">
+            <div class="stage" style="padding: 24px; display:flex; align-items:flex-start; justify-content:center; overflow-y:auto;">
                 <div class="stage-grid"></div>
-                <div class="stage-overlay tl"><span class="label">primitive</span><br><span>button &middot; pressed / loading / disabled</span></div>
                 <div style="display:flex; flex-direction:column; gap:22px; width:100%; max-width:800px;">
+                    <div class="stage-overlay tl"><span class="label">primitive</span><br><span>button &middot; pressed / loading / disabled</span></div>
 
                     <!-- 1. Intent palette -->
                     <div>
@@ -8619,8 +8724,8 @@ all dispose via owner tree
                         <div class="qa-box" id="b-readout" style="margin-top:10px;">click Submit &middot; double-click to test gating</div>
                     </div>
 
+                    <div class="stage-overlay bl"><span class="label">6 intents &times; 6 styles &times; 3 sizes &middot; primitive unchanged &middot; CSS via data-intent / data-button-style / data-button-size</span></div>
                 </div>
-                <div class="stage-overlay bl"><span class="label">6 intents &times; 6 styles &times; 3 sizes &middot; primitive unchanged &middot; CSS via data-intent / data-button-style / data-button-size</span></div>
             </div>
             <aside class="panel">
                 <div class="panel-head">scene 45 &middot; button</div>
@@ -9461,14 +9566,14 @@ all dispose via owner tree
 
         <style>
         /* Reactive CSS for the v0.8-v0.10 scenes (compact rules). */
-        [data-scene="calendar"] [data-cal-day] { padding: 4px; text-align: center; cursor: pointer; border-radius: 4px; background: rgba(255,255,255,0.04); }
+        [data-scene="calendar"] [data-cal-day] { padding: 4px; text-align: center; cursor: pointer; border-radius: 4px; background: rgba(var(--ink), 0.04); }
         [data-scene="calendar"] [data-cal-day]:hover { background: rgba(125, 211, 252, 0.15); }
         [data-scene="calendar"] [data-cal-day][data-outside-month] { opacity: 0.3; }
         [data-scene="calendar"] [data-cal-day][data-today] { outline: 1px solid var(--accent, #7dd3fc); }
-        [data-scene="calendar"] [data-cal-day][data-selected] { background: var(--accent, #7dd3fc); color: #0a0d12; }
+        [data-scene="calendar"] [data-cal-day][data-selected] { background: var(--accent, #7dd3fc); color: var(--on-accent); }
         [data-scene="calendar"] [data-cal-day][data-has-events]::after { content: ""; display: block; width: 4px; height: 4px; border-radius: 50%; background: var(--orange, #fb923c); margin: 2px auto 0; }
 
-        [data-scene="kanban"] .kb-card { padding: 8px; background: rgba(255,255,255,0.04); border-radius: 4px; cursor: grab; font-family: var(--mono); font-size: 12px; user-select: none; position: relative; }
+        [data-scene="kanban"] .kb-card { padding: 8px; background: rgba(var(--ink), 0.04); border-radius: 4px; cursor: grab; font-family: var(--mono); font-size: 12px; user-select: none; position: relative; }
         [data-scene="kanban"] .kb-card:active { cursor: grabbing; }
         [data-scene="kanban"] .kb-card[data-kanban-card-dragging] { opacity: 0.4; }
         [data-scene="kanban"] [data-kanban-column][data-kanban-drop-active] { background: rgba(125, 211, 252, 0.08); outline: 1px dashed rgba(125,211,252,0.4); }
@@ -9492,7 +9597,7 @@ all dispose via owner tree
             box-shadow: 0 0 6px rgba(125,211,252,0.6);
         }
 
-        [data-scene="notification-center"] .nc-item { padding: 10px 12px; background: rgba(255,255,255,0.04); border-radius: 4px; font-family: var(--mono); font-size: 12px; display: flex; gap: 8px; align-items: center; }
+        [data-scene="notification-center"] .nc-item { padding: 10px 12px; background: rgba(var(--ink), 0.04); border-radius: 4px; font-family: var(--mono); font-size: 12px; display: flex; gap: 8px; align-items: center; }
         [data-scene="notification-center"] .nc-item[data-nc-unread] { border-left: 2px solid var(--accent, #7dd3fc); }
         [data-scene="notification-center"] .nc-item[data-nc-kind="warning"] { color: var(--orange, #fb923c); }
         [data-scene="notification-center"] .nc-item[data-nc-kind="error"] { color: var(--red, #f87171); }
@@ -9519,7 +9624,7 @@ all dispose via owner tree
         [data-scene="steps"] [data-step-id]:not([data-navigable]) { cursor: not-allowed; }
 
         [data-scene="rating"] lite-rating [data-filled] { color: var(--orange, #fb923c); }
-        [data-scene="rating"] lite-rating [data-empty]  { color: rgba(255,255,255,0.2); }
+        [data-scene="rating"] lite-rating [data-empty]  { color: rgba(var(--ink), 0.2); }
         [data-scene="rating"] lite-rating[data-read-only] { pointer-events: none; }
         /* Interactive rating buttons. Inline `color: inherit` used to
            shadow the data-filled/data-empty selectors above, so all
@@ -9592,12 +9697,12 @@ all dispose via owner tree
            Pull them out with a border + subtle inner shadow so the
            three columns are visually distinct from the stage. */
         [data-scene="kanban"] [data-kanban-column] {
-            border: 1px solid var(--line, rgba(255,255,255,0.08));
-            box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
+            border: 1px solid var(--line, rgba(var(--ink), 0.08));
+            box-shadow: inset 0 1px 0 rgba(var(--ink), 0.02);
         }
         [data-scene="kanban"] [data-kanban-column] h4 {
             padding-bottom: 8px;
-            border-bottom: 1px solid var(--line, rgba(255,255,255,0.06));
+            border-bottom: 1px solid var(--line, rgba(var(--ink), 0.06));
         }
         [data-scene="kanban"] [data-kanban-cards] {
             min-height: 140px;    /* clearer drop target floor */
@@ -9677,7 +9782,7 @@ all dispose via owner tree
             min-width: 32px;
         }
         [data-scene="toolbar"] .tb-demo [data-toolbar-item]:hover:not([data-disabled]) {
-            background: rgba(255,255,255,0.06);
+            background: rgba(var(--ink), 0.06);
         }
         [data-scene="toolbar"] .tb-demo [data-toolbar-item]:focus-visible {
             outline: 1px solid var(--accent, #7dd3fc);
@@ -9690,7 +9795,7 @@ all dispose via owner tree
         [data-scene="toolbar"] .tb-demo [data-toolbar-separator] {
             width: 1px;
             height: 20px;
-            background: rgba(255,255,255,0.12);
+            background: rgba(var(--ink), 0.12);
             margin: 0 4px;
         }
         [data-scene="toolbar"] .tb-demo.tb-vertical [data-toolbar-separator] {
@@ -9705,16 +9810,16 @@ all dispose via owner tree
 
         /* Empty-state scene */
         [data-scene="empty-state"] .es-btn {
-            padding: 6px 14px; background: rgba(255,255,255,0.06); border: 1px solid var(--line-mid);
+            padding: 6px 14px; background: rgba(var(--ink), 0.06); border: 1px solid var(--line-mid);
             color: inherit; font-family: var(--mono); font-size: 11px;
             border-radius: 999px; cursor: pointer;
         }
-        [data-scene="empty-state"] .es-btn:hover { background: rgba(255,255,255,0.1); }
-        [data-scene="empty-state"] .es-btn-active { background: var(--accent, #7dd3fc); color: #0a0d12; border-color: transparent; }
+        [data-scene="empty-state"] .es-btn:hover { background: rgba(var(--ink), 0.1); }
+        [data-scene="empty-state"] .es-btn-active { background: var(--accent, #7dd3fc); color: var(--on-accent); border-color: transparent; }
         [data-scene="empty-state"] .es-card {
             display: flex; flex-direction: column; align-items: center; gap: 10px;
             padding: 32px 24px;
-            background: var(--surface); border: 1px dashed rgba(255,255,255,0.08); border-radius: 12px;
+            background: var(--surface); border: 1px dashed rgba(var(--ink), 0.08); border-radius: 12px;
             text-align: center;
         }
         [data-scene="empty-state"] .es-icon { font-size: 40px; line-height: 1; opacity: 0.7; }
@@ -9727,10 +9832,10 @@ all dispose via owner tree
         [data-scene="empty-state"] .es-actions { display: flex; gap: 8px; margin-top: 8px; }
         [data-scene="empty-state"] .es-action {
             padding: 8px 14px; border-radius: 6px; cursor: pointer;
-            background: rgba(255,255,255,0.06); border: 1px solid var(--line-mid);
+            background: rgba(var(--ink), 0.06); border: 1px solid var(--line-mid);
             color: inherit; font-size: 12px;
         }
-        [data-scene="empty-state"] .es-primary { background: var(--accent, #7dd3fc); color: #0a0d12; border-color: transparent; }
+        [data-scene="empty-state"] .es-primary { background: var(--accent, #7dd3fc); color: var(--on-accent); border-color: transparent; }
         /* Per-variant copy gates: hide title/desc/action spans that don't match the variant */
         [data-scene="empty-state"] [data-empty-title]  span:not(.t-empty)   { display: none; }
         [data-scene="empty-state"] [data-empty-title]  span.t-empty         { display: inline; }
@@ -9751,11 +9856,11 @@ all dispose via owner tree
 
         /* Tour scene */
         [data-scene="tour"] .tour-start-btn {
-            padding: 8px 18px; background: var(--accent, #7dd3fc); color: #0a0d12;
+            padding: 8px 18px; background: var(--accent, #7dd3fc); color: var(--on-accent);
             border: 0; border-radius: 6px; font-size: 13px; cursor: pointer; font-weight: 600;
         }
         [data-scene="tour"] .tt {
-            padding: 8px 16px; background: rgba(255,255,255,0.04);
+            padding: 8px 16px; background: rgba(var(--ink), 0.04);
             border-radius: 4px; font-family: var(--mono); font-size: 12px;
             transition: box-shadow 0.2s ease;
             position: relative;
@@ -9778,9 +9883,9 @@ all dispose via owner tree
         [data-scene="tour"] .tour-counter { flex: 1; font-family: var(--mono); font-size: 10px; opacity: 0.5; }
         [data-scene="tour"] .tour-btn {
             padding: 6px 10px; border-radius: 4px; font-size: 12px; cursor: pointer;
-            background: rgba(255,255,255,0.06); border: 1px solid var(--line-mid); color: inherit;
+            background: rgba(var(--ink), 0.06); border: 1px solid var(--line-mid); color: inherit;
         }
-        [data-scene="tour"] .tour-primary { background: var(--accent, #7dd3fc); color: #0a0d12; border-color: transparent; }
+        [data-scene="tour"] .tour-primary { background: var(--accent, #7dd3fc); color: var(--on-accent); border-color: transparent; }
         [data-scene="tour"] .tour-skip { opacity: 0.6; }
 
         /* Picture scene */
@@ -9797,7 +9902,7 @@ all dispose via owner tree
         [data-scene="picture"] .pic-frame {
             display: block;
             width: 100%;
-            background: rgba(255,255,255,0.04);
+            background: rgba(var(--ink), 0.04);
             border-radius: 4px;
             overflow: hidden;
             position: relative;
@@ -9815,9 +9920,9 @@ all dispose via owner tree
         [data-scene="picture"] .pic-frame[data-img-state="idle"]::before {
             content: ""; position: absolute; inset: 0;
             background: linear-gradient(90deg,
-                rgba(255,255,255,0.04) 0%,
-                rgba(255,255,255,0.08) 50%,
-                rgba(255,255,255,0.04) 100%);
+                rgba(var(--ink), 0.04) 0%,
+                rgba(var(--ink), 0.08) 50%,
+                rgba(var(--ink), 0.04) 100%);
             background-size: 200% 100%;
             animation: pic-shimmer 1.4s linear infinite;
         }
@@ -9835,7 +9940,7 @@ all dispose via owner tree
         }
         [data-scene="picture"] .pic-btn {
             padding: 6px 12px;
-            background: var(--accent, #7dd3fc); color: #0a0d12;
+            background: var(--accent, #7dd3fc); color: var(--on-accent);
             border: 0; border-radius: 4px;
             font-size: 11px; cursor: pointer;
             align-self: flex-start;
@@ -9881,7 +9986,7 @@ all dispose via owner tree
         [data-scene="radio-group"] .rg-dot {
             display: inline-block;
             width: 14px; height: 14px;
-            border: 2px solid rgba(255,255,255,0.3);
+            border: 2px solid rgba(var(--ink), 0.3);
             border-radius: 50%;
             position: relative; flex-shrink: 0;
             transition: border-color 120ms;
@@ -9917,10 +10022,10 @@ all dispose via owner tree
         }
         [data-scene="radio-group"] .rg-seg[data-checked] {
             background: var(--accent, #7dd3fc);
-            color: #0a0d12; font-weight: 500;
+            color: var(--on-accent); font-weight: 500;
         }
         [data-scene="radio-group"] .rg-seg:hover:not([data-checked]):not([data-disabled]) {
-            background: rgba(255,255,255,0.06);
+            background: rgba(var(--ink), 0.06);
         }
 
         /* ── Scene 44: Meter ─────────────────────────────────────── */
@@ -9936,7 +10041,7 @@ all dispose via owner tree
         [data-scene="meter"] .m-bar {
             display: block;
             height: 10px;
-            background: rgba(255,255,255,0.06);
+            background: rgba(var(--ink), 0.06);
             border-radius: 5px;
             overflow: hidden;
             position: relative;
@@ -9959,7 +10064,7 @@ all dispose via owner tree
         }
         [data-scene="meter"] .m-btn {
             padding: 6px 12px;
-            background: rgba(255,255,255,0.06); color: inherit;
+            background: rgba(var(--ink), 0.06); color: inherit;
             border: 1px solid var(--line-strong);
             border-radius: 4px;
             font-size: 11px; font-family: var(--mono);
@@ -9972,6 +10077,16 @@ all dispose via owner tree
         }
 
         /* ── Scene 45: Button ────────────────────────────────────── */
+        /* This scene is content-dense and top-aligned, so the corner
+           captions would sit on the first/last rows. Flow them inside the
+           scrolling column instead -- they read as top/bottom labels and
+           never overlap the buttons at any scroll position. */
+        [data-scene="button"] .stage-overlay.tl,
+        [data-scene="button"] .stage-overlay.bl {
+            position: static;
+            align-self: flex-start;
+            max-inline-size: 100%;
+        }
         [data-scene="button"] .rg-h {
             margin: 0 0 8px;
             font-family: var(--mono); font-size: 11px; opacity: 0.7;
@@ -9996,7 +10111,7 @@ all dispose via owner tree
         }
         [data-scene="button"] .b-tog[aria-pressed="true"] {
             background: var(--accent, #7dd3fc);
-            color: #0a0d12;
+            color: var(--on-accent);
             border-color: var(--accent, #7dd3fc);
             font-weight: 600;
         }
@@ -10005,7 +10120,7 @@ all dispose via owner tree
         [data-scene="prediction"] .pred-submit {
             display: inline-flex; align-items: center; gap: 8px;
             padding: 8px 16px;
-            background: var(--accent, #7dd3fc); color: #0a0d12;
+            background: var(--accent, #7dd3fc); color: var(--on-accent);
             border: 0; border-radius: 5px;
             font-family: inherit; font-size: 13px; font-weight: 500;
             cursor: pointer;
@@ -10038,7 +10153,7 @@ all dispose via owner tree
         }
         [data-scene="button"] .b-sep {
             width: 1px; align-self: stretch; margin: 0 6px;
-            background: rgba(255,255,255,0.08);
+            background: rgba(var(--ink), 0.08);
         }
         /* Base variant button (filled, default size) */
         [data-scene="button"] lite-button.b-var {
@@ -10056,7 +10171,7 @@ all dispose via owner tree
             outline: 2px solid var(--accent, #7dd3fc); outline-offset: 2px;
         }
         [data-scene="button"] lite-button.b-var:hover:not([data-disabled]):not([data-loading]) {
-            background: rgba(255,255,255,0.05);
+            background: rgba(var(--ink), 0.05);
         }
         [data-scene="button"] lite-button.b-var[data-disabled],
         [data-scene="button"] lite-button.b-var[data-loading] {
@@ -10074,12 +10189,12 @@ all dispose via owner tree
         [data-scene="button"] lite-button.b-var[data-loading] [data-button-label] { opacity: 0.7; }
 
         /* Filled intents (default style) */
-        [data-scene="button"] lite-button.b-var[data-intent="default"]:not([data-button-style]) { background: rgba(255,255,255,0.10); border-color: rgba(255,255,255,0.18); }
-        [data-scene="button"] lite-button.b-var[data-intent="primary"]:not([data-button-style]) { background: var(--accent, #7dd3fc); color: #0a0d12; border-color: var(--accent, #7dd3fc); }
-        [data-scene="button"] lite-button.b-var[data-intent="success"]:not([data-button-style]) { background: var(--green, #4ade80);  color: #0a0d12; border-color: var(--green, #4ade80); }
-        [data-scene="button"] lite-button.b-var[data-intent="info"]:not([data-button-style])    { background: #7dd3fc; color: #0a0d12; border-color: #7dd3fc; }
-        [data-scene="button"] lite-button.b-var[data-intent="warning"]:not([data-button-style]) { background: var(--orange, #fb923c); color: #0a0d12; border-color: var(--orange, #fb923c); }
-        [data-scene="button"] lite-button.b-var[data-intent="danger"]:not([data-button-style])  { background: var(--red, #f87171);   color: #0a0d12; border-color: var(--red, #f87171); }
+        [data-scene="button"] lite-button.b-var[data-intent="default"]:not([data-button-style]) { background: rgba(var(--ink), 0.10); border-color: rgba(var(--ink), 0.18); }
+        [data-scene="button"] lite-button.b-var[data-intent="primary"]:not([data-button-style]) { background: var(--accent, #7dd3fc); color: var(--on-accent); border-color: var(--accent, #7dd3fc); }
+        [data-scene="button"] lite-button.b-var[data-intent="success"]:not([data-button-style]) { background: var(--green, #4ade80);  color: var(--on-accent); border-color: var(--green, #4ade80); }
+        [data-scene="button"] lite-button.b-var[data-intent="info"]:not([data-button-style])    { background: var(--cyan); color: var(--on-accent); border-color: var(--cyan); }
+        [data-scene="button"] lite-button.b-var[data-intent="warning"]:not([data-button-style]) { background: var(--orange, #fb923c); color: var(--on-accent); border-color: var(--orange, #fb923c); }
+        [data-scene="button"] lite-button.b-var[data-intent="danger"]:not([data-button-style])  { background: var(--red, #f87171);   color: var(--on-accent); border-color: var(--red, #f87171); }
 
         /* Filled hover: re-declare the SOLID intent background so the generic
            translucent `.b-var:hover` (higher specificity than the base intent
@@ -10087,32 +10202,32 @@ all dispose via owner tree
            dark text on a near-dark surface, unreadable in dark mode. Dark text
            is kept explicitly; brightness gives the lift. */
         [data-scene="button"] lite-button.b-var[data-intent="default"]:not([data-button-style]):hover:not([data-disabled]):not([data-loading]) {
-            background: rgba(255,255,255,0.16); border-color: rgba(255,255,255,0.28);
+            background: rgba(var(--ink), 0.16); border-color: rgba(var(--ink), 0.28);
         }
         [data-scene="button"] lite-button.b-var[data-intent="primary"]:not([data-button-style]):hover:not([data-disabled]):not([data-loading]) {
-            background: var(--accent, #7dd3fc); color: #0a0d12; filter: brightness(1.12);
+            background: var(--accent, #7dd3fc); color: var(--on-accent); filter: brightness(1.12);
         }
         [data-scene="button"] lite-button.b-var[data-intent="success"]:not([data-button-style]):hover:not([data-disabled]):not([data-loading]) {
-            background: var(--green, #4ade80); color: #0a0d12; filter: brightness(1.12);
+            background: var(--green, #4ade80); color: var(--on-accent); filter: brightness(1.12);
         }
         [data-scene="button"] lite-button.b-var[data-intent="info"]:not([data-button-style]):hover:not([data-disabled]):not([data-loading]) {
-            background: #7dd3fc; color: #0a0d12; filter: brightness(1.12);
+            background: var(--cyan); color: var(--on-accent); filter: brightness(1.12);
         }
         [data-scene="button"] lite-button.b-var[data-intent="warning"]:not([data-button-style]):hover:not([data-disabled]):not([data-loading]) {
-            background: var(--orange, #fb923c); color: #0a0d12; filter: brightness(1.12);
+            background: var(--orange, #fb923c); color: var(--on-accent); filter: brightness(1.12);
         }
         [data-scene="button"] lite-button.b-var[data-intent="danger"]:not([data-button-style]):hover:not([data-disabled]):not([data-loading]) {
-            background: var(--red, #f87171); color: #0a0d12; filter: brightness(1.12);
+            background: var(--red, #f87171); color: var(--on-accent); filter: brightness(1.12);
         }
 
         /* Plain (outline) style */
         [data-scene="button"] lite-button.b-var[data-button-style="plain"] {
             background: transparent;
         }
-        [data-scene="button"] lite-button.b-var[data-button-style="plain"][data-intent="default"] { color: inherit; border-color: rgba(255,255,255,0.18); }
+        [data-scene="button"] lite-button.b-var[data-button-style="plain"][data-intent="default"] { color: inherit; border-color: rgba(var(--ink), 0.18); }
         [data-scene="button"] lite-button.b-var[data-button-style="plain"][data-intent="primary"] { color: var(--accent, #7dd3fc); border-color: rgba(125,211,252,0.5); }
         [data-scene="button"] lite-button.b-var[data-button-style="plain"][data-intent="success"] { color: var(--green, #4ade80);   border-color: rgba(74,222,128,0.5); }
-        [data-scene="button"] lite-button.b-var[data-button-style="plain"][data-intent="info"]    { color: #7dd3fc; border-color: rgba(125,211,252,0.5); }
+        [data-scene="button"] lite-button.b-var[data-button-style="plain"][data-intent="info"]    { color: var(--cyan); border-color: rgba(125,211,252,0.5); }
         [data-scene="button"] lite-button.b-var[data-button-style="plain"][data-intent="warning"] { color: var(--orange, #fb923c); border-color: rgba(251,146,60,0.5); }
         [data-scene="button"] lite-button.b-var[data-button-style="plain"][data-intent="danger"]  { color: var(--red, #f87171);    border-color: rgba(248,113,113,0.5); }
         [data-scene="button"] lite-button.b-var[data-button-style="plain"]:hover:not([data-disabled]):not([data-loading]) {
@@ -10143,7 +10258,7 @@ all dispose via owner tree
         [data-scene="button"] lite-button.b-var[data-button-style="text"][data-intent="primary"] { color: var(--accent, #7dd3fc); }
         [data-scene="button"] lite-button.b-var[data-button-style="text"][data-intent="danger"]  { color: var(--red, #f87171); }
         [data-scene="button"] lite-button.b-var[data-button-style="text"]:hover:not([data-disabled]):not([data-loading]) {
-            background: rgba(255,255,255,0.04);
+            background: rgba(var(--ink), 0.04);
         }
 
         /* Link style */
@@ -10176,7 +10291,7 @@ all dispose via owner tree
         }
         [data-scene="button"] .b-group lite-button.b-grp-item:last-child { border-right: 0; }
         [data-scene="button"] .b-group lite-button.b-grp-item.b-grp-active {
-            background: var(--accent, #7dd3fc); color: #0a0d12;
+            background: var(--accent, #7dd3fc); color: var(--on-accent);
         }
 
         /* Original mini-group wraps */
@@ -10219,7 +10334,7 @@ all dispose via owner tree
             align-items: center;
             column-gap: 10px;
             padding: 10px 12px;
-            background: rgba(255,255,255,0.03);
+            background: rgba(var(--ink), 0.03);
             border: 1px solid var(--line);
             border-radius: 6px;
             cursor: pointer;
@@ -10238,7 +10353,7 @@ all dispose via owner tree
         }
         [data-scene="prediction"] .pred-radio {
             width: 14px; height: 14px;
-            border: 2px solid rgba(255,255,255,0.3);
+            border: 2px solid rgba(var(--ink), 0.3);
             border-radius: 50%;
             position: relative;
             grid-row: 1;
@@ -10265,7 +10380,7 @@ all dispose via owner tree
         [data-scene="prediction"] .pred-meter {
             display: block;
             height: 4px;
-            background: rgba(255,255,255,0.06);
+            background: rgba(var(--ink), 0.06);
             border-radius: 2px;
             overflow: hidden;
             grid-column: 2 / 4;
@@ -10306,7 +10421,7 @@ all dispose via owner tree
             position: relative;
             border-radius: 50%;
             overflow: hidden;
-            background: rgba(255,255,255,0.06);
+            background: rgba(var(--ink), 0.06);
             flex-shrink: 0;
             line-height: 0;       /* prevent inline-baseline jitter */
         }
@@ -10508,7 +10623,7 @@ all dispose via owner tree
         [data-scene="card"] .card-x:hover { opacity: 1; }
         [data-scene="card"] .card-btn {
             padding: 5px 12px;
-            background: var(--accent, #7dd3fc); color: #0a0d12;
+            background: var(--accent, #7dd3fc); color: var(--on-accent);
             border: 0; border-radius: 4px;
             font-family: var(--mono); font-size: 11px; cursor: pointer;
         }
@@ -10530,10 +10645,10 @@ all dispose via owner tree
             border: 1px solid transparent;
             line-height: 1.5;
         }
-        lite-tag[data-intent="default"] { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.12); }
+        lite-tag[data-intent="default"] { background: rgba(var(--ink), 0.06); border-color: rgba(var(--ink), 0.12); }
         lite-tag[data-intent="primary"] { background: rgba(125,211,252,0.12); color: var(--accent, #7dd3fc); border-color: rgba(125,211,252,0.35); }
         lite-tag[data-intent="success"] { background: rgba(74,222,128,0.12); color: var(--green, #4ade80); border-color: rgba(74,222,128,0.35); }
-        lite-tag[data-intent="info"]    { background: rgba(125,211,252,0.10); color: #7dd3fc; border-color: rgba(125,211,252,0.30); }
+        lite-tag[data-intent="info"]    { background: rgba(125,211,252,0.10); color: var(--cyan); border-color: rgba(125,211,252,0.30); }
         lite-tag[data-intent="warning"] { background: rgba(251,146,60,0.12); color: var(--orange, #fb923c); border-color: rgba(251,146,60,0.35); }
         lite-tag[data-intent="danger"]  { background: rgba(248,113,113,0.12); color: var(--red, #f87171); border-color: rgba(248,113,113,0.35); }
         .tag-x {
@@ -10560,13 +10675,13 @@ all dispose via owner tree
             border-radius: 9px;
             font-family: var(--mono); font-size: 10px; font-weight: 600;
             line-height: 1;
-            color: #0a0d12;
+            color: var(--on-accent);
         }
         lite-badge[hidden] { display: none; }
-        lite-badge[data-intent="default"] { background: rgba(255,255,255,0.5); }
+        lite-badge[data-intent="default"] { background: rgba(var(--ink), 0.5); }
         lite-badge[data-intent="primary"] { background: var(--accent, #7dd3fc); }
         lite-badge[data-intent="success"] { background: var(--green, #4ade80); }
-        lite-badge[data-intent="info"]    { background: #7dd3fc; }
+        lite-badge[data-intent="info"]    { background: var(--cyan); }
         lite-badge[data-intent="warning"] { background: var(--orange, #fb923c); }
         lite-badge[data-intent="danger"]  { background: var(--red, #f87171); color: white; }
         /* Use the painted data-count value as the badge's text via ::before
@@ -10582,7 +10697,7 @@ all dispose via owner tree
             position: relative;
             display: inline-flex; align-items: center; justify-content: center;
             width: 40px; height: 40px;
-            background: rgba(255,255,255,0.05);
+            background: rgba(var(--ink), 0.05);
             border-radius: 50%;
         }
         [data-scene="badge"] .bell-icon { font-size: 18px; }
@@ -10611,7 +10726,7 @@ all dispose via owner tree
         [data-scene="badge"] .lb-name { font-family: var(--mono); font-size: 12px; }
         [data-scene="badge"] .lb-badge { justify-self: end; }
         /* Reuse avatar styles from earlier scenes */
-        [data-scene="badge"] .av { display: inline-block; position: relative; border-radius: 50%; overflow: hidden; background: rgba(255,255,255,0.06); flex-shrink: 0; line-height: 0; width: 28px; height: 28px; }
+        [data-scene="badge"] .av { display: inline-block; position: relative; border-radius: 50%; overflow: hidden; background: rgba(var(--ink), 0.06); flex-shrink: 0; line-height: 0; width: 28px; height: 28px; }
         [data-scene="badge"] .av img { display: block; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 200ms; }
         [data-scene="badge"] .av[data-loaded] img { opacity: 1; }
         [data-scene="badge"] .av-fb { display: flex; position: absolute; inset: 0; align-items: center; justify-content: center; color: white; font-family: var(--mono); font-weight: 600; background: hsl(var(--avatar-hue, 200), 55%, 42%); line-height: 1; font-size: 11px; }
@@ -10635,7 +10750,7 @@ all dispose via owner tree
             content: ""; position: absolute;
             left: 7px; top: 14px; bottom: 14px;
             width: 1px;
-            background: rgba(255,255,255,0.1);
+            background: rgba(var(--ink), 0.1);
         }
         [data-scene="timeline"] [data-timeline-item] {
             display: grid;
@@ -10650,8 +10765,8 @@ all dispose via owner tree
             width: 11px; height: 11px;
             border-radius: 50%;
             margin-top: 4px;
-            background: rgba(255,255,255,0.4);
-            border: 2px solid var(--bg, #0a0d12);
+            background: rgba(var(--ink), 0.4);
+            border: 2px solid var(--bg, var(--on-accent));
             position: relative;
             z-index: 1;
         }
@@ -10661,7 +10776,7 @@ all dispose via owner tree
         [data-scene="timeline"] [data-timeline-item][data-type="danger"]  .tl-mark { background: var(--red, #f87171); }
         [data-scene="timeline"] .tl-mark-pending {
             background: transparent;
-            border: 1px dashed rgba(255,255,255,0.3);
+            border: 1px dashed rgba(var(--ink), 0.3);
         }
         [data-scene="timeline"] .tl-time {
             font-family: var(--mono); font-size: 11px;
@@ -10670,7 +10785,7 @@ all dispose via owner tree
         [data-scene="timeline"] .tl-content { font-size: 12px; line-height: 1.5; }
         [data-scene="timeline"] .tl-content code {
             font-family: var(--mono); font-size: 11px;
-            background: rgba(255,255,255,0.06);
+            background: rgba(var(--ink), 0.06);
             padding: 1px 4px; border-radius: 2px;
         }
         [data-scene="timeline"] .tl-sub { font-size: 11px; opacity: 0.6; font-family: var(--mono); }
@@ -10709,7 +10824,7 @@ all dispose via owner tree
         }
         /* Bordered: use gap + show-through background to create separators */
         [data-scene="descriptions"] [data-descriptions-root][data-bordered] {
-            background: rgba(255,255,255,0.08);
+            background: rgba(var(--ink), 0.08);
             gap: 1px;
         }
         [data-scene="descriptions"] [data-descriptions-root][data-bordered] [data-desc-item] {
@@ -10737,7 +10852,7 @@ all dispose via owner tree
             display: flex; align-items: center; justify-content: center;
             width: 64px; height: 64px;
             border-radius: 50%;
-            background: rgba(255,255,255,0.05);
+            background: rgba(var(--ink), 0.05);
         }
         [data-scene="result"] [data-result-root][data-status="success"] .result-icon { color: var(--green, #4ade80); background: rgba(74,222,128,0.10); }
         [data-scene="result"] [data-result-root][data-status="error"]   .result-icon { color: var(--red, #f87171);  background: rgba(248,113,113,0.10); }
@@ -10760,7 +10875,7 @@ all dispose via owner tree
         }
         [data-scene="result"] .result-btn {
             padding: 6px 14px;
-            background: rgba(255,255,255,0.06);
+            background: rgba(var(--ink), 0.06);
             border: 1px solid var(--line-strong);
             color: inherit;
             border-radius: 4px;
@@ -10770,7 +10885,7 @@ all dispose via owner tree
         }
         [data-scene="result"] .result-btn:hover { background: rgba(125,211,252,0.12); border-color: rgba(125,211,252,0.3); }
         [data-scene="result"] .result-btn-primary {
-            background: var(--accent, #7dd3fc); color: #0a0d12;
+            background: var(--accent, #7dd3fc); color: var(--on-accent);
             border-color: var(--accent, #7dd3fc);
             font-weight: 500;
         }
@@ -10795,7 +10910,7 @@ all dispose via owner tree
         [data-scene="backtop"] .bt-p { margin: 0 0 14px; }
         [data-scene="backtop"] .bt-p code {
             font-family: var(--mono); font-size: 12px;
-            background: rgba(255,255,255,0.05); padding: 1px 5px; border-radius: 2px;
+            background: rgba(var(--ink), 0.05); padding: 1px 5px; border-radius: 2px;
         }
         [data-scene="backtop"] .bt-filler { opacity: 0.7; font-size: 12px; }
         [data-scene="backtop"] .bt-host {
@@ -10810,7 +10925,7 @@ all dispose via owner tree
             display: inline-flex; align-items: center; justify-content: center;
             width: 44px; height: 44px;
             border-radius: 50%;
-            background: var(--accent, #7dd3fc); color: #0a0d12;
+            background: var(--accent, #7dd3fc); color: var(--on-accent);
             border: 0; cursor: pointer;
             font-size: 18px; font-weight: 700;
             opacity: 0; transform: translateY(8px);
@@ -10856,17 +10971,17 @@ all dispose via owner tree
         [data-scene="affix"] .af-status {
             font-family: var(--mono); font-size: 11px;
             padding: 2px 7px; border-radius: 3px;
-            background: rgba(255,255,255,0.08);
+            background: rgba(var(--ink), 0.08);
             color: var(--green-dim, #5fcc8b);
         }
         [data-scene="affix"] .af-toolbar[data-pinned] .af-status {
-            background: var(--accent, #7dd3fc); color: #0a0d12;
+            background: var(--accent, #7dd3fc); color: var(--on-accent);
         }
         [data-scene="affix"] .af-actions { margin-left: auto; display: flex; gap: 6px; }
         [data-scene="affix"] .af-btn {
             padding: 4px 10px;
             font-family: inherit; font-size: 11px;
-            background: rgba(255,255,255,0.06);
+            background: rgba(var(--ink), 0.06);
             border: 1px solid var(--line-strong);
             color: inherit; border-radius: 3px; cursor: pointer;
         }
@@ -10892,7 +11007,7 @@ all dispose via owner tree
         [data-scene="anchor"] .an-link {
             display: block;
             padding: 7px 12px;
-            color: rgba(227,232,239,0.7);
+            color: var(--text-dim);
             text-decoration: none;
             font-size: 12px;
             border-left: 2px solid transparent;
@@ -10930,7 +11045,7 @@ all dispose via owner tree
         [data-scene="anchor"] .an-sec p { margin: 0 0 10px; }
         [data-scene="anchor"] .an-sec code {
             font-family: var(--mono); font-size: 12px;
-            background: rgba(255,255,255,0.05); padding: 1px 5px; border-radius: 2px;
+            background: rgba(var(--ink), 0.05); padding: 1px 5px; border-radius: 2px;
         }
 
         </style>
@@ -11231,10 +11346,167 @@ hour + minute signals (H-12)
             </aside>
         </section>
 
+        <style>
+        /* ---- H12 canon primitives: checkbox family + select (demo-only, dev) ---- */
+        [data-scene="checkbox"] .cb-stage { display: grid; grid-template-columns: 1fr 1fr; gap: 2.5rem; width: 100%; max-width: 40rem; margin: 0 auto; }
+        @media (max-width: 46rem) { [data-scene="checkbox"] .cb-stage { grid-template-columns: 1fr; } }
+        .cb-col-label { font-size: 0.66rem; letter-spacing: 0.09em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 0.75rem; }
+        .cb-row { display: flex; align-items: flex-start; gap: 0.7rem; padding: 0.3rem 0; }
+        .cb-box {
+            width: 1.15rem; height: 1.15rem; flex: none; margin: 0.05rem 0 0; padding: 0;
+            border: 1px solid var(--line-strong); border-radius: 5px; background: var(--bg-3);
+            display: inline-grid; place-items: center; cursor: pointer; position: relative;
+            transition: background .12s ease, border-color .12s ease;
+        }
+        .cb-box:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+        .cb-box[aria-checked="true"], .cb-box[aria-checked="mixed"] { background: var(--cyan); border-color: var(--cyan); }
+        .cb-box[aria-checked="true"]::after { content: ""; width: .32rem; height: .6rem; border: solid var(--bg-0); border-width: 0 2px 2px 0; transform: translateY(-1px) rotate(45deg); }
+        .cb-box[aria-checked="mixed"]::after { content: ""; width: .6rem; height: 2px; border-radius: 1px; background: var(--bg-0); }
+        .cb-box[aria-disabled="true"] { opacity: .4; cursor: not-allowed; }
+        @media (hover: hover) { .cb-box:hover:not([aria-disabled="true"]):not([aria-checked="true"]):not([aria-checked="mixed"]) { border-color: var(--cyan); } }
+        .cb-text { font-size: .9rem; color: var(--text); line-height: 1.3; }
+        .cb-text .cb-sub { display: block; font-size: .72rem; color: var(--text-dim); margin-top: .1rem; }
+        .cbg-divider { height: 1px; background: var(--line); margin: .5rem 0; }
+
+        .sel-trigger {
+            min-width: 15rem; display: inline-flex; align-items: center; justify-content: space-between;
+            gap: .5rem; padding: .55rem .8rem; border: 1px solid var(--line-strong); border-radius: 7px;
+            background: var(--bg-2); color: var(--text); font: inherit; cursor: pointer;
+        }
+        .sel-trigger:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+        .sel-trigger[aria-expanded="true"] { border-color: var(--cyan); }
+        .sel-trigger .sel-caret { color: var(--text-dim); }
+        .sel-listbox {
+            list-style: none; margin: 0; padding: .375rem; min-width: 15rem;
+            background: var(--bg-3); border: 1px solid var(--line-strong); border-radius: 8px;
+            box-shadow: 0 12px 34px rgba(0, 0, 0, .55); z-index: 60;
+        }
+        .sel-listbox:not([data-open]) { display: none; }
+        .sel-listbox li {
+            padding: .45rem .6rem; border-radius: 5px; cursor: pointer; color: var(--text);
+            font-size: .9rem; display: flex; align-items: center; justify-content: space-between;
+        }
+        .sel-listbox li[data-highlighted] { background: rgba(125, 211, 252, .14); }
+        .sel-listbox li[aria-selected="true"]::after, .sel-listbox li[data-selected]::after { content: "\2713"; color: var(--cyan); margin-left: .75rem; }
+        .sel-listbox li[data-disabled] { opacity: .4; cursor: not-allowed; }
+        </style>
+
+        <!-- Scene 64: Checkbox (createCheckbox + createCheckboxGroup) -->
+        <section class="scene" data-scene="checkbox">
+            <div class="stage" style="padding: 24px; display:flex; align-items:center; justify-content:center;">
+                <div class="stage-grid"></div>
+                <div class="stage-overlay tl"><span class="label">primitive</span><br><span>createCheckbox + createCheckboxGroup &middot; tri-state &middot; ADR 0008</span></div>
+                <div class="cb-stage">
+                    <div>
+                        <div class="cb-col-label">single checkboxes (tri-state)</div>
+                        <lite-checkbox id="cb-terms" class="cb-row">
+                            <button type="button" data-checkbox-root class="cb-box"></button>
+                            <span data-checkbox-label class="cb-text">Accept terms &amp; conditions</span>
+                        </lite-checkbox>
+                        <lite-checkbox id="cb-news" default-checked class="cb-row">
+                            <button type="button" data-checkbox-root class="cb-box"></button>
+                            <span data-checkbox-label class="cb-text">Email me product news<span class="cb-sub">starts checked</span></span>
+                        </lite-checkbox>
+                        <lite-checkbox id="cb-partial" default-indeterminate class="cb-row">
+                            <button type="button" data-checkbox-root class="cb-box"></button>
+                            <span data-checkbox-label class="cb-text">Partial selection<span class="cb-sub">starts indeterminate (mixed) &middot; Space -&gt; checked</span></span>
+                        </lite-checkbox>
+                        <lite-checkbox id="cb-locked" disabled default-checked class="cb-row">
+                            <button type="button" data-checkbox-root class="cb-box"></button>
+                            <span data-checkbox-label class="cb-text">Locked policy<span class="cb-sub">disabled + checked</span></span>
+                        </lite-checkbox>
+                    </div>
+                    <div>
+                        <div class="cb-col-label">group with select-all master</div>
+                        <lite-checkbox-group id="cbg-tasks">
+                            <div class="cb-row">
+                                <button type="button" data-select-all class="cb-box"></button>
+                                <span class="cb-text"><strong>Select all tasks</strong><span class="cb-sub">master paints "mixed" when partial</span></span>
+                            </div>
+                            <div class="cbg-divider"></div>
+                            <div class="cb-row"><button type="button" data-checkbox value="build" checked class="cb-box"></button><span class="cb-text">Run build</span></div>
+                            <div class="cb-row"><button type="button" data-checkbox value="test" class="cb-box"></button><span class="cb-text">Run tests</span></div>
+                            <div class="cb-row"><button type="button" data-checkbox value="lint" class="cb-box"></button><span class="cb-text">Lint</span></div>
+                            <div class="cb-row"><button type="button" data-checkbox value="deploy" disabled class="cb-box"></button><span class="cb-text">Deploy<span class="cb-sub">disabled</span></span></div>
+                        </lite-checkbox-group>
+                    </div>
+                </div>
+                <div class="stage-overlay bl"><span class="label">Tab &middot; Space toggles &middot; master reflects members &middot; deploy is disabled</span></div>
+            </div>
+            <aside class="panel">
+                <div class="panel-head">scene 64 &middot; checkbox</div>
+                <section><h3>group state</h3><div class="qa-box" id="cb-readout">group: [build] &middot; state: mixed</div></section>
+                <section><h3>tri-state model (ADR 0008)</h3><div class="qa-box">
+ONE 3-valued signal _state
+   in {"true","false","mixed"}
+   -&gt; aria-checked (no mapping)
+
+checked() / indeterminate()
+   derive; cannot disagree
+                </div></section>
+                <section><h3>teardown (H-12 / 1.9.1)</h3>
+                    <div class="btn-row"><button class="btn" id="cb-remount">unmount + remount group</button></div>
+                    <p class="help-line" id="cb-remount-log">disconnectedCallback -&gt; scope.onCleanup -&gt; group.destroy() + roles.disconnect(). Click to prove the wrapper tears down and re-wires cleanly.</p>
+                </section>
+                <section><h3>aria painted (root)</h3><div class="qa-box">
+role="checkbox"
+aria-checked="true|false|mixed"
+data-checked / data-indeterminate
+aria-disabled / data-disabled
+                </div></section>
+            </aside>
+        </section>
+
+        <!-- Scene 65: Select (createSelect) -->
+        <section class="scene" data-scene="select">
+            <div class="stage" style="padding: 24px; display:flex; align-items:center; justify-content:center;">
+                <div class="stage-grid"></div>
+                <div class="stage-overlay tl"><span class="label">primitive</span><br><span>createSelect &middot; listbox-button &middot; NO text editing (ADR 0008)</span></div>
+                <div class="stage-overlay tr"><span class="label">value</span><span class="big cyan" id="sel-value-big" style="text-shadow: var(--glow-cyan);">Apple</span></div>
+                <div style="text-align:center;">
+                    <lite-select id="sel-fruit" value="apple">
+                        <button type="button" data-trigger class="sel-trigger">
+                            <span id="sel-trigger-label">Apple</span>
+                            <span class="sel-caret">&#9662;</span>
+                        </button>
+                        <ul data-listbox class="sel-listbox">
+                            <li data-item data-value="apple">Apple</li>
+                            <li data-item data-value="banana">Banana</li>
+                            <li data-item data-value="cherry">Cherry</li>
+                            <li data-item data-value="durian" data-disabled>Durian (disabled)</li>
+                            <li data-item data-value="elderberry">Elderberry</li>
+                            <li data-item data-value="fig">Fig</li>
+                        </ul>
+                    </lite-select>
+                </div>
+                <div class="stage-overlay bl"><span class="label">Enter/Space/Arrow opens &middot; type a letter &middot; Home/End &middot; Esc keeps value</span></div>
+            </div>
+            <aside class="panel">
+                <div class="panel-head">scene 65 &middot; select</div>
+                <section><h3>info</h3><p class="help-line">The APG select-only combobox: a button trigger + listbox popup, focus stays on the trigger via <code>aria-activedescendant</code>. No text field &mdash; that is <code>combobox</code>. Reuses the shared overlay seams minus the input lane.</p></section>
+                <section><h3>state</h3><div class="qa-box" id="sel-readout">value: apple &middot; open: false</div></section>
+                <section><h3>keyboard</h3><div class="qa-box" style="line-height:1.6;">
+Down/Up/Enter/Space -&gt; open
+type "b" -&gt; jump to Banana
+Home / End -&gt; first / last
+Enter -&gt; select + close
+Esc -&gt; close, keep value
+                </div></section>
+                <section><h3>aria painted</h3><div class="qa-box" style="line-height:1.6;">
+trigger: aria-haspopup=listbox
+   aria-expanded, aria-controls
+   aria-activedescendant
+option: role=option
+   aria-selected / data-selected
+   data-highlighted
+                </div></section>
+            </aside>
+        </section>
+
     </main>
 
     <div class="footnote">
-        &copy; Zahary Shinikchiev &middot; MIT &middot; zero runtime deps &middot; @zakkster/lite-signal peer &middot; 1633/1633 unit tests &middot; 59 primitives &middot; lite-floating + lite-observe integration &middot; cascade-clean
+        &copy; Zahary Shinikchiev &middot; MIT &middot; zero runtime deps &middot; @zakkster/lite-signal peer &middot; 1782/1782 unit tests &middot; 62 primitives &middot; lite-floating + lite-observe integration &middot; cascade-clean
     </div>
 </div>
 
@@ -11397,6 +11669,9 @@ hour + minute signals (H-12)
     import "../src/alert-dialog/element.js";
     import "../src/hover-card/element.js";
     import "../src/time-picker/element.js";
+    import "../src/checkbox/element.js";
+    import "../src/checkbox-group/element.js";
+    import "../src/select/element.js";
 
     // Alert-dialog: [data-confirm] already dismisses (wired by the element).
     // Here we attach the *destructive* handler the consumer owns -- updating
@@ -11500,6 +11775,8 @@ hour + minute signals (H-12)
         "alert-dialog":          { name: "Alert Dialog",          num: "61" },
         "hover-card":            { name: "Hover Card",            num: "62" },
         "time-picker":           { name: "Time Picker",           num: "63" },
+        "checkbox":              { name: "Checkbox",              num: "64" },
+        "select":                { name: "Select",                num: "65" },
     };
 
     function selectScene(sceneId) {
@@ -14989,6 +15266,103 @@ hour + minute signals (H-12)
         wire("tp-24", "tp-24-readout", "24h");
     })();
 
+</script>
+<script type="module">
+    // H12 canon primitives -- demo readouts + teardown witness (dev-only).
+    // Runs after the main script has registered the custom elements.
+    const $$ = (id) => document.getElementById(id);
+    const DOT = " · ";
+
+    // --- checkbox group readout ---
+    const cbg = $$("cbg-tasks");
+    const cbReadout = $$("cb-readout");
+    function paintGroup() {
+        if (!cbg || !cbReadout) return;
+        const vals = cbg.value || [];
+        cbReadout.textContent = "group: [" + vals.join(", ") + "]" + DOT + "state: " + (cbg.state || "false");
+    }
+    if (cbg) cbg.addEventListener("valuechange", paintGroup);
+    customElements.whenDefined("lite-checkbox-group").then(() => queueMicrotask(paintGroup));
+
+    // --- select readout + trigger label + value overlay ---
+    const sel = $$("sel-fruit");
+    const selReadout = $$("sel-readout");
+    const selBig = $$("sel-value-big");
+    const selLabel = $$("sel-trigger-label");
+    const LABELS = { apple: "Apple", banana: "Banana", cherry: "Cherry", durian: "Durian", elderberry: "Elderberry", fig: "Fig" };
+    function paintSelect() {
+        if (!sel) return;
+        const v = sel.getAttribute("value");
+        const open = sel.hasAttribute("open");
+        if (selBig) selBig.textContent = v ? (LABELS[v] || v) : "—";
+        if (selLabel && v) selLabel.textContent = LABELS[v] || v;
+        if (selReadout) selReadout.textContent = "value: " + (v || "null") + DOT + "open: " + open;
+    }
+    if (sel) {
+        const selMo = new MutationObserver(paintSelect);
+        customElements.whenDefined("lite-select").then(() => {
+            selMo.observe(sel, { attributes: true, attributeFilter: ["value", "open"] });
+            queueMicrotask(paintSelect);
+        });
+    }
+
+    // --- teardown witness: unmount + remount the group, exercising the 1.9.1
+    // element-teardown fix (disconnectedCallback -> scope.onCleanup ->
+    // group.destroy() + roles.disconnect()). rAF re-insert lets lite-element's
+    // deferred (microtask) teardown actually fire while disconnected. ---
+    const remountBtn = $$("cb-remount");
+    const remountLog = $$("cb-remount-log");
+    if (remountBtn) {
+        remountBtn.addEventListener("click", () => {
+            const host = $$("cbg-tasks");
+            if (!host || !host.parentNode) return;
+            const parent = host.parentNode;
+            const next = host.nextSibling;
+            parent.removeChild(host);              // -> deferred teardown (microtask)
+            // setTimeout (macrotask) re-inserts AFTER lite-element's teardown
+            // microtask has fired -- and unlike rAF it still runs when the tab
+            // is backgrounded, so the group can never get stuck unmounted.
+            setTimeout(() => {
+                parent.insertBefore(host, next);   // -> fresh setup, re-wires from DOM
+                if (remountLog) remountLog.textContent = "unmounted + remounted" + DOT + "torn down and re-wired cleanly (roles.disconnect + group.destroy ran on unmount); members re-init from markup.";
+                queueMicrotask(paintGroup);
+            }, 30);
+        });
+    }
+</script>
+<!-- Light/dark theme toggle: flips data-theme on <html>, persists to localStorage,
+     and paints the button to show the theme it will switch TO. Press 'T' as a shortcut. -->
+<script>
+    (function () {
+        var root = document.documentElement;
+        var btn = document.getElementById("theme-toggle");
+        if (!btn) return;
+        var icon = btn.querySelector(".tt-icon");
+        var SUN = "☀";   // shown in dark mode (click -> light)
+        var MOON = "☾";  // shown in light mode (click -> dark)
+        function isLight() { return root.getAttribute("data-theme") === "light"; }
+        function paint() {
+            var light = isLight();
+            if (icon) icon.textContent = light ? MOON : SUN;
+            btn.setAttribute("aria-pressed", String(light));
+            btn.title = light ? "Switch to dark (T)" : "Switch to light (T)";
+        }
+        function apply(theme) {
+            if (theme === "light") root.setAttribute("data-theme", "light");
+            else root.removeAttribute("data-theme");
+            try { localStorage.setItem("lh-demo-theme", theme); } catch (e) {}
+            paint();
+        }
+        btn.addEventListener("click", function () { apply(isLight() ? "dark" : "light"); });
+        document.addEventListener("keydown", function (e) {
+            if (e.key !== "t" && e.key !== "T") return;
+            if (e.metaKey || e.ctrlKey || e.altKey) return;
+            var el = e.target;
+            if (el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName))) return;
+            apply(isLight() ? "dark" : "light");
+        });
+        paint();
+    })();
 </script>
 </body>
 </html>
