@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>lite-headless x lite-charts</title>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "@zakkster/lite-signal":   "../node_modules/@zakkster/lite-signal/Signal.js",
+            "@zakkster/lite-scene":    "../node_modules/@zakkster/lite-scene/Scene.js",
+            "@zakkster/lite-axis":     "../node_modules/@zakkster/lite-axis/Axis.js",
+            "@zakkster/lite-charts":   "../node_modules/@zakkster/lite-charts/Charts.js",
+            "@zakkster/lite-floating": "../node_modules/@zakkster/lite-floating/index.js",
+            "@zakkster/lite-observe":  "../node_modules/@zakkster/lite-observe/index.js",
+            "@zakkster/lite-element":  "../node_modules/@zakkster/lite-element/Element.js",
+            "@zakkster/lite-cleanup":  "../node_modules/@zakkster/lite-cleanup/Cleanup.js"
+        }
+    }
+    </script>
+
+    <!-- apply saved theme before first paint (shared with the main demo) -->
+    <script>
+        (function () {
+            try { if (localStorage.getItem("lh-demo-theme") === "light")
+                document.documentElement.setAttribute("data-theme", "light"); } catch (e) {}
+        })();
+    </script>
+
+    <style>
+        :root {
+            --bg: #0b0e13; --panel: #12161d; --panel-2: #0d1117;
+            --line: rgba(255,255,255,.10); --line-strong: rgba(255,255,255,.16);
+            --text: #d8d6d2; --text-dim: #8b8d94;
+            --cyan: #7dd3fc; --bg-0: #0b0e13; --bg-3: #1a2230;
+            --series-1: #7dd3fc; --series-2: #f5b942; --series-3: #e879a8;
+            --axis: #6b7078; --label: #8b8d94;
+        }
+        :root[data-theme="light"] {
+            --bg: #eef1f5; --panel: #ffffff; --panel-2: #f4f6f9;
+            --line: rgba(20,26,34,.10); --line-strong: rgba(20,26,34,.20);
+            --text: #1b1f27; --text-dim: #545b66;
+            --cyan: #0284c7; --bg-0: #eef1f5; --bg-3: #d2d8e2;
+            --series-1: #0369a1; --series-2: #b45309; --series-3: #c026a8;
+            --axis: #9aa1ac; --label: #545b66;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0; background: var(--bg); color: var(--text);
+            font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+            font-size: 14px; line-height: 1.5;
+        }
+        header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: .75rem 1.25rem; border-bottom: 1px solid var(--line);
+            background: var(--panel);
+        }
+        header .brand { font-weight: 600; letter-spacing: .01em; }
+        header .brand small { color: var(--text-dim); font-weight: 400; margin-left: .5rem; }
+        .theme-toggle {
+            width: 2rem; height: 2rem; border-radius: 6px; cursor: pointer;
+            background: var(--bg-3); color: var(--text-dim);
+            border: 1px solid var(--line-strong); font-size: .95rem; line-height: 1;
+            display: inline-flex; align-items: center; justify-content: center;
+        }
+        @media (hover: hover) { .theme-toggle:hover { color: var(--text); border-color: var(--cyan); } }
+        .theme-toggle:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+
+        main { max-width: 900px; margin: 0 auto; padding: 1.5rem 1.25rem 4rem; }
+        .lead { color: var(--text-dim); margin: 0 0 1.5rem; }
+        .lead code { color: var(--cyan); }
+
+        .chart-card {
+            margin: 0 0 1.5rem; padding: 1rem 1.1rem 1.25rem;
+            background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+        }
+        figcaption { font-weight: 600; margin: 0 0 .1rem; }
+        .cap-sub { color: var(--text-dim); font-size: .8rem; margin: 0 0 .9rem; }
+
+        .toolbar { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; margin: 0 0 .8rem; }
+        .toolbar .spacer { flex: 1 1 auto; }
+        .btn {
+            font: inherit; font-size: .78rem; padding: .3rem .6rem; cursor: pointer;
+            background: var(--bg-3); color: var(--text-dim);
+            border: 1px solid var(--line-strong); border-radius: 6px;
+        }
+        @media (hover: hover) { .btn:hover { color: var(--text); border-color: var(--cyan); } }
+        .btn:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+        .btn[aria-pressed="true"] { background: var(--cyan); color: var(--bg-0); border-color: var(--cyan); }
+
+        #chart-host { width: 100%; height: 340px; outline: none; border-radius: 6px; }
+        #chart-host:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
+
+        /* legend = a lite-headless checkbox-group */
+        #legend { display: flex; flex-wrap: wrap; gap: .2rem 1.25rem; margin: .9rem 0 0; }
+        .cb-row { display: flex; align-items: center; gap: .55rem; padding: .25rem 0; }
+        .cb-box {
+            width: 1.05rem; height: 1.05rem; flex: none; margin: 0; padding: 0;
+            border: 1px solid var(--line-strong); border-radius: 5px; background: var(--bg-3);
+            display: inline-grid; place-items: center; cursor: pointer; position: relative;
+            transition: background .12s ease, border-color .12s ease;
+        }
+        .cb-box:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+        .cb-box[aria-checked="true"], .cb-box[aria-checked="mixed"] { background: var(--cyan); border-color: var(--cyan); }
+        .cb-box[aria-checked="true"]::after { content: ""; width: .3rem; height: .56rem; border: solid var(--bg-0); border-width: 0 2px 2px 0; transform: translateY(-1px) rotate(45deg); }
+        .cb-box[aria-checked="mixed"]::after { content: ""; width: .56rem; height: 2px; border-radius: 1px; background: var(--bg-0); }
+        .cb-box[aria-disabled="true"] { opacity: .4; cursor: not-allowed; }
+        .cb-text { font-size: .85rem; color: var(--text); display: inline-flex; align-items: center; gap: .4rem; }
+        .sw { width: .8rem; height: .8rem; border-radius: 2px; background: var(--sw, var(--cyan)); flex: none; }
+
+        /* the DOM tooltip (a lite-headless hover-card, anchored to a canvas point) */
+        .chart-tip {
+            position: fixed; top: 0; left: 0; z-index: 60; pointer-events: none;
+            min-width: 150px; padding: .55rem .7rem;
+            background: var(--panel); color: var(--text);
+            border: 1px solid var(--line-strong); border-radius: 8px;
+            box-shadow: 0 8px 24px rgba(0,0,0,.28);
+            font-size: .78rem; opacity: 0; transition: opacity .1s ease;
+        }
+        .chart-tip[data-open] { opacity: 1; }
+        .chart-tip .tip-x { color: var(--text-dim); margin: 0 0 .35rem; font-size: .72rem; }
+        .chart-tip .tip-row { display: flex; align-items: center; gap: .4rem; margin: .12rem 0; }
+        .chart-tip .tip-row .sw { width: .65rem; height: .65rem; border-radius: 2px; }
+        .chart-tip .tip-row .tip-val { margin-left: auto; font-variant-numeric: tabular-nums; }
+
+        table.data { width: 100%; border-collapse: collapse; margin: .9rem 0 0; font-size: .78rem; }
+        table.data caption { text-align: left; color: var(--text-dim); margin-bottom: .3rem; }
+        table.data th, table.data td { text-align: right; padding: .25rem .5rem; border-bottom: 1px solid var(--line); }
+        table.data th:first-child, table.data td:first-child { text-align: left; color: var(--text-dim); }
+        table.data col.hidden-col, table.data .hidden-col { display: none; }
+
+        .notes { color: var(--text-dim); font-size: .82rem; border-left: 2px solid var(--line-strong); padding: .2rem 0 .2rem 1rem; }
+        .notes b { color: var(--text); font-weight: 600; }
+        .notes code { color: var(--cyan); }
+
+        .visually-hidden {
+            position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px;
+            overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="brand">@zakkster/lite-headless <small>x lite-charts &middot; integration demo</small></div>
+        <button id="theme-toggle" class="theme-toggle" type="button"
+                aria-label="Toggle light and dark theme" title="Switch theme (T)">
+            <span class="tt-icon" aria-hidden="true">&#9728;</span>
+        </button>
+    </header>
+
+    <main>
+        <p class="lead">
+            A canvas chart from <code>lite-charts</code> wired to lite-headless overlays and controls
+            through its lite-signal facades &mdash; a DOM <b>hover-card</b> tooltip on a
+            <code>lite-floating</code> virtual anchor, a <b>checkbox-group</b> legend bound to
+            <code>seriesVisibility</code>, keyboard exploration driving <code>moveCrosshair</code>,
+            an <code>aria-live</code> announcer, a data-table fallback, and <code>refreshTheme()</code>
+            on the theme toggle. Nothing here changes either library.
+        </p>
+
+        <figure class="chart-card" role="group" aria-labelledby="chart-title chart-desc" style="margin:0 0 1.5rem;">
+            <figcaption id="chart-title">Service metrics &middot; last 24 hours</figcaption>
+            <p id="chart-desc" class="cap-sub">
+                Interactive line chart. Focus it and use Left/Right arrows to move between points,
+                Home/End to jump, Escape to dismiss.
+            </p>
+
+            <div class="toolbar">
+                <button class="btn" type="button" data-range="6">6h</button>
+                <button class="btn" type="button" data-range="12">12h</button>
+                <button class="btn" type="button" data-range="24" aria-pressed="true">24h</button>
+                <button class="btn" type="button" data-range="all">All</button>
+                <span class="spacer"></span>
+                <button id="table-toggle" class="btn" type="button" aria-pressed="false" aria-controls="data-table">View as table</button>
+            </div>
+
+            <div id="chart-host" role="application" aria-label="Service metrics time series, interactive" tabindex="0"></div>
+            <div id="chart-live" class="visually-hidden" aria-live="polite"></div>
+
+            <lite-checkbox-group id="legend" aria-label="Series visibility">
+                <div class="cb-row"><button type="button" data-select-all class="cb-box"></button><span class="cb-text">All series</span></div>
+                <div class="cb-row"><button type="button" data-checkbox value="0" checked class="cb-box"></button><span class="cb-text"><i class="sw" style="--sw: var(--series-1)"></i> requests/s</span></div>
+                <div class="cb-row"><button type="button" data-checkbox value="1" checked class="cb-box"></button><span class="cb-text"><i class="sw" style="--sw: var(--series-2)"></i> latency p95 (ms)</span></div>
+                <div class="cb-row"><button type="button" data-checkbox value="2" checked class="cb-box"></button><span class="cb-text"><i class="sw" style="--sw: var(--series-3)"></i> error rate (%)</span></div>
+            </lite-checkbox-group>
+
+            <table id="data-table" class="data" hidden>
+                <caption>Service metrics, last 24 hours (accessible alternative)</caption>
+                <thead><tr>
+                    <th scope="col">Time</th>
+                    <th scope="col" data-col="0">requests/s</th>
+                    <th scope="col" data-col="1">latency p95 (ms)</th>
+                    <th scope="col" data-col="2">error rate (%)</th>
+                </tr></thead>
+                <tbody></tbody>
+            </table>
+        </figure>
+
+        <p class="notes">
+            <b>How it is wired:</b> the chart is built with <code>tooltip:false</code> and
+            <code>legend:false</code>; the crosshair <b>signal</b> drives the hover-card position via
+            <code>virtualRef.setPoint</code>; the checkbox-group's <code>valuechange</code> calls
+            <code>chart.setSeriesVisible</code>; arrow keys call <code>chart.moveCrosshair</code> at
+            <code>xScale.map(sample.x)</code>; the theme toggle calls <code>chart.refreshTheme()</code>.
+            See <code>docs/recipes/lite-charts-*.md</code> for the standalone recipes.
+        </p>
+    </main>
+
+    <!-- the hover-card content lives at the end of body; hover-card portals nothing, it just positions this -->
+    <div id="chart-tip" class="chart-tip" role="status" aria-hidden="true">
+        <p class="tip-x" data-x></p>
+        <div class="tip-row"><i class="sw" style="--sw: var(--series-1)"></i> requests/s <span class="tip-val" data-v0>-</span></div>
+        <div class="tip-row"><i class="sw" style="--sw: var(--series-2)"></i> latency <span class="tip-val" data-v1>-</span></div>
+        <div class="tip-row"><i class="sw" style="--sw: var(--series-3)"></i> errors <span class="tip-val" data-v2>-</span></div>
+    </div>
+
+    <script type="module">
+        import { signal }         from "@zakkster/lite-signal";
+        import { createLineChart } from "@zakkster/lite-charts";
+        import { createHoverCard } from "../src/hover-card/index.js";
+        import { virtualRef }      from "@zakkster/lite-floating";
+        import "../src/checkbox-group/element.js";
+
+        // ---- synthetic 24h data: [{x: ms, y}], one point every 30 min ----
+        const N = 48, STEP = 30 * 60 * 1000, now = Date.now();
+        const t0 = now - (N - 1) * STEP;
+        const mkX = (i) => t0 + i * STEP;
+        function series(base, amp, phase, jitter) {
+            const rows = [];
+            for (let i = 0; i < N; i++) {
+                const y = base + amp * Math.sin(i / 6 + phase) + (Math.sin(i * 12.9898) * 43758.5453 % 1) * jitter;
+                rows.push({ x: mkX(i), y: Math.max(0, Math.round(y * 10) / 10) });
+            }
+            return rows;
+        }
+        const DATA  = [ series(120, 60, 0, 25), series(180, 90, 2, 40), series(2.5, 2, 4, 1.2) ];
+        const NAMES = [ "requests/s", "latency p95 (ms)", "error rate (%)" ];
+
+        const hostEl = document.getElementById("chart-host");
+        const wSig = signal(Math.max(320, hostEl.clientWidth || 760));
+
+        const chart = createLineChart({
+            series: [
+                { name: NAMES[0], color: "--series-1", data: DATA[0], lineWidth: 1.75 },
+                { name: NAMES[1], color: "--series-2", data: DATA[1], lineWidth: 1.75 },
+                { name: NAMES[2], color: "--series-3", data: DATA[2], lineWidth: 1.75 },
+            ],
+            xScale: { type: "time" },
+            width: () => wSig(),       // reactive: same lite-signal runtime as the chart
+            height: 340,
+            background: null,
+            axisColor: "--axis",
+            labelColor: "--label",
+            grid: true,
+            zoom: true, pan: true,     // enables view / setView / resetView
+            tooltip: false,            // we render the DOM tooltip
+            legend: false,             // we render the checkbox-group legend
+            crosshair: true,
+        });
+        chart.mount(hostEl);
+        new ResizeObserver(() => wSig.set(Math.max(320, hostEl.clientWidth))).observe(hostEl);
+
+        // ---------------------------------------------------------------
+        // 1) DOM tooltip: hover-card on a virtual anchor, off the crosshair
+        // ---------------------------------------------------------------
+        const tipEl = document.getElementById("chart-tip");
+        const vref = virtualRef();
+        const hc = createHoverCard({ openDelay: 0, closeDelay: 0, placement: "top", offset: 14 });
+        hc.attachRoot(hostEl);
+        hc.attachContent(tipEl);
+        hc.attachAnchor(vref);
+        // Safety net: hide the tooltip whenever the pointer leaves the plot, in
+        // case a gesture skips the chart's own mouseleave (crosshair.visible=false).
+        hostEl.addEventListener("pointerleave", () => hc.setOpen(false));
+
+        const tv = [ tipEl.querySelector("[data-v0]"), tipEl.querySelector("[data-v1]"), tipEl.querySelector("[data-v2]") ];
+        const tx = tipEl.querySelector("[data-x]");
+        const live = document.getElementById("chart-live");
+        const fmtTime = (ms) => new Date(ms).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+        let lastIdx = -1;
+        chart.crosshair.subscribe((s) => {
+            // s is the SAME mutable object each notify -- read fields eagerly.
+            if (!s.visible) { hc.setOpen(false); lastIdx = -1; return; }
+            const r = chart.canvas.getBoundingClientRect();
+            vref.setPoint(r.left + s.snapPixelX, r.top + s.mousePixelY);
+            const i = s.snapIdx;
+            tx.textContent = fmtTime(s.snapDomainX);
+            for (let k = 0; k < 3; k++) tv[k].textContent = DATA[k][i] ? DATA[k][i].y : "-";
+            hc.setOpen(true);
+            if (i !== lastIdx) {   // announce once per sample
+                lastIdx = i;
+                live.textContent = fmtTime(s.snapDomainX) + ": requests " + DATA[0][i].y +
+                    " per second, latency " + DATA[1][i].y + " ms, errors " + DATA[2][i].y + " percent";
+            }
+        });
+
+        // ---------------------------------------------------------------
+        // 2) legend: checkbox-group valuechange -> setSeriesVisible
+        // ---------------------------------------------------------------
+        const legend = document.getElementById("legend");
+        const table = document.getElementById("data-table");
+        function syncColumns(on) {
+            table.querySelectorAll("[data-col]").forEach((th) => {
+                const i = th.getAttribute("data-col");
+                const show = on.has(i);
+                th.classList.toggle("hidden-col", !show);
+                table.querySelectorAll('td[data-col="' + i + '"]').forEach((td) => td.classList.toggle("hidden-col", !show));
+            });
+        }
+        legend.addEventListener("valuechange", (e) => {
+            const on = new Set(e.detail.values);
+            for (let i = 0; i < 3; i++) chart.setSeriesVisible(i, on.has(String(i)));
+            syncColumns(on);
+        });
+
+        // ---------------------------------------------------------------
+        // 3) keyboard exploration -> moveCrosshair (mouse + keys share the path)
+        // ---------------------------------------------------------------
+        let kidx = 0;
+        function focusSample(i) {
+            kidx = i < 0 ? 0 : i >= N ? N - 1 : i;
+            const px = chart.xScale.map(DATA[0][kidx].x);
+            chart.moveCrosshair(px, chart.canvas.clientHeight / 2);
+        }
+        hostEl.addEventListener("keydown", (e) => {
+            switch (e.key) {
+                case "ArrowRight": focusSample(kidx + 1); break;
+                case "ArrowLeft":  focusSample(kidx - 1); break;
+                case "Home":       focusSample(0); break;
+                case "End":        focusSample(N - 1); break;
+                case "Escape":     chart.hideCrosshair(); return;
+                default: return;
+            }
+            e.preventDefault();
+        });
+        hostEl.addEventListener("blur", () => chart.hideCrosshair());
+
+        // ---------------------------------------------------------------
+        // 4) date-range presets -> setView
+        // ---------------------------------------------------------------
+        const DAY = 86400000;
+        document.querySelectorAll("[data-range]").forEach((b) => {
+            b.addEventListener("click", () => {
+                document.querySelectorAll("[data-range]").forEach((x) => x.setAttribute("aria-pressed", x === b ? "true" : "false"));
+                const r = b.getAttribute("data-range");
+                if (r === "all") { chart.resetView(); return; }
+                const h = parseInt(r, 10);
+                chart.setView({ xMin: now - h * 60 * 60 * 1000, xMax: now, yMin: null, yMax: null });
+            });
+        });
+
+        // ---------------------------------------------------------------
+        // 5) data-table fallback + "view as table" toggle
+        // ---------------------------------------------------------------
+        const tbody = table.querySelector("tbody");
+        let rowsHtml = "";
+        for (let i = 0; i < N; i++) {
+            rowsHtml += "<tr><td>" + fmtTime(DATA[0][i].x) + "</td>" +
+                '<td data-col="0">' + DATA[0][i].y + "</td>" +
+                '<td data-col="1">' + DATA[1][i].y + "</td>" +
+                '<td data-col="2">' + DATA[2][i].y + "</td></tr>";
+        }
+        tbody.innerHTML = rowsHtml;
+        const tableToggle = document.getElementById("table-toggle");
+        tableToggle.addEventListener("click", () => {
+            const show = table.hasAttribute("hidden");
+            table.hidden = !show;
+            tableToggle.setAttribute("aria-pressed", String(show));
+        });
+
+        // ---------------------------------------------------------------
+        // 6) theme toggle -> flip tokens + chart.refreshTheme()
+        // ---------------------------------------------------------------
+        const root = document.documentElement;
+        const tbtn = document.getElementById("theme-toggle");
+        const icon = tbtn.querySelector(".tt-icon");
+        function paintToggle() {
+            const light = root.getAttribute("data-theme") === "light";
+            icon.textContent = light ? "☾" : "☀";
+            tbtn.setAttribute("aria-pressed", String(light));
+        }
+        function applyTheme(mode) {
+            if (mode === "light") root.setAttribute("data-theme", "light");
+            else root.removeAttribute("data-theme");
+            try { localStorage.setItem("lh-demo-theme", mode); } catch (e) {}
+            chart.refreshTheme();   // re-resolve --series-*, --axis, --label + redraw
+            paintToggle();
+        }
+        tbtn.addEventListener("click", () => applyTheme(root.getAttribute("data-theme") === "light" ? "dark" : "light"));
+        document.addEventListener("keydown", (e) => {
+            if ((e.key === "t" || e.key === "T") && !/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) {
+                applyTheme(root.getAttribute("data-theme") === "light" ? "dark" : "light");
+            }
+        });
+        paintToggle();
+    </script>
+</body>
+</html>
