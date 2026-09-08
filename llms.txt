@@ -1,6 +1,6 @@
 # @zakkster/lite-headless
 
-VERSION 1.9.1
+VERSION 1.10.0
 
 62 headless UI primitives on signal-based reactivity (@zakkster/lite-signal).
 Zero styling. Tree-shakable via per-primitive subpath exports. Framework-

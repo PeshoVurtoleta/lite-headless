@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.10.0 -- 2026-09-08
+
+### Added
+
+- Recipes: `lite-form-server-data` and `lite-form-patch-submit` -- composing
+  @zakkster/lite-form's server-data engine (`reinitialize` merge, `patch`
+  submit, strict-false-while-pending submit) with `form-field` and `button`.
+  Zero source change: the wiring reuses existing paint seams (ADR 0009). Adds
+  `docs/decisions/0009-server-data-recipes-and-the-zero-source-ruling.md` and a
+  boundary test suite for each recipe, run against published
+  `@zakkster/lite-form`.
+- Recipes: `lite-charts-tooltip`, `lite-charts-accessible-shell`,
+  `lite-charts-legend`, `lite-charts-time-range` -- composing lite-headless
+  overlays and controls around a `@zakkster/lite-charts` canvas via its signal
+  facades (`crosshair`, `seriesVisibility`, `view`, `refreshTheme`).
+
 ## 1.9.1 -- 2026-09-07
 
 ### Fixed
