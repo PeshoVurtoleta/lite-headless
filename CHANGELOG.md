@@ -1,5 +1,32 @@
 # Changelog
 
+## 1.11.0 -- 2026-09-08
+
+### Added
+
+- `createFloatingPositioner` (floating-adapter) and `createHoverCard` now accept
+  `getRect` / `getViewport` measurement providers, forwarded into
+  `@zakkster/lite-floating`'s `createFloating` (the injection seam added in
+  lite-floating 1.2.0). The option names match the built-in
+  `_overlay/position.js` engine and lite-floating exactly, so a single provider
+  drives either engine. Both are resolved ONCE at construction; when absent the
+  default path is byte-identical to 1.10.0 (createFloating's own
+  `getBoundingClientRect` + window viewport) with zero added allocation. This
+  makes the two lite-floating-backed positioning paths exact-pixel testable
+  under plain `node --test` with no real window -- coverage impossible before
+  the 1.2.0 seam. Adds `test/floating-adapter.test.js` cases (A1 flip, A2 shift,
+  A3 getRect-replaces-read, A6 resolved-once) and `test/hover-card.test.js`
+  cases (injected-viewport flip, default-path-unchanged, 1000-cycle retention),
+  plus `docs/decisions/0010-adapter-measurement-forward.md`.
+
+### Changed
+
+- `@zakkster/lite-floating` peer and dev range moved to `^1.2.0` (still an
+  OPTIONAL peer). Advertising the measurement seam on a lite-floating version
+  that silently ignores it would fail open; the floor now matches the advertised
+  capability (ADR 0010 R4). Default positioning still works on older
+  lite-floating; the seam is simply not offered there.
+
 ## 1.10.0 -- 2026-09-08
 
 ### Added

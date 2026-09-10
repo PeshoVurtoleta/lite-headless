@@ -60,6 +60,13 @@ export function createFloatingPositioner(adapterOptions) {
     // Passthrough to createFloating: `false` disables lite-floating's own
     // auto-update; an options object tunes which listeners it wires.
     const autoUpdateOpts = ao.autoUpdate;
+    // Measurement providers, resolved ONCE at construction and forwarded
+    // straight into the createFloating options literal. Absent -> undefined ->
+    // lite-floating uses its own defaults (getBoundingClientRect + the window
+    // viewport), byte-identical to today. Names match the built-in engine and
+    // lite-floating 1.2.0 -- one measurement vocabulary. See ADR 0010.
+    const getRect = ao.getRect;
+    const getViewport = ao.getViewport;
 
     return function floatingPositioner(spec) {
         const s = spec || {};
@@ -91,6 +98,8 @@ export function createFloatingPositioner(adapterOptions) {
                 strategy: strategy,
                 middleware: mw,
                 autoUpdate: autoUpdateOpts,
+                getRect: getRect,
+                getViewport: getViewport,
             },
         );
 

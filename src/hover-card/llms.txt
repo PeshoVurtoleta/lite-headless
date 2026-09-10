@@ -41,6 +41,15 @@ so the user can move from the link into the card without it closing.
 | `closeOnEscape` | `true` | Escape closes the card |
 | `container` | `document.body` | portal target |
 | `transition` | `false` | wait for `transitionend` before flipping status |
+| `getRect` | (lite-floating default) | `(el) => {x?,y?,left?,top?,width,height}` -- inject element rect measurement; default is `el.getBoundingClientRect()` (coalesced x\|\|left / y\|\|top) |
+| `getViewport` | (lite-floating default) | `() => {x?,y?,width,height}` -- inject the viewport rect; default is window innerWidth/innerHeight at the origin |
+
+`getRect` / `getViewport` are measurement providers, resolved ONCE at
+construction and forwarded straight into `createFloating`. Their names match the
+built-in engine and lite-floating 1.2.0 -- one measurement vocabulary. Absent ->
+lite-floating's own defaults, byte-identical to the pre-injection path with zero
+added allocation; they exist chiefly to make placement exact-pixel testable
+without a real window. Requires the ^1.2.0 peer floor. See ADR 0010.
 
 ## API
 

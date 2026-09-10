@@ -43,7 +43,7 @@ import { portal } from "../_overlay/portal.js";
 import { uniqueId, setAttr, toggleAttr, ensureId } from "../_overlay/aria.js";
 import { checkOptions } from "../_validate.js";
 
-const OPTION_KEYS = "open|defaultOpen|onOpenChange|placement|offset|flip|shift|openDelay|closeDelay|closeOnEscape|container|transition";
+const OPTION_KEYS = "open|defaultOpen|onOpenChange|placement|offset|flip|shift|openDelay|closeDelay|closeOnEscape|container|transition|getRect|getViewport";
 
 function noop() {}
 
@@ -65,6 +65,13 @@ export function createHoverCard(options = {}) {
 
         container = (typeof document !== "undefined" ? document.body : null),
         transition = false,
+
+        // Measurement providers, resolved ONCE here and forwarded straight
+        // into the doOpen createFloating literal. Absent -> undefined ->
+        // lite-floating uses its own defaults, byte-identical to today. Names
+        // match the built-in engine and lite-floating 1.2.0. See ADR 0010.
+        getRect,
+        getViewport,
     } = options;
 
     const core = createOverlayCore({
@@ -168,6 +175,8 @@ export function createHoverCard(options = {}) {
             _floating = createFloating(() => a, () => _content, {
                 placement,
                 middleware: buildMiddleware(),
+                getRect: getRect,
+                getViewport: getViewport,
             });
             _bindOff = bindTransform(_content, _floating.x, _floating.y);
             _placeOff = effect(() => { paintPlacement(_floating.placement()); });

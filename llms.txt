@@ -1,6 +1,6 @@
 # @zakkster/lite-headless
 
-VERSION 1.10.0
+VERSION 1.11.0
 
 62 headless UI primitives on signal-based reactivity (@zakkster/lite-signal).
 Zero styling. Tree-shakable via per-primitive subpath exports. Framework-
@@ -56,6 +56,18 @@ destroy}` positioner factory backed by @zakkster/lite-floating. Pass it as the
 `positioner` option of tooltip/popover/combobox/menu to route placement through
 lite-floating (identical spec + 12-placement vocabulary). Middleware built once
 per open; autoUpdate is a no-op (lite-floating owns it); element boundary throws.
+Options (all optional): `strategy` ('absolute'|'fixed'), `autoUpdate` (false to
+disable lite-floating's own auto-update, or an options object), and the two
+measurement providers `getRect` and `getViewport`. `getRect: (el) => {x?,y?,
+left?,top?,width,height}` injects element rect measurement (default:
+`el.getBoundingClientRect()`, coalesced x||left / y||top). `getViewport: () =>
+{x?,y?,width,height}` injects the viewport rect (default: window
+innerWidth/innerHeight at the origin). Both names MATCH the built-in engine
+(`getRect`/`getViewport`) and lite-floating 1.2.0 -- one measurement vocabulary
+-- and are resolved ONCE at construction and forwarded straight into
+createFloating; absent -> undefined -> lite-floating's own defaults, zero added
+allocation on the default path. Requires the ^1.2.0 peer floor to be honored
+(older lite-floating silently ignores the seam). See ADR 0010.
 
 RTL logical placement aliases: the BUILT-IN engine accepts `inline-start` /
 `inline-end` (plus an optional `-start` / `-end` alignment suffix) and resolves

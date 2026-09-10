@@ -838,3 +838,166 @@ test("sealed-read sanity: after tooltip destroy() with a custom positioner, acce
         teardownDOM();
     }
 });
+
+// ===========================================================================
+// 7. Injected measurement providers (getRect / getViewport) -- exact-pixel
+//    overflow tests, made possible by lite-floating 1.2.0's measurement seam.
+//    The positioner is driven DIRECTLY (createFloatingPositioner -> factory
+//    -> handle) with synthetic rects + a synthetic viewport, so the math is
+//    asserted to the pixel with NO dependence on the real window. See ADR 0010
+//    and test/overlay-position.test.js (the built-in engine's mirror of this).
+//
+//    In the node/happy-dom env `requestAnimationFrame` is undefined, so
+//    createFloating's update() computes synchronously: by the time the factory
+//    returns, bindTransform has already written content.style.transform and the
+//    paint effect has already written data-side/data-placement.
+// ===========================================================================
+
+function rect(left, top, width, height) {
+    return {
+        left, top, width, height,
+        right: left + width,
+        bottom: top + height,
+        x: left, y: top,
+    };
+}
+
+function mkRects(map) {
+    return (el) => map.get(el) || rect(0, 0, 0, 0);
+}
+
+function parseTranslate(content) {
+    // bindTransform writes: translate3d(Xpx,Ypx,0)
+    const t = content.style.transform || "";
+    const m = /translate3d\((-?\d+)px,\s*(-?\d+)px/.exec(t);
+    if (!m) return { x: null, y: null };
+    return { x: parseInt(m[1], 10), y: parseInt(m[2], 10) };
+}
+
+// A1 -- flip via injected viewport.
+test("A1: injected viewport drives flip -- 800-tall flips bottom->top (side top, y 652); 1200-tall stays bottom (y 798)", () => {
+    setupDOM();
+    try {
+        // anchor near the bottom edge; content 200x100; default offset 8.
+        const { anchor, content } = mkFloatingDOM();
+        const rects = new Map([
+            [anchor,  rect(100, 760, 80, 30)],
+            [content, rect(0, 0, 200, 100)],
+        ]);
+
+        // 800-tall viewport: bottom edge at 798+100=898 > 800 -> flip to top.
+        const factoryFlip = createFloatingPositioner({
+            getRect: mkRects(rects),
+            getViewport: () => ({ width: 1000, height: 800 }),
+        });
+        const hFlip = factoryFlip({ anchor, content, placement: "bottom" });
+        assert.equal(content.getAttribute("data-side"), "top", "flips to top when bottom overflows an 800-tall viewport");
+        assert.equal(parseTranslate(content).y, 652, "top: y = 760 - 100 - 8");
+        hFlip.destroy();
+
+        // fresh content so the transform from the first handle does not confuse
+        // the second parse; 1200-tall viewport: bottom fits -> no flip.
+        const content2 = document.createElement("div");
+        document.body.append(content2);
+        const rects2 = new Map([
+            [anchor,   rect(100, 760, 80, 30)],
+            [content2, rect(0, 0, 200, 100)],
+        ]);
+        const factoryFit = createFloatingPositioner({
+            getRect: mkRects(rects2),
+            getViewport: () => ({ width: 1000, height: 1200 }),
+        });
+        const hFit = factoryFit({ anchor, content: content2, placement: "bottom" });
+        assert.equal(content2.getAttribute("data-side"), "bottom", "stays bottom when a 1200-tall viewport has room");
+        assert.equal(parseTranslate(content2).y, 798, "bottom: y = 760 + 30 + 8");
+        hFit.destroy();
+    } finally {
+        teardownDOM();
+    }
+});
+
+// A2 -- shift via injected viewport.
+test("A2: injected viewport drives shift -- x clamped to 800 exactly (1000-wide viewport, content w200)", () => {
+    setupDOM();
+    try {
+        const { anchor, content } = mkFloatingDOM();
+        // anchor at the right edge; bottom-centered x would be 920; shift clamps
+        // to viewport.width - content.width = 1000 - 200 = 800.
+        const rects = new Map([
+            [anchor,  rect(980, 100, 80, 30)],
+            [content, rect(0, 0, 200, 100)],
+        ]);
+        const factory = createFloatingPositioner({
+            getRect: mkRects(rects),
+            getViewport: () => ({ width: 1000, height: 800 }),
+        });
+        const h = factory({ anchor, content, placement: "bottom" });
+        assert.equal(parseTranslate(content).x, 800, "shift clamps x to 1000 - 200 = 800");
+        h.destroy();
+    } finally {
+        teardownDOM();
+    }
+});
+
+// A3 -- getRect replaces the getBoundingClientRect read entirely.
+test("A3: getRect replaces the read -- getBoundingClientRect spy count is 0; injected rect drives x/y", () => {
+    setupDOM();
+    try {
+        const { anchor, content } = mkFloatingDOM();
+        let gbcrCalls = 0;
+        const spy = function () { gbcrCalls++; return rect(0, 0, 0, 0); };
+        anchor.getBoundingClientRect = spy;
+        content.getBoundingClientRect = spy;
+
+        const rects = new Map([
+            [anchor,  rect(100, 100, 80, 30)],
+            [content, rect(0, 0, 200, 100)],
+        ]);
+        // autoUpdate:false so no observer path can read a rect off the elements.
+        const factory = createFloatingPositioner({
+            getRect: mkRects(rects),
+            getViewport: () => ({ width: 1000, height: 800 }),
+            autoUpdate: false,
+        });
+        const h = factory({ anchor, content, placement: "bottom" });
+        h.update();
+
+        assert.equal(gbcrCalls, 0, "getRect fully replaces getBoundingClientRect -- spy never called");
+        const { x, y } = parseTranslate(content);
+        assert.equal(x, 40, "x from injected rect: 100 + (80-200)/2 = 40");
+        assert.equal(y, 138, "y from injected rect: 100 + 30 + 8 = 138");
+        h.destroy();
+    } finally {
+        teardownDOM();
+    }
+});
+
+// A6 -- providers resolved once; getViewport is read a bounded number of times
+// (exactly once per compute tick), never re-resolved from options per tick.
+test("A6: getViewport resolved once -- read exactly once per update() tick, not re-resolved per tick", () => {
+    setupDOM();
+    try {
+        const { anchor, content } = mkFloatingDOM();
+        let vpCalls = 0;
+        const rects = new Map([
+            [anchor,  rect(100, 100, 80, 30)],
+            [content, rect(0, 0, 200, 100)],
+        ]);
+        const factory = createFloatingPositioner({
+            getRect: mkRects(rects),
+            getViewport: () => { vpCalls++; return { width: 1000, height: 800 }; },
+            autoUpdate: false,
+        });
+        const h = factory({ anchor, content, placement: "bottom" });
+        // construction's initial compute reads the viewport exactly once.
+        const base = vpCalls;
+        assert.equal(base, 1, "construction computes once -> exactly one viewport read");
+
+        const N = 5;
+        for (let i = 0; i < N; i++) h.update();
+        assert.equal(vpCalls, base + N, "each update() tick reads the viewport exactly once -- bounded, not re-resolved");
+        h.destroy();
+    } finally {
+        teardownDOM();
+    }
+});
