@@ -459,6 +459,14 @@ DONE WHEN
 
 ===============================================================================
 # H12 -- lite-headless v1.9.0 -- canon primitives
+# STATUS: SHIPPED as 1.9.0, 2026-09-07 (slot claimed per section 5; LH-07 closed --
+# createSelect (APG select-only listbox-button: typeahead/Home-End/disabled-skip,
+# no text editing), createCheckbox (tri-state on ONE 3-valued signal -> aria-checked)
+# + createCheckboxGroup (DERIVED tri-state), reusing the shared _overlay seams minus
+# the input lane per ADR 0008 (combobox source unchanged); catalog 59 -> 62;
+# tree-checkbox-cascade + indeterminate recipes refactored onto the primitives
+# (shared law 5); context-menu RECORDED OUT, multi-select DEFERRED as LH-12; torture
+# E9/E10 engine-gated + D6/D7 DOM-recorded; peer floor ^1.2.0 unchanged)
 ===============================================================================
 
 ```markdown
@@ -507,6 +515,13 @@ DONE WHEN
 
 ===============================================================================
 # H13 -- lite-headless v1.10.0 -- server-data form recipes (forms track)
+# STATUS: SHIPPED as 1.10.0, 2026-09-08 (slot claimed per section 5; LH-11 closed --
+# recipes lite-form-server-data + lite-form-patch-submit compose lite-form 1.3.0's
+# server-data engine (reinitialize merge, toPatch/patch submit, strict-false-
+# while-pending) with form-field + button; ZERO source change per ADR 0009's
+# zero-source ruling, so it RODE the docs-bearing 1.10.0 (alongside the lite-charts
+# integration recipe family); boundary test suite per recipe run vs PUBLISHED
+# @zakkster/lite-form; api-surface snapshot unchanged)
 ===============================================================================
 
 ```markdown
