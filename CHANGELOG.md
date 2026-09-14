@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.12.0 -- 2026-09-14
+
+### Added
+
+- Recipe: `lite-table-filter-panel` -- a deferred (Apply-button) filter panel over
+  a `@zakkster/lite-table`, composing `form-field` (per-input ARIA) and `button`
+  (accessible Apply/Reset) with lite-table's per-column filter API. Draft signals
+  are staged and pushed on Apply in one `batch` (a single `visibleRows` recompute);
+  Reset clears the filters and the drafts. Because the panel commits through
+  `setColumnFilter`, its applied state is captured by a lite-table saved view
+  (`getViewState` / `setViewState`) for free -- a query string round-trips, an
+  opaque predicate would not. Zero source change (ADR 0009 zero-source ruling).
+  Adds `docs/decisions/0011-filter-panel-recipe.md` and a boundary test suite
+  (6 assertions) run against published `@zakkster/lite-table` 1.3.0. Compound /
+  operator filters (AND/OR groups) are out of scope per ADR 0011 -- they would
+  need a serializable filter-descriptor seam in lite-table, not a recipe.
+
 ## 1.11.0 -- 2026-09-08
 
 ### Added
