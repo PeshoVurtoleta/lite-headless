@@ -85,6 +85,7 @@ declare module "@zakkster/lite-headless" {
     export { createRadioGroup } from "@zakkster/lite-headless/radio-group";
     export { createRating } from "@zakkster/lite-headless/rating";
     export { createResult } from "@zakkster/lite-headless/result";
+    export { createSavedViews } from "@zakkster/lite-headless/saved-views";
     export { createSkeleton } from "@zakkster/lite-headless/skeleton";
     export { createSlider } from "@zakkster/lite-headless/slider";
     export { createSortable } from "@zakkster/lite-headless/sortable";
@@ -175,6 +176,7 @@ declare module "@zakkster/lite-headless" {
     export type { BackTopOptions, BackTopInstance } from "@zakkster/lite-headless/backtop";
     export type { AffixOptions, AffixInstance } from "@zakkster/lite-headless/affix";
     export type { AnchorOptions, AnchorInstance } from "@zakkster/lite-headless/anchor";
+    export type { SavedView, SavedViewsOptions, SavedViewsInstance } from "@zakkster/lite-headless/saved-views";
 }
 
 // =============================================================================
@@ -2157,6 +2159,62 @@ declare module "@zakkster/lite-headless/notification-center" {
     export function createNotificationCenter(opts?: NotificationCenterOptions): NotificationCenterInstance;
 }
 declare module "@zakkster/lite-headless/notification-center/element" {}
+
+// =============================================================================
+// saved-views
+// =============================================================================
+
+declare module "@zakkster/lite-headless/saved-views" {
+    export interface SavedView<S = unknown> {
+        id: string;
+        name: string;
+        state: S;
+    }
+
+    export interface SavedViewsStorage<S = unknown> {
+        load(): SavedView<S>[] | null;
+        save(views: SavedView<S>[]): void;
+    }
+
+    export interface SavedViewsOptions<S = unknown> {
+        getState: () => S;
+        setState: (state: S) => void;
+        views?: SavedView<S>[];
+        activeId?: string | null;
+        storage?: SavedViewsStorage<S>;
+        equals?: (a: S, b: S) => boolean;
+        generateId?: () => string;
+        onChange?: (views: SavedView<S>[]) => void;
+        onActiveChange?: (id: string | null) => void;
+        onApply?: (view: SavedView<S>) => void;
+    }
+
+    export interface SavedViewsInstance<S = unknown> {
+        // reactive
+        views: ReactiveAccessor<SavedView<S>[]>;
+        activeId: ReactiveAccessor<string | null>;
+        activeView(): SavedView<S> | null;
+        isDirty(): boolean;
+        // queries
+        getView(id: string): SavedView<S> | null;
+        // mutations
+        save(name: string): SavedView<S>;
+        update(id?: string): void;
+        apply(id: string): void;
+        remove(id: string): void;
+        rename(id: string, name: string): void;
+        clearActive(): void;
+        // attach
+        attachRoot(el: Element): OffFn;
+        attachItem(el: Element, id: string): OffFn;
+        // lifecycle
+        destroy(): void;
+        readonly destroyed: boolean;
+    }
+
+    export function createSavedViews<S = unknown>(options: SavedViewsOptions<S>): SavedViewsInstance<S>;
+}
+declare module "@zakkster/lite-headless/saved-views/element" {}
 
 // =============================================================================
 // pin-input

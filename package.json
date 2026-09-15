@@ -1,7 +1,7 @@
 {
   "name": "@zakkster/lite-headless",
-  "version": "1.12.0",
-  "description": "Zero-dependency headless UI primitives -- 62 ARIA-correct factories + custom-element wrappers, with explicit state-attribute CSS contract. Zero-GC hot paths; reactive accessors via lite-signal.",
+  "version": "1.13.0",
+  "description": "Zero-dependency headless UI primitives -- 63 ARIA-correct factories + custom-element wrappers, with explicit state-attribute CSS contract. Zero-GC hot paths; reactive accessors via lite-signal.",
   "type": "module",
   "main": "./src/index.js",
   "module": "./src/index.js",
@@ -374,6 +374,14 @@
     "./slider/element": {
       "types": "./types.d.ts",
       "import": "./src/slider/element.js"
+    },
+    "./saved-views": {
+      "types": "./types.d.ts",
+      "import": "./src/saved-views/index.js"
+    },
+    "./saved-views/element": {
+      "types": "./types.d.ts",
+      "import": "./src/saved-views/element.js"
     },
     "./sortable": {
       "types": "./types.d.ts",

@@ -3,7 +3,7 @@
 > AUTO-GENERATED from `src/**/*.js` on each release. Do not hand-edit.
 > Run `npm run gen:appendix` to regenerate.
 
-**Coverage:** 62 primitives - 207 distinct `data-*` - 31 distinct `aria-*` - 23 distinct CSS custom properties.
+**Coverage:** 63 primitives - 210 distinct `data-*` - 31 distinct `aria-*` - 23 distinct CSS custom properties.
 
 ## `lite-accordion`
 
@@ -822,6 +822,21 @@ _(no painted attributes -- primitive operates purely on JS API)_
 - `data-status`
 
 **Other attributes set:** `role`
+
+
+## `lite-saved-views`
+
+**ARIA attributes painted:**
+
+- `aria-label`
+
+**`data-*` attributes painted:**
+
+- `data-sv-active`
+- `data-sv-count`
+- `data-sv-id`
+
+**Other attributes set:** `role`, `tabindex`
 
 
 ## `lite-select`

@@ -42,6 +42,8 @@ const FACTORY_OPTIONS = {
     createPicture: { src: "x.png" },
     createSlider: { min: 0, max: 100, step: 1, defaultValue: [50] },
     createTabs: { defaultValue: "a" },
+    // getState/setState are required functions -> bare construction would throw.
+    createSavedViews: { getState: () => ({ n: 1 }), setState: () => {} },
 };
 
 // =====================================================================

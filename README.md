@@ -1,6 +1,6 @@
 # @zakkster/lite-headless
 
-> 62 headless UI primitives on signal-based reactivity. Overlays (dialog, alert-dialog, popover, tooltip, hover-card, menu, combobox, command-palette, toast, drawer, tour) share one composition core; form controls and data/display primitives live alongside. Each primitive ships an optional `<lite-*>` custom element. Framework-agnostic, tree-shakable, zero runtime deps, 1633 tests, MIT.
+> 63 headless UI primitives on signal-based reactivity. Overlays (dialog, alert-dialog, popover, tooltip, hover-card, menu, combobox, command-palette, toast, drawer, tour) share one composition core; form controls and data/display primitives live alongside. Each primitive ships an optional `<lite-*>` custom element. Framework-agnostic, tree-shakable, zero runtime deps, 1813 tests, MIT.
 
 [![npm version](https://img.shields.io/npm/v/@zakkster/lite-headless.svg?style=for-the-badge&color=latest)](https://www.npmjs.com/package/@zakkster/lite-headless)
 [![sponsor](https://img.shields.io/badge/sponsor-PeshoVurtoleta-ea4aaa.svg?logo=github)](https://github.com/sponsors/PeshoVurtoleta)
@@ -71,7 +71,7 @@ No promise between `setOpen` and the DOM mutations. No `queueMicrotask`. No sche
 
 ## What you get
 
-**62 primitives**, each a single subpath under `@zakkster/lite-headless`, each with its own `llms.txt` and an optional `<lite-{name}>` custom element. Four groups:
+**63 primitives**, each a single subpath under `@zakkster/lite-headless`, each with its own `llms.txt` and an optional `<lite-{name}>` custom element. Four groups:
 
 - **Overlays** (11, share `_overlay/`): dialog, alert-dialog, popover, tooltip, hover-card, menu, combobox, command-palette, toast, drawer, tour.
 - **Form controls** (17): button, slider, switch, checkbox, checkbox-group, select, rating, pin-input, tag-input, time-picker, file-upload, color-picker, datepicker, stepper, inline-edit, form-field, password-input.
@@ -80,7 +80,7 @@ No promise between `setOpen` and the DOM mutations. No `queueMicrotask`. No sche
 
 `hover-card` is positioned by [`@zakkster/lite-floating`](https://www.npmjs.com/package/@zakkster/lite-floating) (its `autoUpdate` pulls in [`@zakkster/lite-observe`](https://www.npmjs.com/package/@zakkster/lite-observe) transitively); both are **optional** peers, needed only for `hover-card` and the `floating-adapter` subpath. The other overlays use the in-house `_overlay/position` positioner. `alert-dialog` reuses the dialog contract verbatim (`role="alertdialog"`, always modal, no backdrop-dismiss by default).
 
-The CSS contract is documented in [`docs/CSS_CONTRACT.md`](./docs/CSS_CONTRACT.md) (hand-curated taxonomy) and [`docs/CSS_CONTRACT_APPENDIX.md`](./docs/CSS_CONTRACT_APPENDIX.md) (per-primitive, auto-generated from source). Across the 62 primitives that is 207 distinct `data-*` attributes, 31 distinct `aria-*` attributes, and 23 CSS custom properties -- the entire styling surface, enumerated.
+The CSS contract is documented in [`docs/CSS_CONTRACT.md`](./docs/CSS_CONTRACT.md) (hand-curated taxonomy) and [`docs/CSS_CONTRACT_APPENDIX.md`](./docs/CSS_CONTRACT_APPENDIX.md) (per-primitive, auto-generated from source). Across the 63 primitives that is 210 distinct `data-*` attributes, 31 distinct `aria-*` attributes, and 23 CSS custom properties -- the entire styling surface, enumerated.
 
 Zero runtime dependencies ship in the published package. The peer split lets a framework adapter wire its own state primitive into the same logic without duplicating it. Signal-driven, framework-free, tree-shakable. No scheduler queue, no microtask deferral, no styling assumptions.
 
@@ -257,7 +257,7 @@ Classes 1-3 are outputs the primitive writes; class 4 are inputs the wrapper rea
 
 | Export           | Meaning                                                           |
 | ---------------- | ---------------------------------------------------------------- |
-| `VERSION`        | Package version string (`"1.12.0"`), also mirrored in `llms.txt`. |
+| `VERSION`        | Package version string (`"1.13.0"`), also mirrored in `llms.txt`. |
 | status values    | `"closed"` -> `"opening"` -> `"open"` -> `"closing"` (per overlay). |
 | generated id ns  | `lh-dialog-`, `lh-popover-`, ... namespaced per primitive.        |
 
@@ -411,7 +411,7 @@ npm run verify       # test + types + torture, the publish gate
 npm run test:browser # Playwright, real-layout cases (safe-triangle, drag, flip)
 ```
 
-The unit suite runs on happy-dom with a per-test `setupDOM()` / `teardownDOM()` that calls `happyDOM.close()` -- without it, internal task queues accumulate and the suite SIGKILLs. `types.d.ts` declares the factories, return shapes, options, and `Lite{X}Element` host interfaces for all 62 primitives; `type-tests/api-surface.ts` exercises that surface so any drift between the declared types and real usage surfaces at `tsc` time. The JS export surface is pinned by `test/api-surface.test.js`, which diffs the committed `api-surface-snapshot.json` against every live exports-map subpath and re-derives each subpath's named exports (regenerate with `npm run api:update`). happy-dom does not simulate layout (`getBoundingClientRect()` returns zeros), so geometry-dependent behavior -- safe-triangle math, drag against a real track rect, popover flip against the real viewport -- is covered by the Playwright tier. `npm run verify` is the prepublish gate; the ASCII law is pinned by `test/ascii-law.test.js`, which also asserts this README's section order.
+The unit suite runs on happy-dom with a per-test `setupDOM()` / `teardownDOM()` that calls `happyDOM.close()` -- without it, internal task queues accumulate and the suite SIGKILLs. `types.d.ts` declares the factories, return shapes, options, and `Lite{X}Element` host interfaces for all 63 primitives; `type-tests/api-surface.ts` exercises that surface so any drift between the declared types and real usage surfaces at `tsc` time. The JS export surface is pinned by `test/api-surface.test.js`, which diffs the committed `api-surface-snapshot.json` against every live exports-map subpath and re-derives each subpath's named exports (regenerate with `npm run api:update`). happy-dom does not simulate layout (`getBoundingClientRect()` returns zeros), so geometry-dependent behavior -- safe-triangle math, drag against a real track rect, popover flip against the real viewport -- is covered by the Playwright tier. `npm run verify` is the prepublish gate; the ASCII law is pinned by `test/ascii-law.test.js`, which also asserts this README's section order.
 
 ---
 

@@ -90,6 +90,7 @@
         "createRadioGroup",
         "createRating",
         "createResult",
+        "createSavedViews",
         "createSelect",
         "createSeparator",
         "createSkeleton",
@@ -681,6 +682,19 @@
     "./result/element": {
       "defines": [
         "lite-result"
+      ],
+      "kind": "element",
+      "names": []
+    },
+    "./saved-views": {
+      "kind": "module",
+      "names": [
+        "createSavedViews"
+      ]
+    },
+    "./saved-views/element": {
+      "defines": [
+        "lite-saved-views"
       ],
       "kind": "element",
       "names": []

@@ -215,3 +215,40 @@ test("H-12 element: churned mount/unmount does not walk the registry to Capacity
         assert.equal(active(), baseline, "radio-group churn cycle " + i + ": activeNodes " + active());
     }
 });
+
+// =====================================================================
+// <lite-saved-views>: PROPERTY-DRIVEN (ADR 0012). getState/setState arrive as
+// JS properties before connect; the element instantiates on mount and MUST
+// dispose the instance on disconnect via scope.onCleanup (the 1.9.1 fix). This
+// is the A7 witness -- .destroyed true + activeNodes back to baseline.
+// =====================================================================
+
+test("A7 H-12 element: <lite-saved-views> mounts on props, destroys on disconnect", async () => {
+    await import("../src/saved-views/element.js");
+    const baseline = active();
+    for (let i = 0; i < 8; i++) {
+        const host = document.createElement("lite-saved-views");
+        let st = { q: i };
+        host.getState = () => st;
+        host.setState = (v) => { st = v; };
+        document.body.appendChild(host);
+        const inst = host._savedViewsInstance;
+        assert.ok(inst, "cycle " + i + ": instance created on connect (getState/setState set)");
+        inst.save("v" + i);
+        document.body.removeChild(host);
+        await flushMicrotasks();
+        assert.equal(inst.destroyed, true, "cycle " + i + ": instance destroyed on disconnect");
+        assert.equal(active(), baseline, "cycle " + i + ": activeNodes " + active() + " != baseline " + baseline);
+    }
+});
+
+test("A7 element: <lite-saved-views> stays inert without getState/setState (no throw)", async () => {
+    await import("../src/saved-views/element.js");
+    const baseline = active();
+    const host = document.createElement("lite-saved-views");
+    document.body.appendChild(host);
+    assert.equal(host._savedViewsInstance, null, "inert: no instance without both hooks");
+    document.body.removeChild(host);
+    await flushMicrotasks();
+    assert.equal(active(), baseline, "inert element allocates no signals");
+});

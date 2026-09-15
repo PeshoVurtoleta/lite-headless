@@ -1,5 +1,37 @@
 # Changelog
 
+## 1.13.0 -- 2026-09-14
+
+### Added
+
+- `createSavedViews` (saved-views, G-03) -- a headless controller for a NAMED
+  collection of view snapshots, an active view, dirty detection, and optional
+  persistence. GENERIC over any `getState` / `setState` pair: it captures
+  whatever getState() returns and hands it back to setState() on apply. It pairs
+  naturally with `@zakkster/lite-table`'s `getViewState()` / `setViewState(view)`
+  seam but is DECOUPLED -- no import, peer, or devDep (a plain object stub drives
+  the tests). Reactive `views()` / `activeId()` / `activeView()` accessors;
+  `isDirty()` is PULL-only and reactive-when-wrapped (reading it inside an effect
+  re-runs on drift) -- never painted in an always-on effect, so an
+  underlying-state change never fans out into a getViewState() call.
+  `save` / `update` / `apply` / `remove` / `rename` / `clearActive` mutations;
+  `attachRoot` (zero-alloc paint of `data-sv-count` + `data-sv-active`) and
+  `attachItem` (role=option, click/Enter/Space -> apply). Fail closed:
+  getState/setState required functions; unknown view id and blank name throw
+  TypeError; unknown option key throws with a did-you-mean hint. Snapshots stored
+  by reference (getState returns a fresh object per call). Persistence is an
+  injectable, env-agnostic `{ load, save }` adapter -- the collection persists on
+  save/update/remove/rename; the active id is session state. `generateId`
+  defaults to a per-instance prefix so two controllers sharing one storage never
+  collide. destroy() seals both owned signals back into the pool (H-12).
+- `<lite-saved-views>` -- the PROPERTY-DRIVEN custom element (getState/setState
+  are functions, so it takes no observed attributes). Set `el.getState` /
+  `el.setState` (and optional `el.views` / `el.activeId` / `el.storage`) before
+  connect; it instantiates on mount and paints role=group, else stays inert (no
+  throw). Teardown via `scope.onCleanup`. `host.savedViews` exposes the instance.
+- Adds `docs/decisions/0012-saved-views.md`, `src/saved-views/llms.txt`, and a
+  16-assertion test suite (A1-A6) plus an element A7 witness. Catalog 62 -> 63.
+
 ## 1.12.0 -- 2026-09-14
 
 ### Added

@@ -14,7 +14,7 @@
 // If bundle size matters at scale, prefer the subpath imports.
 
 // Three-place version sync: package.json, this const, llms.txt.
-export const VERSION = "1.12.0";
+export const VERSION = "1.13.0";
 
 export { createAccordion } from "./accordion/index.js";
 export { createAffix } from "./affix/index.js";
@@ -57,6 +57,7 @@ export { createProgress } from "./progress/index.js";
 export { createRadioGroup } from "./radio-group/index.js";
 export { createRating } from "./rating/index.js";
 export { createResult } from "./result/index.js";
+export { createSavedViews } from "./saved-views/index.js";
 export { createSelect } from "./select/index.js";
 export { createSeparator } from "./separator/index.js";
 export { createSkeleton } from "./skeleton/index.js";

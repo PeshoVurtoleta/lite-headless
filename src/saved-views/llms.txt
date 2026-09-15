@@ -1,0 +1,182 @@
+# @zakkster/lite-headless/saved-views
+
+A stateful controller for a NAMED collection of view snapshots, an active
+view, dirty detection, and optional persistence. GENERIC over any
+getState / setState pair -- it captures whatever getState() returns and hands
+it back to setState() on apply. The classic "save this filter/sort/layout as
+a named view, switch between views, notice when the current state has drifted"
+UX of every data grid and dashboard.
+
+Decoupled by design: it pairs naturally with @zakkster/lite-table's
+`getViewState()` / `setViewState(view)` seam, but there is NO import, peer, or
+devDep on lite-table -- a plain object stub drives the tests. Any state source
+that can serialize + restore its own shape works.
+
+## API
+
+```js
+import { createSavedViews } from "@zakkster/lite-headless/saved-views";
+
+const sv = createSavedViews({
+    getState: () => table.getViewState(),      // REQUIRED function
+    setState: (state) => table.setViewState(state), // REQUIRED function
+    views:    [],                              // initial {id,name,state}[]
+    activeId: null,                            // active view id or null
+    storage:  myAdapter,                       // optional { load, save }
+    equals:   (a, b) => deepEqual(a, b),       // optional; default JSON compare
+    generateId: () => crypto.randomUUID(),     // optional; default per-instance
+    onChange:       (views) => {},             // after any collection change
+    onActiveChange: (id)    => {},             // after the active id changes
+    onApply:        (view)  => {},             // after apply()
+});
+```
+
+`getState` and `setState` are REQUIRED functions -- construction throws a
+TypeError if either is missing or not a function (null is not a function).
+
+## Options
+
+| option         | type                                   | default              |
+|----------------|----------------------------------------|----------------------|
+| getState       | () => S                                | REQUIRED             |
+| setState       | (state: S) => void                     | REQUIRED             |
+| views          | { id, name, state }[]                  | []                   |
+| activeId       | string \| null                         | null                 |
+| storage        | { load(): views\|null, save(views) }   | none                 |
+| equals         | (a, b) => boolean                      | JSON.stringify equal |
+| generateId     | () => string                           | sv-<instance>-<n>    |
+| onChange       | (views) => void                        | none                 |
+| onActiveChange | (id \| null) => void                   | none                 |
+| onApply        | (view) => void                         | none                 |
+
+## View shape
+
+```js
+{
+    id:    string,   // unique within the collection
+    name:  string,   // human label
+    state: any,      // snapshot captured from getState(), stored BY REFERENCE
+}
+```
+
+Snapshots are stored by reference, never cloned: getState() is expected to
+return a FRESH object per call (as lite-table's getViewState() does), so there
+is no aliasing between the live state and a saved snapshot.
+
+## Reactive accessors + queries
+
+```js
+sv.views()        // SavedView[] in insertion order
+sv.activeId()     // string | null
+sv.activeView()   // SavedView | null (pull: resolves id against the collection)
+sv.getView(id)    // SavedView | null
+sv.isDirty()      // boolean -- see below
+```
+
+`isDirty()` is PULL-only: `activeView() ? !equals(getState(), activeView().state)
+: false`. It is reactive FOR FREE when read inside a computed / effect, because
+getState() reads the underlying state signals. There is deliberately NO second
+reactive path, and it is NEVER painted in an always-on effect -- that would call
+getState() on every underlying-signal change (per-drag-pixel churn). Read it
+where you need it (a computed, a paint effect, an event handler).
+
+## Mutations
+
+```js
+sv.save(name)       // snapshot getState(); append + set active; returns the view
+sv.update(id?)      // overwrite a view's state with getState() (default: active)
+sv.apply(id)        // setState(view.state) + set active (does NOT persist)
+sv.remove(id)       // drop a view; clears active if it was the removed one
+sv.rename(id, name) // rename a view
+sv.clearActive()    // active id -> null
+```
+
+Fail closed: `save`/`rename` require a non-blank string name; `apply`, `update`,
+`remove`, `rename` throw a TypeError on an unknown view id. `update()` with no
+argument targets the active view (and throws if there is none).
+
+## Persistence
+
+`storage` is an INJECTABLE, env-agnostic adapter -- NOT hardcoded to
+localStorage:
+
+```js
+const storage = {
+    load: () => JSON.parse(localStorage.getItem("views") || "null"),
+    save: (views) => localStorage.setItem("views", JSON.stringify(views)),
+};
+```
+
+- At construction, if `storage.load()` returns a non-null array it SEEDS the
+  collection (overriding `views`). A null return falls back to `views` -- null
+  means "nothing persisted", not "empty collection".
+- The COLLECTION persists on `save` / `update` / `remove` / `rename`.
+- The ACTIVE ID is session state: `apply` / `clearActive` do NOT persist it.
+  Persist it yourself from `onActiveChange` if you want it to survive reloads.
+
+## Attach methods
+
+```js
+sv.attachRoot(el)         // role=group; data-sv-count + data-sv-active
+sv.attachItem(el, id)     // role=option; data-sv-id; click/Enter/Space -> apply(id)
+```
+
+## Painted attributes
+
+### Root (attachRoot)
+- `role="group"`, `aria-label="Saved views"`
+- `data-sv-count="<n>"` -- number of views
+- `data-sv-active="<id>"` -- active view id ("" when none)
+
+attachRoot's paint is ZERO-ALLOC: it reads ONLY the count + active-id signals.
+It never reads getState()/isDirty(), so an underlying-state change (a column
+drag) never fans out into a getViewState() call here. Dirty stays PULL.
+
+### Items (attachItem)
+- `role="option"`, `tabindex="0"`
+- `data-sv-id="<id>"`
+- `data-sv-active` when this item is the active view
+
+## Custom element
+
+`<lite-saved-views>` is PROPERTY-DRIVEN: getState / setState are functions and
+cannot be HTML attributes, so it takes NO observed attributes. Wire it in JS:
+
+```js
+const el = document.createElement("lite-saved-views");
+el.getState = () => table.getViewState();
+el.setState = (v) => table.setViewState(v);
+el.views    = [];        // optional
+el.activeId = null;      // optional
+el.storage  = adapter;   // optional
+document.body.appendChild(el);
+
+el.savedViews.save("Overdue");   // the live instance (getter)
+```
+
+On connect, if `getState` AND `setState` are both functions the element
+instantiates and paints role=group via attachRoot(host); otherwise it stays
+INERT (no throw). `host.savedViews` (and `host._savedViewsInstance`) expose the
+instance for imperative use.
+
+## Composition
+
+- **`@zakkster/lite-table`**: the canonical pairing. `getState` =
+  `table.getViewState()`, `setState` = `table.setViewState(view)`. Filters,
+  sort, and column layout round-trip as JSON-safe query strings.
+- **`lite-menu` / `lite-select`**: a "Views" dropdown listing views(); each row
+  is an attachItem, and a "Save current view" action calls save(name).
+- **`lite-inline-edit`**: rename a view in place -> rename(id, name).
+- **`lite-badge`**: show a "modified" badge bound to isDirty() in a computed.
+
+## Notes
+
+- generateId defaults to a PER-INSTANCE prefix (`sv-<instanceStamp>-<n>`), so
+  two controllers sharing one storage adapter never mint colliding ids.
+- destroy() seals both owned signals back into the lite-signal pool (H-12):
+  reads freeze at their final value and mutations no-op.
+
+## CSS contract
+
+This primitive's painted attributes follow the canonical CSS contract in
+`docs/CSS_CONTRACT.md`. See that doc for the cross-primitive taxonomy.

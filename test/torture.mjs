@@ -135,6 +135,7 @@ import { createBreadcrumb } from "../src/breadcrumb/index.js";
 import { createColorPicker } from "../src/color-picker/index.js";
 import { createMeter } from "../src/meter/index.js";
 import { createNotificationCenter } from "../src/notification-center/index.js";
+import { createSavedViews } from "../src/saved-views/index.js";
 import { createTag } from "../src/tag/index.js";
 import { createDatePicker } from "../src/datepicker/index.js";
 import { createTimePicker } from "../src/time-picker/index.js";
@@ -174,6 +175,13 @@ tracker.registerKernel(createAsyncRetentionKernel());
 
 const d = document;
 function el(tag) { return d.createElement(tag || "div"); }
+
+// saved-views stub: a plain-object getState/setState pair (no signal, no
+// lite-table). Shared across the churn so each make() allocates only the
+// primitive's own two signals -- which destroy() must return to the pool.
+const _svState = { q: 0, sort: 1 };
+const _svGet = () => _svState;
+const _svSet = () => {};
 
 // ----- phase A: retention torture -------------------------------------------
 // Each cycle runs inside an effect owner. track() inside the owner auto-wires
@@ -300,6 +308,25 @@ churn(
 churn(
     () => createNotificationCenter(),
     (x) => { x.attachRoot(el("div")); x.attachUnreadBadge(el("span")); x.add({ id: "1", title: "hi" }); x.attachItem(el("li"), "1"); x.markRead("1"); x.setFilter({ kind: "info" }); },
+    256,
+);
+// G-03 saved-views create/attach/mutate/destroy churn. A PLAIN-OBJECT stub
+// drives getState/setState (no lite-table, no extra pooled signal). Each cycle
+// attaches root + an item (two effects), saves twice, applies/updates/clears,
+// then destroys -- destroy() must stop both effects and seal the _views +
+// _activeId signals back into the pool (H-12). A regression would exhaust the
+// fixed 1024-node registry here.
+churn(
+    () => createSavedViews({ getState: _svGet, setState: _svSet }),
+    (x) => {
+        x.attachRoot(el("div"));
+        const v = x.save("v");
+        x.attachItem(el("div"), v.id);
+        x.update();
+        x.apply(v.id);
+        x.save("w");
+        x.clearActive();
+    },
     256,
 );
 churn(
